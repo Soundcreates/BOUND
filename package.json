@@ -3,11 +3,15 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "integrations/*",
+    "services/*"
   ],
   "scripts": {
     "test": "node --test packages/contracts/*.test.js services/watcher/*.test.js integrations/arkiv/*.test.js demo/hijack-server/*.test.js scripts/integration/*.test.js",
-    "demo:local": "node --env-file=.env demo/hijack-server/run.mjs"
+    "demo:local": "node --env-file=.env demo/hijack-server/run.mjs",
+    "test-workspace": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "engines": {
     "node": ">=22"
