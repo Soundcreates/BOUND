@@ -1,0 +1,12 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Workspace outputs
+node_modules/
+coverage/
+dist/
+
+# Local watcher journals may contain pseudonymous observation data.
+.bound/

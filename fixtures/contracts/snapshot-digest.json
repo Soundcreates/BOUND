@@ -1,0 +1,5 @@
+{
+  "algorithm": "keccak-256",
+  "canonicalization": "RFC 8785",
+  "digest": "0xecff32d2765ca4838907876f39bf4947ede5f46000fee155968998921191df90"
+}
