@@ -2,7 +2,7 @@
 
 **Purpose:** turn the project architecture into a three-developer implementation plan with independent work lanes, explicit phase gates, and live end-to-end proof for every required integration.
 
-**Architecture basis:** BOUND Final Architecture v2.0. The repository currently contains only the two architecture documents; it has no source code, package manifest, build configuration, or test files. This plan treats implementation claims in the documents as design input, not as files or test results available in this checkout.
+**Architecture basis:** BOUND Final Architecture v2.0. At plan creation, the repository contained only the two architecture documents. Developer 3 Phase 0 has since added a dependency-free root workspace, executable contract package, fixtures, and CI test command. Browser, watcher, live Arkiv writer, and other product implementations remain absent. This plan treats architecture claims as design input until executable evidence is present in this checkout.
 
 ## 1. Source of truth and current baseline
 

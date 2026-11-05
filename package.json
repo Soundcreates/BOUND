@@ -1,0 +1,15 @@
+{
+  "name": "bound-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "node --test packages/contracts/*.test.js services/watcher/*.test.js integrations/arkiv/*.test.js demo/hijack-server/*.test.js scripts/integration/*.test.js",
+    "demo:local": "node --env-file=.env demo/hijack-server/run.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

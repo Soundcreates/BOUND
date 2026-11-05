@@ -1,0 +1,7 @@
+[
+  {"schemaVersion":1,"kind":"observation","site":"example.org","chainId":1,"value":"0x1111111111111111111111111111111111111111","reporterKey":"key","event":"warned"},
+  {"schemaVersion":1,"kind":"baseline","site":"example.org","chainId":1,"counterparties":["0x1111111111111111111111111111111111111111"],"calledContracts":["0x2222222222222222222222222222222222222222"],"updatedAt":"2026-01-01T00:00:00.000Z"},
+  {"schemaVersion":1,"kind":"drift","site":"example.org","chainId":1,"changes":[{"kind":"a-record","before":["192.0.2.1"],"after":["192.0.2.2"]},{"kind":"cert","before":["issuer:Example CA","san:example.org"],"after":["issuer:Example CA","san:other.example"]}],"corroborated":true,"evidenceReference":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","detectedAt":"2026-01-01T00:00:00.000Z"},
+  {"schemaVersion":1,"kind":"incident","site":"example.org","chainId":1,"trigger":"drift+warned","severity":"high","counterparty":"0x1111111111111111111111111111111111111111","reportDigest":"0x0000000000000000000000000000000000000000000000000000000000000000","swarmReference":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","createdAt":"2026-01-01T00:00:00.000Z"},
+  {"schemaVersion":1,"kind":"status","site":"example.org","chainId":1,"state":"incident","feedReference":"0x3333333333333333333333333333333333333333333333333333333333333333","incidentReference":"0x4444444444444444444444444444444444444444444444444444444444444444","updatedAt":"2026-01-01T00:00:00.000Z"}
+]

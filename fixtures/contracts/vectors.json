@@ -1,0 +1,22 @@
+{
+  "roots": [
+    {"valid": true, "value": {"schemaVersion": 1, "network": "test", "epoch": 1, "digest": "0x0000000000000000000000000000000000000000000000000000000000000000", "swarmReference": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"valid": false, "value": {"schemaVersion": 1, "network": "test", "epoch": 9007199254740992, "digest": "0x0000000000000000000000000000000000000000000000000000000000000000", "swarmReference": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"valid": false, "value": {"schemaVersion": 1, "network": "test", "epoch": 1, "digest": ["0x0000000000000000000000000000000000000000000000000000000000000000"], "swarmReference": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"valid": false, "value": {"schemaVersion": 1, "network": "test", "epoch": 1, "digest": 7, "swarmReference": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"valid": false, "value": {"schemaVersion": 1, "network": "test", "epoch": 1, "digest": null, "swarmReference": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"valid": false, "value": {"schemaVersion": 1, "network": "test", "epoch": 1, "digest": "0x0000000000000000000000000000000000000000000000000000000000000000", "swarmReference": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"valid": false, "value": {"schemaVersion": 1, "network": "test", "epoch": 1, "digest": "0x0000000000000000000000000000000000000000000000000000000000000000", "swarmReference": "https://swarm.example/ref?key=secret"}}
+  ],
+  "observations": [
+    {"valid": true, "value": {"site": "xn--bcher-kva.example:8443", "kind": "warned", "value": "0x1111111111111111111111111111111111111111", "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": true, "value": {"site": "example.org", "kind": "counterparty", "value": "0x1111111111111111111111111111111111111111", "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "BÜCHER.example", "kind": "warned", "value": "0x1111111111111111111111111111111111111111", "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "example.com", "kind": "observation", "value": "0x1111111111111111111111111111111111111111", "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "example.com", "kind": "warned", "value": ["0x1111111111111111111111111111111111111111"], "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "example.com", "kind": "warned", "value": {"address": "0x1111111111111111111111111111111111111111"}, "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "example.com", "kind": "warned", "value": 123, "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "example.com", "kind": "warned", "value": null, "chainId": 1, "reporterKey": "rotating-key"}},
+    {"valid": false, "value": {"site": "example.com", "kind": "warned", "value": "0x1111111111111111111111111111111111111111", "chainId": 1, "reporterKey": "rotating-key", "wallet": "private"}}
+  ]
+}
