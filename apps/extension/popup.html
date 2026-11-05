@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOUND coverage</title>
+  <style>
+    body { width: 360px; margin: 0; padding: 16px; color: #18202a; background: #f4f6f8; font: 14px/1.45 system-ui, sans-serif; }
+    h1 { margin: 0 0 8px; font-size: 19px; }
+    h2 { margin: 18px 0 8px; font-size: 14px; }
+    code { overflow-wrap: anywhere; }
+    .panel { padding: 10px; background: white; border-radius: 8px; }
+    .row { padding: 8px 0; border-top: 1px solid #e2e6e9; }
+    .muted { color: #56616d; }
+    a { color: #174d78; }
+  </style>
+</head>
+<body>
+  <h1>BOUND</h1>
+  <p id="site" class="muted">Loading current tab…</p>
+  <section class="panel">
+    <strong id="coverage">Checking coverage…</strong>
+    <div id="frames" class="muted"></div>
+  </section>
+  <h2>Recent warnings on this site</h2>
+  <div id="history" class="panel">Loading…</div>
+  <script src="popup.js"></script>
+</body>
+</html>
