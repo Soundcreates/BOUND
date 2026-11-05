@@ -1,0 +1,19 @@
+{
+  "epoch": 1,
+  "network": "sepolia",
+  "rootName": "bound-demo.eth",
+  "generatedAt": "2026-01-01T00:00:00Z",
+  "validityDays": 30,
+  "sites": [
+    {
+      "host": "app.uniswap.org",
+      "chainId": 11155111,
+      "trustedCounterparties": [],
+      "trustedContracts": [],
+      "deployers": [],
+      "evidence": [],
+      "attestationName": "uniswap.eth"
+    }
+  ],
+  "shared": []
+}
