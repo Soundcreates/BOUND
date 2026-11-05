@@ -2,7 +2,7 @@
 
 Run `node apps/extension/build.mjs` from the repository root, then load `apps/extension/dist` as an unpacked extension in Chromium. In separate terminals, serve `demo/test-dapp` on ports 8000 and 8001 (`python -m http.server 8000 --directory demo/test-dapp` and the same command with `8001`). Open `http://127.0.0.1:8000`, announce the fake wallet, and choose one of the three provider APIs. Use the iframe buttons to see the top-level and requesting-frame origins differ. The extension opens its own warning window; Cancel rejects with EIP-1193 code 4001, while Continue reaches only the fake provider. Rebuild and reload the extension and page after source changes.
 
-On Windows, `node apps/extension/browser-check.mjs` runs a headless Edge check of the built extension with a fake wallet. It checks Cancel through `request`, Continue through `request`, `send`, and `sendAsync`, a forged page decision, request mutation, and a chain change before Continue. It creates disposable browser profiles under the ignored `dist` directory.
+On Windows, `node apps/extension/browser-check.mjs` runs a headless Edge check of the built extension with a fake wallet. It checks Cancel through `request`, Continue through `request`, `send`, and `sendAsync`, a forged page decision, request mutation, chain and account changes, cross-origin frame details, and navigation during a warning. It creates disposable browser profiles under the ignored `dist` directory.
 
 ## Feasibility notes
 
