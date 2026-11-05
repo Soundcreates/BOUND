@@ -1,0 +1,28 @@
+{
+  "name": "@bound/curator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "bound-curator": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "cli": "node --experimental-strip-types src/cli.ts"
+  },
+  "dependencies": {
+    "@bound/integrations-anon-rpc": "*",
+    "@bound/integrations-ens": "*",
+    "@bound/integrations-swarm": "*",
+    "@bound/snapshot": "*",
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
