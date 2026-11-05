@@ -156,6 +156,65 @@ try {
   const response = await navView.call('Runtime.evaluate', { expression: "chrome.runtime.sendMessage({type:'BOUND_DECISION_V1', id:new URLSearchParams(location.search).get('request'), action:'continue'})", awaitPromise: true, returnByValue: true });
   if (response.result.value?.ok !== false) throw new Error('Navigation did not invalidate the pending decision');
   console.log('PASS: navigation invalidated the pending decision');
+  await navView.call('Runtime.evaluate', { expression: 'window.close()' });
   navView.ws.close();
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: "document.readyState === 'complete' && !!document.querySelector('#connect')" })).result.value === true, 'navigated page load');
+  await dapp.call('Runtime.evaluate', { expression: `
+    window.__poisonedDelivered = null;
+    window.__poisonedError = null;
+    window.__savedBuiltins = { stringify: JSON.stringify, map: Array.prototype.map, has: Set.prototype.has, lower: String.prototype.toLowerCase, toJSON: Object.prototype.toJSON };
+    JSON.stringify = () => { throw new Error('poisoned JSON'); };
+    Array.prototype.map = () => { throw new Error('poisoned Array'); };
+    Set.prototype.has = () => { throw new Error('poisoned Set'); };
+    String.prototype.toLowerCase = () => { throw new Error('poisoned string'); };
+    Object.prototype.toJSON = () => { throw new Error('poisoned object'); };
+    const poisonWallet = { request(payload) {
+      if (payload.method === 'eth_chainId') return Promise.resolve('0x7a69');
+      if (payload.method === 'eth_accounts') return Promise.resolve(['0x00000000000000000000000000000000000000a1']);
+      window.__poisonedDelivered = payload;
+      return Promise.resolve('ok');
+    }};
+    window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail: { provider: poisonWallet } }));
+    poisonWallet.request({ method: 'eth_sendTransaction', params: [{ to: '0x00000000000000000000000000000000000000b1', data: '0x' }] }).catch(error => window.__poisonedError = error.message);
+  ` });
+  const poisonTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== navTarget.id), 'poisoning warning');
+  const poisonView = await connect(poisonTarget.webSocketDebuggerUrl);
+  await until(async () => (await poisonView.call('Runtime.evaluate', { expression: "document.querySelector('#continue') && !document.querySelector('#continue').disabled" })).result.value === true, 'poisoning warning details');
+  const replay = await poisonView.call('Runtime.evaluate', { expression: `(async () => {
+    const id = new URLSearchParams(location.search).get('request');
+    const first = await chrome.runtime.sendMessage({ type: 'BOUND_DECISION_V1', id, action: 'continue' });
+    const second = await chrome.runtime.sendMessage({ type: 'BOUND_DECISION_V1', id, action: 'continue' });
+    return [first.ok, second.ok];
+  })()`, awaitPromise: true, returnByValue: true });
+  if (replay.result.value?.[0] !== true || replay.result.value?.[1] !== false) throw new Error('Decision replay was not rejected');
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'window.__poisonedDelivered !== null' })).result.value === true, 'poisoned request forwarding');
+  console.log('PASS: poisoned page built-ins did not bypass mediation; replayed decision rejected');
+  await dapp.call('Runtime.evaluate', { expression: `
+    JSON.stringify = window.__savedBuiltins.stringify;
+    Array.prototype.map = window.__savedBuiltins.map;
+    Set.prototype.has = window.__savedBuiltins.has;
+    String.prototype.toLowerCase = window.__savedBuiltins.lower;
+    if (window.__savedBuiltins.toJSON === undefined) delete Object.prototype.toJSON;
+    else Object.prototype.toJSON = window.__savedBuiltins.toJSON;
+  ` });
+  await poisonView.call('Runtime.evaluate', { expression: 'window.close()' });
+  poisonView.ws.close();
+  await dapp.call('Runtime.evaluate', { expression: "window.__poisonedDelivered = null; window.__restartError = null; poisonWallet.request({ method: 'eth_sendTransaction', params: [{ to: '0x00000000000000000000000000000000000000b1', data: '0x' }] }).catch(error => window.__restartError = error.code)" });
+  const restartTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== poisonTarget.id), 'worker restart warning');
+  const restartView = await connect(restartTarget.webSocketDebuggerUrl);
+  await until(async () => (await restartView.call('Runtime.evaluate', { expression: "document.querySelector('#continue') && !document.querySelector('#continue').disabled" })).result.value === true, 'worker restart warning details');
+  const worker = await until(async () => (await targets()).find(t => t.type === 'service_worker' && t.url.endsWith('/sw.js')), 'extension worker');
+  const browserPath = (await readFile(path.join(profile, 'DevToolsActivePort'), 'utf8')).split('\n')[1].trim();
+  const browserControl = await connect(`ws://127.0.0.1:${debugPort}${browserPath}`);
+  const closed = await browserControl.call('Target.closeTarget', { targetId: worker.id });
+  if (!closed.success) throw new Error('Could not stop extension worker');
+  const restartResponse = await restartView.call('Runtime.evaluate', { expression: "chrome.runtime.sendMessage({type:'BOUND_DECISION_V1', id:new URLSearchParams(location.search).get('request'), action:'continue'})", awaitPromise: true, returnByValue: true });
+  if (restartResponse.result.value?.ok !== false) throw new Error('Worker restart did not invalidate decision');
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'window.__restartError' })).result.value === 4001, 'worker restart cancellation');
+  if ((await dapp.call('Runtime.evaluate', { expression: 'window.__poisonedDelivered !== null' })).result.value) throw new Error('Worker restart forwarded request');
+  console.log('PASS: worker restart invalidated the pending decision');
+  browserControl.ws.close();
+  await restartView.call('Runtime.evaluate', { expression: 'window.close()' });
+  restartView.ws.close();
   dapp.ws.close();
 } finally { browser.kill(); server.close(); frameServer.close(); }
