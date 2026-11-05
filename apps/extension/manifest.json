@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "BOUND Prototype",
+  "version": "0.1.0",
+  "description": "Phase 0 wallet request interception prototype.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "tabs", "offscreen"],
+  "action": { "default_title": "BOUND coverage", "default_popup": "popup.html" },
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
+  "background": { "service_worker": "sw.js", "type": "module" },
+  "content_scripts": [
+    {
+      "matches": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
+      "js": ["hook.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
+      "js": ["relay.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    }
+  ]
+}

@@ -1,0 +1,281 @@
+(() => {
+  const NativePromise = Promise;
+  const promiseAll = Promise.all;
+  const promiseReject = Promise.reject;
+  const promiseThen = Promise.prototype.then;
+  const stringify = JSON.stringify;
+  const addEvent = window.addEventListener.bind(window);
+  const postMessage = window.postMessage.bind(window);
+  const stopImmediate = Event.prototype.stopImmediatePropagation;
+  const freeze = Object.freeze;
+  const objectPrototype = Object.prototype;
+  const create = Object.create;
+  const getPrototype = Object.getPrototypeOf;
+  const setPrototype = Object.setPrototypeOf;
+  const descriptors = Object.getOwnPropertyDescriptor;
+  const keys = Reflect.ownKeys;
+  const weakHas = WeakSet.prototype.has;
+  const weakAdd = WeakSet.prototype.add;
+  const weakDelete = WeakSet.prototype.delete;
+  const mapGet = Map.prototype.get;
+  const mapSet = Map.prototype.set;
+  const mapDelete = Map.prototype.delete;
+  const NativeWeakSet = WeakSet;
+  const NativeMap = Map;
+  const NativeError = Error;
+  const NativeTypeError = TypeError;
+  const NativeUint8Array = Uint8Array;
+  const numberIsFinite = Number.isFinite;
+  const lower = String.prototype.toLowerCase;
+  const regexpTest = RegExp.prototype.test;
+  const addressPattern = /^0x[0-9a-f]{40}$/i;
+  const chainPattern = /^0x[0-9a-f]+$/i;
+  const isArray = Array.isArray;
+  const arraySome = Array.prototype.some;
+  const arrayMap = Array.prototype.map;
+  const apply = Reflect.apply;
+  const encode = TextEncoder.prototype.encode;
+  const encoder = new TextEncoder();
+  const subtleDigest = crypto.subtle.digest.bind(crypto.subtle);
+  const randomUuid = crypto.randomUUID.bind(crypto);
+  const setTimeoutNative = window.setTimeout.bind(window);
+  const clearTimeoutNative = window.clearTimeout.bind(window);
+  const promise = (value, ok, fail) => apply(promiseThen, value, [ok, fail]);
+  const weakHasValue = (set, value) => apply(weakHas, set, [value]);
+  const weakAddValue = (set, value) => apply(weakAdd, set, [value]);
+  const weakDeleteValue = (set, value) => apply(weakDelete, set, [value]);
+  const mapGetValue = (map, key) => apply(mapGet, map, [key]);
+  const mapSetValue = (map, key, value) => apply(mapSet, map, [key, value]);
+  const mapDeleteValue = (map, key) => apply(mapDelete, map, [key]);
+  const providers = new NativeWeakSet();
+  const waiting = new NativeMap();
+  let channel = null;
+  let providerInstrumented = false;
+  let releaseChannel;
+  const channelReady = new NativePromise((resolve) => { releaseChannel = resolve; });
+  let sequence = 0;
+
+  function clone(value, seen = new NativeWeakSet(), depth = 0) {
+    if (depth > 32) throw new NativeTypeError("Request nesting is too deep");
+    if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number") {
+      if (typeof value === "number" && !numberIsFinite(value)) throw new NativeTypeError("Invalid request number");
+      return value;
+    }
+    if (typeof value !== "object" || weakHasValue(seen, value)) throw new NativeTypeError("Request is not plain data");
+    const proto = getPrototype(value);
+    if (!isArray(value) && proto !== objectPrototype && proto !== null) throw new NativeTypeError("Request is not plain data");
+    weakAddValue(seen, value);
+    const result = isArray(value) ? [] : create(null);
+    if (isArray(value)) setPrototype(result, null);
+    const ownKeys = keys(value);
+    for (let i = 0; i < ownKeys.length; i++) {
+      const key = ownKeys[i];
+      if (typeof key !== "string") throw new NativeTypeError("Symbol request keys are unsupported");
+      const descriptor = descriptors(value, key);
+      if (!descriptor.enumerable) continue;
+      if (!("value" in descriptor)) throw new NativeTypeError("Request accessors are unsupported");
+      result[key] = clone(descriptor.value, seen, depth + 1);
+    }
+    weakDeleteValue(seen, value);
+    return freeze(result);
+  }
+
+  function gate(provider, forward, request, state, readState) {
+    let frozen;
+    try {
+      frozen = clone(request);
+      if (apply(encode, encoder, [stringify(frozen)]).length > 262144) throw new NativeTypeError("Request is too large");
+    } catch (error) {
+      error.code = -32602;
+      return apply(promiseReject, NativePromise, [error]);
+    }
+    const id = `${++sequence}:${randomUuid()}`;
+    return promise(channelReady, (secret) => new NativePromise((resolve, reject) => {
+      if (!secret) {
+        const error = new NativeError("The extension bridge is unavailable.");
+        error.code = 4001;
+        reject(error);
+        return;
+      }
+      promise(digestValue(stringify(frozen)), (digest) => promise(digestValue(stringify(state)), (stateDigest) => {
+        mapSetValue(waiting, id, { provider, forward, frozen, resolve, reject, state, readState, digest, stateDigest });
+        const timer = setTimeoutNative(() => {
+          if (!mapDeleteValue(waiting, id)) return;
+          const error = new NativeError("BOUND request timed out.");
+          error.code = 4001;
+          reject(error);
+        }, 50_000);
+        mapGetValue(waiting, id).timer = timer;
+        postMessage({ type: "BOUND_REQUEST_V1", channel: secret, id, request: frozen, state, digest, stateDigest }, location.origin);
+      }), reject);
+    }));
+  }
+
+  function digestValue(value) {
+    const bytes = apply(encode, encoder, [value]);
+    return promise(subtleDigest("SHA-256", bytes), (digestBytes) => {
+      const digits = "0123456789abcdef";
+      let hex = "";
+      const data = new NativeUint8Array(digestBytes);
+      for (let i = 0; i < data.length; i++) hex += digits[(data[i] >> 4) & 15] + digits[data[i] & 15];
+      return hex;
+    });
+  }
+
+  function reportMalformed(payload) {
+    let method = "unknown";
+    try {
+      const descriptor = descriptors(payload, "method");
+      if (descriptor && "value" in descriptor && typeof descriptor.value === "string") method = descriptor.value.slice(0, 100);
+    } catch { /* malformed input cannot supply trusted metadata */ }
+    postMessage({ type: "BOUND_MALFORMED_V1", channel, id: randomUuid(), method }, location.origin);
+  }
+
+  function mediate(provider) {
+    if (!provider || weakHasValue(providers, provider)) return Boolean(provider);
+    const own = (name) => {
+      try { return provider[name]; } catch { return null; }
+    };
+    const request = own("request"), send = own("send"), sendAsync = own("sendAsync");
+    if (typeof request !== "function" && typeof send !== "function" && typeof sendAsync !== "function") {
+      reportBypass();
+      return false;
+    }
+    const read = (method) => {
+      if (typeof request === "function") return apply(request, provider, [{ method }]);
+      if (typeof sendAsync === "function") return new NativePromise((resolve, reject) => apply(sendAsync, provider, [{ method, params: [] }, (error, response) => error ? reject(error) : resolve(response?.result)]));
+      if (typeof send === "function") return apply(send, provider, [method, []]);
+      return apply(promiseReject, NativePromise, [new NativeError("No read path")]);
+    };
+    const readState = async () => {
+      try {
+        const [chainId, accounts] = await apply(promiseAll, NativePromise, [[
+          read("eth_chainId"),
+          read("eth_accounts")
+        ]]);
+        if (typeof chainId !== "string" || !apply(regexpTest, chainPattern, [chainId]) || !isArray(accounts) || apply(arraySome, accounts, [(item) => typeof item !== "string" || !apply(regexpTest, addressPattern, [item])])) return null;
+        const normalizedAccounts = apply(arrayMap, accounts, [(item) => apply(lower, item, [])]);
+        setPrototype(normalizedAccounts, null);
+        const state = create(null);
+        state.chainId = apply(lower, chainId, []);
+        state.accounts = freeze(normalizedAccounts);
+        return freeze(state);
+      } catch { return null; }
+    };
+    try {
+      if (typeof request === "function") {
+        const wrappedRequest = function (payload) {
+        let frozen;
+        try { frozen = clone(payload); } catch (error) { reportMalformed(payload); error.code = -32602; return apply(promiseReject, NativePromise, [error]); }
+        return promise(readState(), (state) => gate(provider, (exact) => apply(request, provider, [exact]), frozen, state, readState));
+        };
+        provider.request = wrappedRequest;
+        if (provider.request !== wrappedRequest) throw new NativeError("request could not be patched");
+      }
+      if (typeof send === "function") {
+        const wrappedSend = function (methodOrPayload, paramsOrCallback, callbackArg) {
+        const callback = typeof callbackArg === "function" ? callbackArg : typeof paramsOrCallback === "function" ? paramsOrCallback : null;
+        const payload = typeof methodOrPayload === "string"
+          ? (paramsOrCallback === undefined || typeof paramsOrCallback === "function" ? { method: methodOrPayload } : { method: methodOrPayload, params: paramsOrCallback })
+          : methodOrPayload;
+        let frozen;
+        try { frozen = clone(payload); } catch (error) {
+          reportMalformed(payload);
+          error.code = -32602;
+          if (callback) { callback(error); return; }
+          return apply(promiseReject, NativePromise, [error]);
+        }
+        const resultPromise = promise(readState(), (state) => gate(provider, (exact) => {
+          if (!callback) return typeof methodOrPayload === "string" ? apply(send, provider, [exact.method, exact.params]) : apply(send, provider, [exact]);
+          return new NativePromise((resolve, reject) => {
+            const done = (error, response) => error ? reject(error) : resolve(response);
+            const returned = typeof methodOrPayload === "string"
+              ? apply(send, provider, [exact.method, exact.params, done])
+              : apply(send, provider, [exact, done]);
+            if (returned?.then) promise(returned, resolve, reject);
+          });
+        }, frozen, state, readState));
+        if (callback) {
+          promise(resultPromise, (result) => callback(null, { jsonrpc: "2.0", id: frozen.id ?? null, result }), callback);
+          return;
+        }
+        return resultPromise;
+        };
+        provider.send = wrappedSend;
+        if (provider.send !== wrappedSend) throw new NativeError("send could not be patched");
+      }
+      if (typeof sendAsync === "function") {
+        const wrappedSendAsync = function (payload, callback) {
+        let frozen;
+        try { frozen = clone(payload); } catch (error) { reportMalformed(payload); error.code = -32602; callback?.(error); return; }
+        return promise(promise(readState(), (state) => gate(provider, (exact) => new NativePromise((resolve, reject) => apply(sendAsync, provider, [exact, (error, response) => error ? reject(error) : resolve(response)])), frozen, state, readState)), (response) => callback?.(null, response), (error) => callback?.(error));
+        };
+        provider.sendAsync = wrappedSendAsync;
+        if (provider.sendAsync !== wrappedSendAsync) throw new NativeError("sendAsync could not be patched");
+      }
+      weakAddValue(providers, provider);
+      providerInstrumented = true;
+      const on = own("on");
+      if (typeof on === "function") {
+        const providerEvents = ["chainChanged", "accountsChanged", "disconnect"];
+        for (let i = 0; i < providerEvents.length; i++) {
+          const event = providerEvents[i];
+          apply(on, provider, [event, () => postMessage({ type: "BOUND_STATE_CHANGE_V1", channel, event }, location.origin)]);
+        }
+      }
+    } catch {
+      window.__boundCoverage = "bypass_possible";
+      reportBypass();
+    }
+  }
+
+  function reportBypass() {
+    postMessage({ type: "BOUND_COVERAGE_V1", channel, coverage: "bypass_possible" }, location.origin);
+  }
+
+  addEvent("BOUND_INIT_V1", (event) => {
+    if (event.target !== window || channel || typeof event.detail !== "string" || !/^[0-9a-f-]{36}$/i.test(event.detail)) return;
+    apply(stopImmediate, event, []);
+    channel = event.detail;
+    releaseChannel(channel);
+  });
+  addEvent("message", (event) => {
+    if (event.source !== window || event.origin !== location.origin) return;
+    if (event.data?.type !== "BOUND_DECISION_V1" || event.data?.channel !== channel) return;
+    const item = mapGetValue(waiting, event.data.id);
+    if (!item || event.data.digest !== item.digest) return;
+    if (event.data.stateDigest !== item.stateDigest) return;
+    apply(stopImmediate, event, []);
+    mapDeleteValue(waiting, event.data.id);
+    clearTimeoutNative(item.timer);
+    if (event.data.action === "continue" && event.data.readOnly === true) {
+      promise(item.forward(item.frozen), item.resolve, item.reject);
+    } else if (event.data.action === "continue") {
+      if (!item.state || !item.readState) {
+        const error = new NativeError("Provider state could not be verified.");
+        error.code = 4001;
+        item.reject(error);
+      } else {
+        promise(promise(item.readState(), (state) => {
+          if (!state || stringify(state) !== stringify(item.state)) {
+            const error = new NativeError("Wallet chain or accounts changed while the warning was open.");
+            error.code = 4001;
+            throw error;
+          }
+          return item.forward(item.frozen);
+        }), item.resolve, item.reject);
+      }
+    } else {
+      const error = new NativeError("User rejected the request.");
+      error.code = 4001;
+      item.reject(error);
+    }
+  });
+
+  setTimeoutNative(() => {
+    if (!channel) releaseChannel(null);
+    if (!providerInstrumented) reportBypass();
+  }, 2_000);
+  try { mediate(window.ethereum); } catch { window.__boundCoverage = "bypass_possible"; }
+  addEvent("eip6963:announceProvider", (event) => { try { mediate(event.detail?.provider); } catch { window.__boundCoverage = "bypass_possible"; } });
+})();

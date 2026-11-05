@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOUND cross-origin frame test</title>
+  <style>body { padding: 12px; color: #18202a; font: 14px/1.4 system-ui, sans-serif; }</style>
+</head>
+<body>
+  <strong>Cross-origin frame wallet</strong>
+  <p>This frame is served on port 8001; the top-level test dApp uses port 8000.</p>
+  <button id="connect">Announce fake wallet</button>
+  <button id="request" disabled>Request API</button>
+  <button id="send" disabled>send API</button>
+  <button id="sendAsync" disabled>sendAsync API</button>
+  <pre id="result">Fake wallet not announced.</pre>
+  <script src="app.js"></script>
+</body>
+</html>

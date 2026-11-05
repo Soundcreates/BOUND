@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOUND test dApp</title>
+  <style>
+    body { max-width: 720px; margin: 48px auto; padding: 0 20px; color: #18202a; font: 16px/1.5 system-ui, sans-serif; }
+    button { padding: 10px 14px; margin: 8px 8px 8px 0; font: inherit; }
+    pre { padding: 16px; background: #f1f3f5; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>BOUND test dApp</h1>
+  <p>Uses a disposable fake EIP-6963 provider. No real wallet or chain is contacted.</p>
+  <button id="connect">Announce fake wallet</button>
+  <button id="request" disabled>Request API</button>
+  <button id="send" disabled>send API</button>
+  <button id="sendAsync" disabled>sendAsync API</button>
+  <pre id="result">Fake wallet not announced.</pre>
+  <h2>Cross-origin frame check</h2>
+  <p>Start a second server on port 8001 and use the frame controls to see the requesting-frame origin in BOUND.</p>
+  <iframe title="Cross-origin fake wallet" src="http://127.0.0.1:8001/iframe.html" width="100%" height="300"></iframe>
+  <script src="app.js"></script>
+</body>
+</html>
