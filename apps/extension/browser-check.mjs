@@ -66,5 +66,48 @@ try {
     warning = target;
     view.ws.close();
   }
+  await dapp.call('Runtime.evaluate', { expression: `
+    window.__delivered = null;
+    window.__forged = false;
+    window.__chain = '0x7a69';
+    window.addEventListener('message', event => {
+      const m = event.data;
+      if (m?.type !== 'BOUND_REQUEST_V1' || m.request?.method !== 'eth_sendTransaction') return;
+      window.__forged = true;
+      window.postMessage({ type: 'BOUND_DECISION_V1', channel: 'attacker-channel', id: m.id, digest: m.digest, stateDigest: m.stateDigest, action: 'continue', readOnly: true }, location.origin);
+    });
+    const fake = { request(payload) {
+      if (payload.method === 'eth_chainId') return Promise.resolve(window.__chain);
+      if (payload.method === 'eth_accounts') return Promise.resolve(['0x00000000000000000000000000000000000000a1']);
+      window.__delivered = payload;
+      return Promise.resolve('ok');
+    }};
+    window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail: { provider: fake } }));
+    window.__tx = { to: '0x00000000000000000000000000000000000000b1', data: '0x095ea7b300000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001' };
+    window.__originalRequest = JSON.stringify({ method: 'eth_sendTransaction', params: [window.__tx] });
+    fake.request({ method: 'eth_sendTransaction', params: [window.__tx] });
+    window.__tx.data = '0x';
+  ` });
+  const probeTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== warning.id), 'forgery warning');
+  const probe = await connect(probeTarget.webSocketDebuggerUrl);
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'window.__forged' })).result.value === true, 'forged decision');
+  await delay(300);
+  if ((await dapp.call('Runtime.evaluate', { expression: 'window.__delivered !== null' })).result.value) throw new Error('Forged decision forwarded the request');
+  await until(async () => (await probe.call('Runtime.evaluate', { expression: "document.querySelector('#continue') && !document.querySelector('#continue').disabled" })).result.value === true, 'forgery warning details');
+  await probe.call('Runtime.evaluate', { expression: "document.querySelector('#continue').click()" });
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'window.__delivered !== null' })).result.value === true, 'frozen request forwarding');
+  if (!(await dapp.call('Runtime.evaluate', { expression: 'JSON.stringify(window.__delivered) === window.__originalRequest' })).result.value) throw new Error('Forwarded request was mutated');
+  console.log('PASS: forged decision ignored and original request forwarded after Continue');
+  probe.ws.close();
+  await dapp.call('Runtime.evaluate', { expression: "window.__delivered = null; window.__error = null; fake.request({ method: 'eth_sendTransaction', params: [window.__tx] }).catch(error => window.__error = error.code)" });
+  const stateTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== probeTarget.id), 'state change warning');
+  const stateView = await connect(stateTarget.webSocketDebuggerUrl);
+  await until(async () => (await stateView.call('Runtime.evaluate', { expression: "document.querySelector('#continue') && !document.querySelector('#continue').disabled" })).result.value === true, 'state change warning details');
+  await dapp.call('Runtime.evaluate', { expression: "window.__chain = '0x1'" });
+  await stateView.call('Runtime.evaluate', { expression: "document.querySelector('#continue').click()" });
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'window.__error' })).result.value === 4001, 'state change cancellation');
+  if ((await dapp.call('Runtime.evaluate', { expression: 'window.__delivered !== null' })).result.value) throw new Error('Changed chain forwarded the request');
+  console.log('PASS: chain change prevented forwarding');
+  stateView.ws.close();
   dapp.ws.close();
 } finally { browser.kill(); server.close(); }
