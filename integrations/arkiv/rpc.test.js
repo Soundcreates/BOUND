@@ -33,3 +33,16 @@ test('wrong network or page block changes fail closed', async () => {
   }});
   await assert.rejects(unstable.query({owner}),/changed block/);
 });
+test('operation lookup filters at source and verifies operation metadata',async()=>{
+ const id='a'.repeat(64),requests=[];
+ const row={...entity(1),attributes:[...entity(1).attributes,{name:'operation',type:'str',value:id}]};
+ const reader=createArkivRpcReader({url:'https://rpc.example',schemaTag:'bound.record.v1',fetchImpl:async(_url,opts)=>{const request=JSON.parse(opts.body);if(request.method==='eth_chainId')return response('0x76edaf');requests.push(request);return response({data:[row],blockNumber:'0xa'});}});
+ assert.equal((await reader.findByOperationId({owner,operationId:id})).key,key(1));
+ assert.ok(requests[0].params[0].includes(`operation = str('${id}')`));
+ await assert.rejects(reader.findByOperationId({owner,operationId:"a') OR true"}),/operation/);
+});
+test('operation lookup rejects duplicate and forged operation attributes',async()=>{
+ const id='a'.repeat(64),row={...entity(1),attributes:[...entity(1).attributes,{name:'operation',type:'str',value:'b'.repeat(64)}]};
+ const reader=createArkivRpcReader({url:'https://rpc.example',schemaTag:'bound.record.v1',fetchImpl:async(_url,opts)=>response(JSON.parse(opts.body).method==='eth_chainId'?'0x76edaf':{data:[row],blockNumber:'0xa'})});
+ await assert.rejects(reader.findByOperationId({owner,operationId:id}),/operation/);
+});
