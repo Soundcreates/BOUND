@@ -106,7 +106,7 @@
           reject(error);
         }, 50_000);
         mapGetValue(waiting, id).timer = timer;
-        postMessage({ type: "BOUND_REQUEST_V1", channel: secret, id, request: frozen, state, digest, stateDigest }, location.origin);
+        postMessage({ type: "BOUND_REQUEST_V1", id, request: frozen, state, digest, stateDigest }, location.origin);
       }), reject);
     }));
   }
@@ -128,7 +128,7 @@
       const descriptor = descriptors(payload, "method");
       if (descriptor && "value" in descriptor && typeof descriptor.value === "string") method = descriptor.value.slice(0, 100);
     } catch { /* malformed input cannot supply trusted metadata */ }
-    postMessage({ type: "BOUND_MALFORMED_V1", channel, id: randomUuid(), method }, location.origin);
+    postMessage({ type: "BOUND_MALFORMED_V1", id: randomUuid(), method }, location.origin);
   }
 
   function mediate(provider) {
@@ -220,7 +220,7 @@
         const providerEvents = ["chainChanged", "accountsChanged", "disconnect"];
         for (let i = 0; i < providerEvents.length; i++) {
           const event = providerEvents[i];
-          apply(on, provider, [event, () => postMessage({ type: "BOUND_STATE_CHANGE_V1", channel, event }, location.origin)]);
+          apply(on, provider, [event, () => postMessage({ type: "BOUND_STATE_CHANGE_V1", event }, location.origin)]);
         }
       }
     } catch {
@@ -230,7 +230,7 @@
   }
 
   function reportBypass() {
-    postMessage({ type: "BOUND_COVERAGE_V1", channel, coverage: "bypass_possible" }, location.origin);
+    postMessage({ type: "BOUND_COVERAGE_V1", coverage: "bypass_possible" }, location.origin);
   }
 
   addEvent("BOUND_INIT_V1", (event) => {
