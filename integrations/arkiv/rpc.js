@@ -26,8 +26,9 @@ export function createArkivRpcReader({url, schemaTag, fetchImpl=fetch, accessKey
   let endpoint;
   try { endpoint = new URL(url); } catch { throw new Error('invalid Arkiv configuration'); }
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash || typeof schemaTag !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(schemaTag) || typeof fetchImpl !== 'function' || (accessKey !== undefined && typeof accessKey !== 'string') || !Number.isSafeInteger(expectedChainId) || expectedChainId < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100 || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000 || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60000) throw new Error('invalid Arkiv configuration');
-  async function query({owner}) {
+  async function queryInternal({owner,operationId}) {
     if (typeof owner !== 'string' || !address.test(owner)) throw new Error('invalid owner');
+    if (operationId !== undefined && (typeof operationId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(operationId))) throw new Error('invalid operation ID');
     async function rpc(method, params) {
       let response, json;
       try {
@@ -42,7 +43,7 @@ export function createArkivRpcReader({url, schemaTag, fetchImpl=fetch, accessKey
     let cursor = null, block = null;
     const records = [];
     for (let page=0; page<maxPages; page++) {
-      const expression = `$owner = addr(${owner}) AND arkiv.schema = str('${schemaTag}')${cursor ? ` AND $key > key(${cursor})` : ''} ORDER BY $key ASC`;
+      const expression = `$owner = addr(${owner}) AND arkiv.schema = str('${schemaTag}')${operationId ? ` AND operation = str('${operationId}')` : ''}${cursor ? ` AND $key > key(${cursor})` : ''} ORDER BY $key ASC`;
       const result = await rpc('arkiv_query',[expression,{select:{key:true,owner:true,expiresAt:true,attributes:true},limit:`0x${pageSize.toString(16)}`}]);
       if (!result || !Array.isArray(result.data) || result.data.length > pageSize) throw new Error('invalid Arkiv query response');
       const current = safeQuantity(result.blockNumber);
@@ -55,11 +56,23 @@ export function createArkivRpcReader({url, schemaTag, fetchImpl=fetch, accessKey
         if (item.owner !== owner) continue;
         const expiresAt = safeQuantity(item.expiresAt);
         if (expiresAt <= block) continue;
+        if (operationId !== undefined) {
+          if (!Array.isArray(item.attributes)) throw new Error('invalid Arkiv operation metadata');
+          const ops=item.attributes.filter(attribute=>attribute?.name==='operation');
+          if (ops.length!==1 || ops[0].type!=='str' || ops[0].value!==operationId) throw new Error('invalid Arkiv operation metadata');
+        }
         records.push({key:item.key,owner:item.owner,expiresAt,record:decodeArkivPayload(item.attributes,schemaTag)});
       }
       if (result.data.length < pageSize) return records;
     }
     throw new Error('Arkiv pagination limit reached');
   }
-  return {query};
+  const query=({owner})=>queryInternal({owner});
+  async function findByOperationId({owner,operationId, schemaTag:requestedTag=schemaTag}) {
+    if(requestedTag!==schemaTag)throw new Error('invalid Arkiv schema');
+    const records=await queryInternal({owner,operationId});
+    if(records.length>1)throw new Error('duplicate Arkiv operation ID');
+    return records[0]??null;
+  }
+  return {query,findByOperationId};
 }
