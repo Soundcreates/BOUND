@@ -7,12 +7,23 @@ const cwd = process.cwd();
 const dist = path.join(cwd, 'apps/extension/dist');
 const profile = path.join(dist, `browser-profile-${crypto.randomUUID()}`);
 await mkdir(profile, { recursive: true });
-const server = createServer(async (req, res) => {
-  const name = req.url === '/' ? 'index.html' : req.url.slice(1);
+let framePort;
+const serve = async (req, res) => {
+  const pathname = new URL(req.url, 'http://localhost').pathname;
+  const name = pathname === '/' ? 'index.html' : pathname.slice(1);
   if (!['index.html', 'app.js', 'iframe.html'].includes(name)) { res.writeHead(404).end(); return; }
-  try { res.setHeader('Content-Type', name.endsWith('.js') ? 'text/javascript' : 'text/html'); res.end(await readFile(path.join(cwd, 'demo/test-dapp', name))); }
+  try {
+    res.setHeader('Content-Type', name.endsWith('.js') ? 'text/javascript' : 'text/html');
+    let content = await readFile(path.join(cwd, 'demo/test-dapp', name), 'utf8');
+    if (name === 'index.html') content = content.replace('127.0.0.1:8001', `127.0.0.1:${framePort}`);
+    res.end(content);
+  }
   catch { res.writeHead(500).end(); }
-});
+};
+const server = createServer(serve);
+const frameServer = createServer(serve);
+await new Promise(resolve => frameServer.listen(0, '127.0.0.1', resolve));
+framePort = frameServer.address().port;
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
 const browser = spawn('C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', [
@@ -70,6 +81,7 @@ try {
     window.__delivered = null;
     window.__forged = false;
     window.__chain = '0x7a69';
+    window.__accounts = ['0x00000000000000000000000000000000000000a1'];
     window.addEventListener('message', event => {
       const m = event.data;
       if (m?.type !== 'BOUND_REQUEST_V1' || m.request?.method !== 'eth_sendTransaction') return;
@@ -78,7 +90,7 @@ try {
     });
     const fake = { request(payload) {
       if (payload.method === 'eth_chainId') return Promise.resolve(window.__chain);
-      if (payload.method === 'eth_accounts') return Promise.resolve(['0x00000000000000000000000000000000000000a1']);
+      if (payload.method === 'eth_accounts') return Promise.resolve(window.__accounts);
       window.__delivered = payload;
       return Promise.resolve('ok');
     }};
@@ -109,5 +121,41 @@ try {
   if ((await dapp.call('Runtime.evaluate', { expression: 'window.__delivered !== null' })).result.value) throw new Error('Changed chain forwarded the request');
   console.log('PASS: chain change prevented forwarding');
   stateView.ws.close();
+  await dapp.call('Runtime.evaluate', { expression: "window.__chain = '0x7a69'; window.__delivered = null; window.__error = null; fake.request({ method: 'eth_sendTransaction', params: [window.__tx] }).catch(error => window.__error = error.code)" });
+  const accountTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== stateTarget.id), 'account change warning');
+  const accountView = await connect(accountTarget.webSocketDebuggerUrl);
+  await until(async () => (await accountView.call('Runtime.evaluate', { expression: "document.querySelector('#continue') && !document.querySelector('#continue').disabled" })).result.value === true, 'account change warning details');
+  await dapp.call('Runtime.evaluate', { expression: "window.__accounts = ['0x00000000000000000000000000000000000000a2']" });
+  await accountView.call('Runtime.evaluate', { expression: "document.querySelector('#continue').click()" });
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'window.__error' })).result.value === 4001, 'account change cancellation');
+  if ((await dapp.call('Runtime.evaluate', { expression: 'window.__delivered !== null' })).result.value) throw new Error('Changed account forwarded the request');
+  console.log('PASS: account change prevented forwarding');
+  accountView.ws.close();
+  await dapp.call('Page.enable');
+  const tree = await dapp.call('Page.getFrameTree');
+  const frameId = tree.frameTree.childFrames?.find(frame => frame.frame.url === `http://127.0.0.1:${framePort}/iframe.html`)?.frame.id;
+  if (!frameId) throw new Error('Cross-origin frame not found');
+  const frame = await dapp.call('Page.createIsolatedWorld', { frameId, worldName: 'bound-check' });
+  await dapp.call('Runtime.evaluate', { contextId: frame.executionContextId, expression: "document.querySelector('#connect').click(); document.querySelector('#request').click()" });
+  const frameTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== accountTarget.id), 'frame warning');
+  const frameView = await connect(frameTarget.webSocketDebuggerUrl);
+  await until(async () => (await frameView.call('Runtime.evaluate', { expression: "document.querySelector('#method')?.textContent" })).result.value === 'eth_sendTransaction', 'frame warning details');
+  const origins = (await frameView.call('Runtime.evaluate', { expression: "[document.querySelector('#top').textContent, document.querySelector('#frame').textContent]", returnByValue: true })).result.value;
+  if (origins[0] !== `http://127.0.0.1:${port}` || origins[1] !== `http://127.0.0.1:${framePort}`) throw new Error(`Incorrect frame origins: ${origins}`);
+  await frameView.call('Runtime.evaluate', { expression: "document.querySelector('#cancel').click()" });
+  console.log('PASS: cross-origin warning shows the top and frame origins');
+  frameView.ws.close();
+  await dapp.call('Runtime.evaluate', { expression: "window.__accounts = ['0x00000000000000000000000000000000000000a1']; fake.request({ method: 'eth_sendTransaction', params: [window.__tx] }).catch(() => {})" });
+  const navTarget = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=') && t.id !== frameTarget.id), 'navigation warning');
+  const navView = await connect(navTarget.webSocketDebuggerUrl);
+  await until(async () => (await navView.call('Runtime.evaluate', { expression: "document.querySelector('#continue') && !document.querySelector('#continue').disabled" })).result.value === true, 'navigation warning details');
+  const navigation = await dapp.call('Page.navigate', { url: `http://127.0.0.1:${port}/?navigation` });
+  if (navigation.errorText) throw new Error(`Navigation failed: ${navigation.errorText}`);
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: 'location.href' })).result.value?.includes('?navigation'), 'navigation');
+  await delay(500);
+  const response = await navView.call('Runtime.evaluate', { expression: "chrome.runtime.sendMessage({type:'BOUND_DECISION_V1', id:new URLSearchParams(location.search).get('request'), action:'continue'})", awaitPromise: true, returnByValue: true });
+  if (response.result.value?.ok !== false) throw new Error('Navigation did not invalidate the pending decision');
+  console.log('PASS: navigation invalidated the pending decision');
+  navView.ws.close();
   dapp.ws.close();
-} finally { browser.kill(); server.close(); }
+} finally { browser.kill(); server.close(); frameServer.close(); }
