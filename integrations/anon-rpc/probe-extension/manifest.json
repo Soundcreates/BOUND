@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "BOUND anon-rpc probe",
+  "version": "0.0.1",
+  "description": "Manual dev probe: boots the real 'nox' anon-rpc worker (Sepolia) and makes one anonymized eth_chainId call, to confirm the harness actually works in a real browser before BOUND's extension depends on it.",
+
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "BOUND anon-rpc probe" },
+
+  "permissions": ["offscreen", "storage"],
+
+  "//host_permissions": "Public Sepolia RPC endpoints, for the offscreen document's §4 specifier read AND this service worker's own bootstrap RPC call. The worker's own anonymized fetches do not use these — it runs at a null origin, subject to ordinary CORS, same as any web page.",
+  "host_permissions": ["https://*/*"],
+
+  "sandbox": { "pages": ["anon-rpc/*/sandbox.html"] },
+
+  "content_security_policy": {
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; child-src 'self' blob:; worker-src 'self' blob:; connect-src *;"
+  }
+}
