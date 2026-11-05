@@ -1,0 +1,30 @@
+import {test} from 'node:test';
+import {strict as assert} from 'node:assert';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createArkivWriter} from '../../integrations/arkiv/writer.js';
+import {createArkivRpcReader} from '../../integrations/arkiv/rpc.js';
+import {createArkivConfirmation} from '../../integrations/arkiv/confirm.js';
+import {createArkivTransport} from '../../integrations/arkiv/transport.js';
+import {openArkivSender} from '../../integrations/arkiv/sender.js';
+import {encodeCreateRecord} from '../../integrations/arkiv/codec.js';
+
+test('fake RPC exercises owner-filtered lookup, stable signed send, receipt and readback',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-arkiv-stack-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const owner='0x'+'a'.repeat(40),target='0x'+'b'.repeat(40),tx='0x'+'c'.repeat(64),key='0x'+'d'.repeat(64),blockHash='0x'+'e'.repeat(64),id='1'.repeat(64),schemaTag='bound.record.v1';
+ const record={schemaVersion:1,kind:'observation',site:'example.org',chainId:1,value:'0x'+'1'.repeat(40),reporterKey:'test-key',event:'warned'};
+ const entity={key,owner,expiresAt:'0x65',attributes:[{name:'arkiv.schema',type:'str',value:schemaTag},{name:'operation',type:'str',value:id},{name:'payload',type:'bytes',value:'0x'+Buffer.from(JSON.stringify(record)).toString('hex')}]};
+ const receipt={transactionHash:tx,status:'0x1',from:owner,to:target,blockNumber:'0xa',blockHash,logs:[{address:target,topics:['0xb282d7c494b8899aa8015cd07be621530beb03409eb8c5e8fdc1411ba64356a5',key,'0x'+'0'.repeat(24)+owner.slice(2)],data:'0x'+'0'.repeat(62)+'65'+'0'.repeat(64),removed:false}]};
+ let published=false,prepared,prepares=0;const queryExpressions=[];
+ const fetchImpl=async(_url,options)=>{const request=JSON.parse(options.body);if(request.method==='arkiv_query')queryExpressions.push(request.params[0]);if(request.method==='eth_sendRawTransaction')published=true;
+  const values={eth_chainId:'0x76edaf',eth_getTransactionReceipt:published?receipt:null,eth_blockNumber:'0xb',eth_getBlockByNumber:{hash:blockHash},arkiv_getEntity:published?entity:null,eth_sendRawTransaction:tx,arkiv_query:{data:published?[entity]:[],blockNumber:'0xb'}};
+  return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result:values[request.method]})};};
+ const reader=createArkivRpcReader({url:'https://rpc.example',schemaTag,fetchImpl});
+ const transport=createArkivTransport({url:'https://rpc.example',fetchImpl});
+ const confirm=createArkivConfirmation({rpc:transport.rpc,owner,target,chainId:7794095,schemaTag});
+ const sender=await openArkivSender({path:join(dir,'journal.json'),owner,chainId:7794095,target,buildCall:async(record,operationId)=>encodeCreateRecord({record,operationId,schemaTag,lifetimeBlocks:100}),prepare:async request=>{prepares++;prepared=request;return '0xdeadbeef';},inspect:async()=>({from:owner,to:target,chainId:7794095,value:'0x0',data:prepared.data}),hash:async()=>tx,getChainId:async()=>Number(BigInt(await transport.rpc('eth_chainId',[]))),broadcast:async raw=>transport.rpc('eth_sendRawTransaction',[raw]),confirm});
+ const writer=createArkivWriter({owner,schemaTag,currentBlock:async()=>11,findByOperationId:reader.findByOperationId,submitOnce:({operationId,record})=>sender.write(operationId,record)});
+ assert.equal((await writer.write(record,id)).key,key);assert.equal((await writer.write(record,id)).key,key);assert.equal(prepares,1);
+ assert.ok(queryExpressions.every(expression=>expression.includes(`$owner = addr(${owner})`)&&expression.includes(`operation = str('${id}')`)));
+});
