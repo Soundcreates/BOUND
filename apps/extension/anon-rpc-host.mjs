@@ -1,6 +1,8 @@
 const READS=new Set(["eth_chainId","eth_call","eth_getBalance","eth_getCode","eth_getStorageAt","eth_getTransactionCount","eth_getBlockByNumber","eth_getBlockByHash","eth_getTransactionReceipt","eth_getLogs","eth_getProof"]);
 const ARKIV_READS=new Set(["eth_chainId","eth_blockNumber","arkiv_query","arkiv_getEntity"]);
-export function createAnonRpcHost({getSettings,loadEngine,timeoutMs=1500}){
+// Worker startup includes a chain bootstrap and sandbox initialization. Keep the
+// per-request budget long enough for real networks, while remaining bounded.
+export function createAnonRpcHost({getSettings,loadEngine,timeoutMs=8000}){
  if(typeof getSettings!=="function"||typeof loadEngine!=="function"||!Number.isSafeInteger(timeoutMs)||timeoutMs<1)throw new Error("Invalid anonymizing RPC host");
  let engine,loading;
  return async request=>{
@@ -20,4 +22,5 @@ export function createAnonRpcHost({getSettings,loadEngine,timeoutMs=1500}){
   }catch{return {error:"anon_rpc_unavailable"};}finally{clearTimeout(timer);}
  };
 }
-export const anonRpc=createAnonRpcHost({getSettings:async()=>{const {boundSettings}=await chrome.storage.local.get("boundSettings");return boundSettings;},loadEngine:async()=>{const {createAnonEngine}=await import("./anon-rpc-bundle.js");return createAnonEngine();}});
+export const anonRpc=createAnonRpcHost({getSettings:async()=>{const {boundSettings}=await chrome.storage.local.get("boundSettings");return boundSettings;},loadEngine:async()=>createAnonEngine()});
+import {createAnonEngine} from "./anon-rpc-engine.mjs";

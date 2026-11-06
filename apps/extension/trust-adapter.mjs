@@ -1,15 +1,17 @@
 import {anonRpc} from "./anon-rpc-host.mjs";
 import {createEnsLookupCache} from "./ens-cache.mjs";
+import {createTrustEngine} from "./trust-engine.mjs";
+import {createArkivReader} from "./arkiv-reader.mjs";
 // L1 of the ENS lookup cache: in memory, mirrored to chrome.storage.session.
 const ensCache=createEnsLookupCache({storage:chrome.storage.session});
-let engine,loading,reader,readerLoading;
+let engine,reader;
 async function settings(){const {boundSettings}=await chrome.storage.local.get("boundSettings");return boundSettings;}
 async function trustEngine(){
- if(!engine){loading??=import("./trust-bundle.js").then(({createTrustEngine})=>createTrustEngine({getSettings:settings,storage:chrome.storage.local,anonymousRequest:anonRpc,readArkivSnapshot:async query=>(await arkivReader()).readTrustSnapshot(query),ensCache,readEnsRecord:async query=>(await arkivReader()).readEnsRecord(query)})).finally(()=>{loading=null;});engine=await loading;}
+ if(!engine)engine=createTrustEngine({getSettings:settings,storage:chrome.storage.local,anonymousRequest:anonRpc,readArkivSnapshot:async query=>(await arkivReader()).readTrustSnapshot(query),ensCache,readEnsRecord:async query=>(await arkivReader()).readEnsRecord(query)});
  return engine;
 }
 async function arkivReader(){
- if(!reader){readerLoading??=import("./arkiv-bundle.js").then(({createArkivReader})=>createArkivReader({getSettings:settings,storage:chrome.storage.local,anonymousRequest:anonRpc})).finally(()=>{readerLoading=null;});reader=await readerLoading;}
+ if(!reader)reader=createArkivReader({getSettings:settings,storage:chrome.storage.local,anonymousRequest:anonRpc});
  return reader;
 }
 export async function getWatcherOwner(){

@@ -1,4 +1,4 @@
-timport {createArkivTransport} from './transport.js';
+import {createArkivTransport} from './transport.js';
 import {createArkivEntityReader} from './entity.js';
 
 // Public, owner-checked read used by the curator CLI. No signing key is needed.

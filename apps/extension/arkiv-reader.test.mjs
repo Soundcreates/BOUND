@@ -40,6 +40,14 @@ test("page-load site status uses the anonymous worker and filters exact hosts",a
  assert.ok(records.every(record=>record.site===site));assert.equal(f.direct.length,0);
  assert.ok(f.anonymous.some(item=>item.method==="arkiv_query"));
 });
+test("a typical seeded bundle fits in one anonymous page without exposing the site in the query",async()=>{
+ const f=fixture(Array.from({length:12},(_,i)=>row(i===0?status:{...baseline,site:`other${i}.example`},i+1)));
+ const records=await f.reader.readSiteStatusViaAnonRpc({site});
+ assert.equal(records.length,1);
+ const queries=f.anonymous.filter(item=>item.method==='arkiv_query');
+ assert.equal(queries.length,1);assert.equal(queries[0].params[1].limit,'0x20');
+ assert.ok(!JSON.stringify(queries[0]).includes(site));
+});
 test("owner-checked baseline exposes observed addresses without treating them as witnesses",async()=>{
  const observed="0x"+"1".repeat(40),called="0x"+"2".repeat(40);
  const f=fixture([row({...baseline,counterparties:[observed],calledContracts:[called]},1)]);await f.reader.refresh();

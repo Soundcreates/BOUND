@@ -65,12 +65,34 @@ document.querySelector("#sendAsync").addEventListener("click", () => {
 });
 
 // --- Real wallet attack scenarios -------------------------------------------------
-// Uses window.ethereum directly (your actual installed wallet), not the fake provider
-// above. BOUND's hook patches window.ethereum regardless of which page script announces
-// it, so these trigger real MetaMask popups AND real BOUND warnings.
+// The selected EIP-6963 wallet is independent of the fake provider above.
 const realStatus = document.querySelector("#real-status");
 const scenarioResult = document.querySelector("#scenario-result");
+const walletSelect = document.querySelector("#real-wallet");
+const availableWallets = new Map();
+let realProvider = null;
 let realAccount = null;
+window.addEventListener("eip6963:announceProvider", (event) => {
+  const { info, provider: announced } = event.detail || {};
+  if (!info?.uuid || !info?.name || typeof announced?.request !== "function" || announced.isBoundTestProvider || availableWallets.has(info.uuid)) return;
+  availableWallets.set(info.uuid, announced);
+  if (walletSelect.options[0]?.value === "") walletSelect.replaceChildren();
+  const option = document.createElement("option");
+  option.value = info.uuid;
+  option.textContent = info.name;
+  walletSelect.append(option);
+  if (info.rdns === "io.metamask" && !realProvider) walletSelect.value = info.uuid;
+});
+window.dispatchEvent(new Event("eip6963:requestProvider"));
+setTimeout(() => {
+  if (!availableWallets.size) walletSelect.options[0].textContent = window.ethereum ? "Browser default injected wallet" : "No wallet found";
+}, 1000);
+walletSelect.addEventListener("change", () => {
+  realProvider = null;
+  realAccount = null;
+  for (const id of ["scenario-benign", "scenario-unlimited", "scenario-nft", "scenario-blind-sign"]) document.querySelector(`#${id}`).disabled = true;
+  realStatus.textContent = "Wallet changed. Connect the selected wallet.";
+});
 
 // An address with no relationship to any real protocol -- never seeded as trusted.
 const UNKNOWN_SPENDER = "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead";
@@ -80,12 +102,13 @@ function pad32Address(address) { return address.toLowerCase().replace("0x", "").
 function pad32Uint(hexDigits) { return hexDigits.padStart(64, "0"); }
 
 document.querySelector("#real-connect").addEventListener("click", async () => {
-  if (!window.ethereum) { realStatus.textContent = "No wallet found. Install MetaMask or similar first."; return; }
+  realProvider = availableWallets.get(walletSelect.value) || window.ethereum;
+  if (!realProvider) { realStatus.textContent = "No wallet found. Install MetaMask or similar first."; return; }
   try {
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    const accounts = await realProvider.request({ method: "eth_requestAccounts" });
     realAccount = accounts?.[0];
-    const chainId = await window.ethereum.request({ method: "eth_chainId" });
-    realStatus.textContent = `Connected: ${realAccount} on chain ${chainId}`;
+    const chainId = await realProvider.request({ method: "eth_chainId" });
+    realStatus.textContent = `Connected wallet: ${walletSelect.selectedOptions[0]?.textContent || "injected wallet"}; account: ${realAccount}; chain: ${chainId}`;
     for (const id of ["scenario-benign", "scenario-unlimited", "scenario-nft", "scenario-blind-sign"]) {
       document.querySelector(`#${id}`).disabled = false;
     }
@@ -103,12 +126,12 @@ async function sendReal(tx) {
     // regardless of which network any UI tab/filter happens to be displaying. These contract
     // addresses only exist on Sepolia; sending this calldata anywhere else is pointless at
     // best and a real-funds mistake at worst.
-    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+    const chainId = await realProvider.request({ method: "eth_chainId" });
     if (String(chainId).toLowerCase() !== SEPOLIA_CHAIN_ID) {
       scenarioResult.textContent = `Refused: wallet is on chain ${chainId}, not Sepolia (${SEPOLIA_CHAIN_ID}). Switch MetaMask's active network to Sepolia and try again.`;
       return;
     }
-    const hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [{ from: realAccount, ...tx }] });
+    const hash = await realProvider.request({ method: "eth_sendTransaction", params: [{ from: realAccount, ...tx }] });
     scenarioResult.textContent = `Wallet returned: ${hash}`;
   } catch (error) {
     scenarioResult.textContent = `Rejected or cancelled: ${error.message} (${error.code || "no code"})`;
@@ -139,12 +162,12 @@ document.querySelector("#scenario-nft").addEventListener("click", () => sendReal
 
 document.querySelector("#scenario-blind-sign").addEventListener("click", async () => {
   try {
-    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+    const chainId = await realProvider.request({ method: "eth_chainId" });
     if (String(chainId).toLowerCase() !== SEPOLIA_CHAIN_ID) {
       scenarioResult.textContent = `Refused: wallet is on chain ${chainId}, not Sepolia (${SEPOLIA_CHAIN_ID}). Switch MetaMask's active network to Sepolia and try again.`;
       return;
     }
-    const signature = await window.ethereum.request({ method: "eth_sign", params: [realAccount, "0xdeadbeef"] });
+    const signature = await realProvider.request({ method: "eth_sign", params: [realAccount, "0xdeadbeef"] });
     scenarioResult.textContent = `Wallet returned signature: ${signature}`;
   } catch (error) {
     scenarioResult.textContent = `Rejected or cancelled: ${error.message} (${error.code || "no code"})`;

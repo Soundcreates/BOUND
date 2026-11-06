@@ -40,7 +40,7 @@ async function defaultReadRoot(settings,anonymousRequest){
 export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,now=Date.now,refreshMs=REFRESH_MS,anonymousRequest,readArkivSnapshot,readProtocolAttestation=readAttestation,ensCache=null,readEnsRecord=null,ensLiveTimeoutMs=1_200}){
  if(ensCache!==null&&typeof ensCache?.lookup!=="function")throw new Error("Invalid ENS cache");
  if(typeof getSettings!=="function"||!storage||typeof storage.get!=="function"||typeof storage.set!=="function"||typeof readRoot!=="function"||typeof readArkivSnapshot!=="function"||typeof now!=="function"||!Number.isSafeInteger(refreshMs)||refreshMs<0)throw new Error("Invalid trust engine configuration");
- let queue=Promise.resolve();const issued=new WeakMap();
+ let queue=Promise.resolve(),activeRead=null;const issued=new WeakMap();
  const serial=fn=>{const result=queue.then(fn);queue=result.catch(()=>{});return result;};
  async function read(){
   const settings=normalizeSettings(await getSettings()),anchor=scope(settings),key=`bound.trust.v2:${JSON.stringify(anchor)}`,time=now();
@@ -65,7 +65,14 @@ export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,
    return issue({root,snapshot:decisionSnapshot(snapshot),sourceSnapshot:snapshot,cached:false,verifiedAt:time});
   }catch(error){if(cached&&Date.parse(cached.snapshot.expiresAt)>time)return asResult(cached);throw error;}
  }
- async function readVerifiedSnapshot(){const value=await serial(read);const anchor=scope(normalizeSettings(await getSettings()));if(issued.get(value)?.anchor!==JSON.stringify(anchor))throw new Error("Trust settings changed");return value;}
+ async function readVerifiedSnapshot(){
+  // A page-load refresh and an immediate wallet request should share the same
+  // read instead of queueing duplicate anonymous bootstrap work.
+  if(!activeRead)activeRead=serial(read);
+  const pending=activeRead;
+  let value;try{value=await pending;}finally{if(activeRead===pending)activeRead=null;}
+  const anchor=scope(normalizeSettings(await getSettings()));if(issued.get(value)?.anchor!==JSON.stringify(anchor))throw new Error("Trust settings changed");return value;
+ }
  // Live read of the protocol's own ENS attestation. Resolves {value} where value
  // is the parsed attestation, or null for a live "no valid record" answer; throws
  // when the anonymous transport failed, so an outage is never cached as absence.

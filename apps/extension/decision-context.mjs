@@ -3,8 +3,10 @@ import { canonicalSite } from "../../packages/policy-core/index.mjs";
 const ADDRESS = /^0x[0-9a-f]{40}$/;
 const MAX_UINT256 = (1n << 256n) - 1n;
 const TRUST_SOURCES = new Set(["snapshot", "ens_attestation", "shared_contract", "deployer_lineage"]);
-const BULK_READ_TIMEOUT_MS = 5_000;
-const ANON_READ_TIMEOUT_MS = 1_500;
+// A snapshot can require several ENS/Arkiv RPCs, and an Arkiv status query may
+// span multiple pages. Both budgets fit within the hook's 50-second deadline.
+const BULK_READ_TIMEOUT_MS = 20_000;
+const ANON_READ_TIMEOUT_MS = 20_000;
 const ENS_SOURCES = new Set(["live", "memory", "arkiv_unconfirmed", "unavailable", "not_configured"]);
 
 /**
@@ -159,14 +161,17 @@ export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, ad
   const site = canonicalHttpsHost(siteOrigin);
   const owner = normalizeAddress(watcherOwner);
   const checkedAt = Number.isFinite(now) ? new Date(now).toISOString() : new Date().toISOString();
-  const result = (status, expiresAt = null) => ({ site, status, checkedAt, expiresAt });
+  const evidence = { snapshotVerified: null, siteMatched: null, watcherLookup: null };
+  const result = (status, expiresAt = null) => ({ site, status, checkedAt, expiresAt, evidence: { ...evidence } });
   if (!Number.isFinite(now) || !site || !owner || !adapters || typeof adapters.readVerifiedSnapshot !== "function" || (typeof adapters.readSiteStatusViaAnonRpc !== "function" && typeof adapters.readWatcherBundle !== "function")) return result("unknown");
 
   let verified;
   try {
     verified = validateVerifiedSnapshot(await withTimeout(() => adapters.readVerifiedSnapshot(), BULK_READ_TIMEOUT_MS), currentTime());
   } catch { return result("unknown"); }
+  evidence.snapshotVerified = Boolean(verified);
   const siteChains = verified?.snapshot.sites[site];
+  evidence.siteMatched = Boolean(siteChains && Object.keys(siteChains).length);
   if (!siteChains || Object.keys(siteChains).length === 0) return result("unknown");
 
   let records;
@@ -175,10 +180,11 @@ export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, ad
       ? await withTimeout(() => adapters.readSiteStatusViaAnonRpc({ site }), ANON_READ_TIMEOUT_MS)
       : await withTimeout(() => adapters.readWatcherBundle(), BULK_READ_TIMEOUT_MS);
   } catch { return result("unknown"); }
+  evidence.watcherLookup = Array.isArray(records);
   if (!Array.isArray(records)) return result("unknown");
 
   const completedAt = currentTime();
-  if (!Number.isFinite(completedAt) || Date.parse(verified.snapshot.expiresAt) <= completedAt) return result("unknown");
+  if (!Number.isFinite(completedAt) || Date.parse(verified.snapshot.expiresAt) <= completedAt) { evidence.snapshotVerified = false; return result("unknown"); }
 
   const expectedChains = Object.keys(siteChains);
   const snapshotExpiry = Date.parse(verified.snapshot.expiresAt);
