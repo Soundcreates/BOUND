@@ -140,10 +140,14 @@ still required, and `BOUND_SWARM_UPLOAD_URL` optionally overrides the upload hos
 ## Remaining blockers before Phase 0 gate closes
 
 1. ✅ `probe-ens.ts` passed (§1–6; §7 skipped — unit-covered)
-2. Run `probe-swarm.ts` — confirm upload/read/hash round trip
+2. ✅ Swarm upload/read/hash round trip passed — `probe-swarm-gateway.ts` plus a live
+   `publish`/`read` at epoch 3. Done through a public gateway rather than our own Bee
+   node and postage batch; the two-origin read is same-operator, so independence is
+   disclosed as unmet (see the Swarm section).
 3. ✅ `probe-anon-rpc.ts` (Node) passed — `nox` specifier deployed on Sepolia
    ⏳ Load `probe-extension/` in Chrome — MV3 offscreen boot + NetLog + latency still pending
-4. Confirm ENS ETHRegistrarController address on Sepolia (empty-code hash — may be stale)
+4. ✅ Resolved — the empty-code address was removed from the seed and replaced with three
+   measured ENSv2 Sepolia contracts; 11/11 seed entries now verify
 5. Developer 1 and Developer 3 Phase 0 items (not Developer 2's gate)
 
 
@@ -156,16 +160,16 @@ still required, and `BOUND_SWARM_UPLOAD_URL` optionally overrides the upload hos
 | Schema validation, canonical serialisation, deterministic digest | ✅ | `packages/snapshot` — 480 unit tests pass |
 | Snapshot compiler (epoch, monotonic check, expiry) | ✅ | `services/curator/src/compile.ts`, `publish.ts` |
 | ENSv2 root reader/publisher | ✅ | `integrations/ens/src/resolver-client.ts` — proven in Phase 0 §1–6 |
-| Swarm upload/fetch | ✅ unit | `integrations/swarm` — live gate pending Bee node |
+| Swarm upload/fetch | ✅ live | epoch-3 publish + `read`; bytes public at `/bytes/39676f98…9e0d`, 3898 B via plain `curl` |
 | Anon-RPC transport (budget-enforced, no direct fallback) | ✅ unit | `integrations/anon-rpc/src/transport.ts` — 33 tests |
 | `bound-curator attest-grant/write/read` CLI subcommands | ✅ | commit `59e6304` — 2026-11-06 |
 | `grantProtocolRole()` in `integrations/ens` | ✅ | Scoped to `textResource("bound.attest.v1")`, separate from curator's `textResource("bound.root.v1")` |
 | `probe-attestation.ts` live probe | ✅ written | `services/curator/probe/probe-attestation.ts` — requires `BOUND_PROTOCOL_PRIVATE_KEY` with role grant, run on Mac |
 | Protocol role grant — attest.v1 role granted to protocol account | ✅ | tx `0x784da70b79a4cf23e1f608dc1ea319c4313eb0a40f74d934798d606107825e09` — verified by `diagnose-roles.ts`, 2026-11-06 |
-| All 5 protocol seeds bytecode verified | ⏳ 1 of 5 | `verify-bytecode.ts` — `app.uniswap.org` 3/3 verified on chainId 11155111; aave / compound / ens / opensea still pending |
-| Independent Swarm gateway hash check | ⏳ pending | Run `probe-swarm.ts` with Bee node |
+| All 5 protocol seeds bytecode verified | ✅ 11/11 | `npm run probe:verify-bytecode` — 0 mismatched, 0 with no code, 0 without evidence, chainId 11155111 |
+| Independent Swarm gateway hash check | ⚠️ mechanism only | Two distinct origins agree byte-for-byte, but both are ethswarm.org-operated — operator independence **not** shown |
 | Highest epoch survives extension restart | ✅ unit | `verifier.test.ts` — rollback, equivocation, expiry all covered |
-| Clean rebuild = same bytes/digest | ✅ unit | Deterministic `compileSnapshot` — same input → same CBOR bytes |
+| Clean rebuild = same bytes/digest | ✅ live | Two clean compiles byte-identical, and the published root carries that same digest `0x88ae5988…ba6b` |
 | No observation/Arkiv record adds trust | ✅ by design | Trust index only updated from verified ENS attestation; Arkiv has no write path to snapshot |
 
 ---
@@ -279,8 +283,27 @@ The published digest equals the one computed by two independent local compiles, 
 reproducible-build gate holds across compile *and* publish rather than only across local
 runs.
 
-Anyone can fetch the bytes without our tooling:
+**Read-back verification (`curator read`).** This is the load-bearing step, not the
+publish: it reads the live root from Sepolia, fetches the referenced bytes from both
+configured gateways, requires them byte-identical, decodes, and checks the digest against
+the root — rather than trusting what was just written.
+
+```
+live root verified — epoch 3, network sepolia
+  digest:   0x88ae59882c453ec380342218716b1c5452caf4aaaadff660c157ad663ffeba6b
+  swarmRef: 39676f980759bc0b9f6c8592a9a5f2be6b2bd3fa560ccb34d1e5e5288b289e0d
+  sites:    5
+  expires:  2026-12-06T00:00:00Z
+```
+
+Retrievable by anyone with no BOUND tooling — `curl` returns 3898 bytes:
 `https://api.gateway.ethswarm.org/bytes/39676f980759bc0b9f6c8592a9a5f2be6b2bd3fa560ccb34d1e5e5288b289e0d`
+
+**What this closes and what it does not.** It closes the gate's "clean rebuild produces the
+same snapshot bytes and digest" and the Swarm half of the publish path. The
+extension-side read — `readRoot` → `fetchSnapshot` → `checkSnapshot` in
+`apps/extension/trust-engine.mjs` — has still never run against live data; until it does,
+`apps/extension/PHASE0.md` stands: without a verified snapshot the evaluator shows grey.
 
 **Key note.** This publish was signed by `0x081D48D`, the bring-up key that was pasted in
 plaintext (G3) and should be treated as burned. It also remains both curator and resolver
@@ -314,9 +337,11 @@ rotated before any further role grants. This doubles as the rotation rehearsal G
 1. **G1** — run `attest-write` with the `0xf3cfb6cc` key, plus a negative test that a
    role-less account is refused on `bound.attest.v1`
 2. **G3 / G2** — rotate `0x081D48D` and split curator from owner via `regrant-curator.ts`
-3. Verify the remaining 4 seed sites' bytecode (`app.aave.com`, `app.compound.finance`,
-   `app.ens.domains`, `opensea.io`) — extend `verify-bytecode.ts` with sourced addresses
-4. Run `probe-swarm.ts` on the Mac (needs Bee node with postage) → record Swarm reference
-   + independent gateway hash
+3. ✅ Done — 11/11 seed entries verified across all five sites
+4. ✅ Done — snapshot published and read back at epoch 3. Remaining: a genuinely
+   third-party gateway, or our own Bee node for the second read, to close the
+   independence half
 5. Load `probe-extension/` in Chrome → MV3 offscreen boot, NetLog, p50/p95 ≤ 1.5s
+6. Load `apps/extension/dist` unpacked and point it at the live root — the extension side
+   of `readRoot` → `fetchSnapshot` → `checkSnapshot` has still never run against live data
 
