@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {browserFixture,runFrontendMismatchChecks} from './frontend-mismatch-check.mjs';
+import {DEFAULT_SETTINGS} from '../settings.mjs';
 import {decodeSnapshotBytes} from '../../../packages/snapshot/src/digest.ts';
 
 test('browser fixture uses valid independently digested curator data and never seeds frontend maturity',()=>{
@@ -14,4 +15,12 @@ test('browser fixture uses valid independently digested curator data and never s
 });
 test('browser prerequisites fail before creating fixtures or launching a browser',async()=>{
  await assert.rejects(runFrontendMismatchChecks({extensionPath:'/tmp/extension'}),/launcher/);
+});
+
+test('fixture uses the explicitly selected gateway and leaves reports local',()=>{
+ const safePageUrl=DEFAULT_SETTINGS.safePageUrl, time=Date.now();
+ const frontend={schemaVersion:1,kind:'frontend',site:'127.0.0.1:8081',chainId:1,scripts:[],updatedAt:new Date(time).toISOString()};
+ const data=browserFixture({site:'127.0.0.1:8081',time,frontend,state:'drift',safePageUrl});
+ assert.equal(data.local.boundSettings.safePageUrl,safePageUrl);
+ assert.equal(data.local.boundSettings.watcherUrl,'');
 });

@@ -17,6 +17,7 @@ test("default settings seed once and never overwrite a saved configuration",asyn
  assert.deepEqual(seeded,normalizeSettings(DEFAULT_SETTINGS));
  assert.equal(seeded.watcherOwner,DEFAULT_SETTINGS.watcherOwner.toLowerCase());
  assert.equal(seeded.watcherUrl,"http://127.0.0.1:8787/v1/observations");
+ assert.equal(seeded.safePageUrl,"https://bzz.limo/bzz/2ef102c267b6d62900b8c31c25620405d5fff12e22cd01f79038bd3eea0e682c/");
  assert.equal(await ensureDefaultSettings(empty),false);
  // A saved configuration with a deliberately cleared watcher URL stays as saved.
  const saved=normalizeSettings({...DEFAULT_SETTINGS,watcherUrl:""});

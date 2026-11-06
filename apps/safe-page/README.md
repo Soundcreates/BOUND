@@ -35,3 +35,19 @@ npm run swarm:safe:publish -- --verify <reference>
 ```
 
 Verification compares against the current `dist` files, which must still match the uploaded build. A connection error now includes the HTTP method, endpoint/path and underlying Node error code.
+
+## Test the live gateway with the extension
+
+New profiles default to the released `bzz.limo/bzz/.../` URL. Existing saved settings are preserved: open the extension's Options and set **Safe page URL** to the desired gateway URL. An empty value selects the packaged page. The remote path is bound to each ticket; if the gateway fails or its page does not report readiness, the extension falls back to the packaged page.
+
+The browser fixture can exercise the live gateway without a wallet, Bee node or live Arkiv writes. Build first, then run with an installed Playwright package:
+
+```sh
+node apps/extension/build.mjs
+BOUND_E2E_SAFE_PAGE_URL='https://bzz.limo/bzz/2ef102c267b6d62900b8c31c25620405d5fff12e22cd01f79038bd3eea0e682c/' \
+  node --experimental-strip-types apps/extension/e2e/frontend-mismatch-check.mjs /absolute/path/to/node_modules/playwright
+```
+
+Set `BOUND_CHROME_EXECUTABLE_PATH` to a Chromium executable if the installed Playwright browser is unavailable. The test creates disposable browser profiles, collects real fixture script reports, advances a test-only watcher clock, and supplies fixture Arkiv records and a fake wallet. It checks remote navigation only after cancellation, fragment removal, private confirmation, and one typed retry. It does not test live Arkiv publication, real wallet behavior, or real corroboration.
+
+For a real local watcher, use the encrypted-report setup in `services/watcher/README.md`, declare only verified safe demo scopes, and start the watcher with an Arkiv writer. The live detector needs three independent reporter profiles, at least one hour of maturity, successful Arkiv publication and fresh corroboration (drift, incident, or counterparty risk) before automatic navigation. A changed script alone produces a warning. The demo seed simulates three reporters and must not be treated as independent evidence.

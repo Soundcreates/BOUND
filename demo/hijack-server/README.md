@@ -18,6 +18,6 @@ Both pages load the cacheable same-origin `/app.js`. Its bytes differ between no
 
 To prepare a baseline, start the normal backend and a local watcher, then run (adjust ports and chain as needed):
 
-    node demo/hijack-server/seed-frontend.mjs --watcher http://127.0.0.1:8787/v1/observations --site 127.0.0.1:8081 --chain 31337 --asset http://127.0.0.1:8081/app.js
+    node --env-file=.env demo/hijack-server/seed-frontend.mjs --watcher http://127.0.0.1:8787/v1/observations --site 127.0.0.1:8081 --chain 31337 --asset http://127.0.0.1:8081/app.js
 
-The seed uses three labelled demo reporter keys, not independent users. This CLI is ready ahead of Batch B: the current watcher intake does not yet accept `kind:'frontend'`. Promotion requires the Batch B watcher frontend aggregator and at least one hour of maturity, followed by publication. Posting seed reports alone does not prove extension-generated reporting or promotion.
+The seed uses three labelled demo reporter keys, not independent users. It encrypts the report using `BOUND_INTAKE_PUBLIC_KEY`, and the watcher must have the matching private intake key. Explicitly configure the demo origin as a normal scope for the watcher; otherwise the reports are quarantined. Promotion requires at least one hour of maturity and a functioning Arkiv writer. Posting seed reports alone does not prove extension-generated reporting or corroborated drift.

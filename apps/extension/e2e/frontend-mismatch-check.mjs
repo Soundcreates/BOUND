@@ -23,8 +23,8 @@ async function until(read,{timeoutMs=10000,label='condition'}={}) {
 
 // This fixture only seeds unrelated curator/status prerequisites. Frontend
 // maturity is produced below by the real collector, receipts and aggregator.
-export function browserFixture({site,time,frontend,state='normal'}) {
- const settings=normalizeSettings({...DEFAULT_SETTINGS,watcherUrl:'',anonBootstrapUrl:'',anonRpcUrl:''});
+export function browserFixture({site,time,frontend,state='normal',safePageUrl=''}) {
+ const settings=normalizeSettings({...DEFAULT_SETTINGS,safePageUrl,watcherUrl:'',anonBootstrapUrl:'',anonRpcUrl:''});
  const built=compileSnapshot({epoch:1,network:'sepolia',rootName:settings.ensRootName,generatedAt:new Date(time-1000),validityDays:1,sites:[{host:site,chainId:1,trustedContracts:[CONTRACT],evidence:[{address:CONTRACT,kind:'contract',sourceUrl:'https://fixture.invalid/contracts',codeHash:key(8)}]}],shared:[]});
  const root={arkivKey:key(7),arkivOwner:OWNER,digest:built.digest,epoch:1,network:'sepolia',schemaVersion:1};
  const anchor={chainId:settings.ensChainId,name:settings.ensRootName,resolver:settings.ensResolver,network:settings.network,recordKey:'bound.root.v2'};
@@ -48,7 +48,7 @@ async function startFixture() {
  return {url:`http://127.0.0.1:${server.address().port}/`,forwarded,attack(){attack=true},close:()=>new Promise(resolve=>server.close(resolve))};
 }
 
-export async function runFrontendMismatchChecks({extensionPath,launchBrowser,now=Date.now}={}) {
+export async function runFrontendMismatchChecks({extensionPath,launchBrowser,now=Date.now,safePageUrl=''}={}) {
  if(typeof launchBrowser!=='function'||typeof extensionPath!=='string')throw Error('An extension path and browser launcher are required');
  const temporary=await mkdtemp(join(tmpdir(),'bound-mismatch-e2e-')),contexts=[];
  let fixture,aggregator,passed=0,failed=0;
@@ -59,7 +59,7 @@ export async function runFrontendMismatchChecks({extensionPath,launchBrowser,now
   aggregator=await openFrontendAggregator({path:join(temporary,'frontend.json'),now:()=>receiptTime,getScopeSafety:async()=>({known:true,rawDrift:false,incident:false}),writeFrontend:async record=>{publication=record;return {state:'current'}}});
   const install=async(context,frontend,state='normal')=>{
    const sw=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker',{timeout:10000});
-   const data=browserFixture({site,time:now(),frontend,state});
+   const data=browserFixture({site,time:now(),frontend,state,safePageUrl:state==='drift'?safePageUrl:''});
    await sw.evaluate(async data=>{await chrome.storage.local.set(data.local);await chrome.storage.session.set(data.session);},data);
    return sw;
   };
@@ -89,7 +89,7 @@ export async function runFrontendMismatchChecks({extensionPath,launchBrowser,now
   const cdp=await primary.context.newCDPSession(primary.page);await cdp.send('Network.clearBrowserCache');await cdp.detach();
   await primary.page.reload();await primary.page.waitForFunction(()=>window.fixtureVersion==='attack');
   const before=fixture.forwarded.length;await interactive(primary.page);
-  await primary.page.waitForURL(url=>url.protocol==='chrome-extension:'&&url.pathname==='/safe.html',{timeout:10000});
+  await primary.page.waitForURL(url=>safePageUrl?url.href.split('#')[0]===safePageUrl:url.protocol==='chrome-extension:'&&url.pathname==='/safe.html',{timeout:15000});
   check('safe navigation follows cancellation without a wallet forward',fixture.forwarded.length===before);
   check('safe page clears evidence fragment',new URL(primary.page.url()).hash==='');
   try {await until(()=>primary.sw.evaluate(async()=>((await chrome.storage.session.get('boundFrontendTickets')).boundFrontendTickets?.tickets||[]).some(t=>t.state==='at_safe_page'&&t.ready)),{timeoutMs:2000,label:'safe page readiness'});}catch(error){const diagnostic=await primary.sw.evaluate(async()=>{const tabs=await chrome.tabs.query({});const safe=tabs.find(t=>t.url?.includes('/safe.html'));const frame=safe?await chrome.webNavigation.getFrame({tabId:safe.id,frameId:0}).catch(()=>null):null;const contexts=await chrome.runtime.getContexts({contextTypes:['TAB']});return {events:globalThis.__boundE2EEvents,frame:frame?{doc:frame.documentId,hash:!!new URL(frame.url).hash}:null,contexts:contexts.map(c=>({type:c.contextType,tab:c.tabId,frame:c.frameId,doc:c.documentId,path:new URL(c.documentUrl).pathname,hash:!!new URL(c.documentUrl).hash}))};});throw Error(`${error.message}; diagnostic=${JSON.stringify(diagnostic)}`);}
@@ -115,6 +115,6 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).hr
  const [,,playwrightPath,repo=process.cwd()]=process.argv;
  if(!playwrightPath)throw Error('Usage: node frontend-mismatch-check.mjs <installed-playwright-package> [repo]');
  const {chromium}=await import(pathToFileURL(join(resolve(playwrightPath),'index.mjs')).href);
- const result=await runFrontendMismatchChecks({extensionPath:join(repo,'apps/extension/dist'),launchBrowser:({extensionPath,profilePath})=>chromium.launchPersistentContext(profilePath,{channel:'chromium',headless:true,...(process.env.BOUND_CHROME_EXECUTABLE_PATH?{executablePath:process.env.BOUND_CHROME_EXECUTABLE_PATH}:{}),args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`]})});
+ const result=await runFrontendMismatchChecks({extensionPath:join(repo,'apps/extension/dist'),safePageUrl:process.env.BOUND_E2E_SAFE_PAGE_URL||'',launchBrowser:({extensionPath,profilePath})=>chromium.launchPersistentContext(profilePath,{channel:'chromium',headless:true,...(process.env.BOUND_CHROME_EXECUTABLE_PATH?{executablePath:process.env.BOUND_CHROME_EXECUTABLE_PATH}:{}),args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`]})});
  console.log(`${result.passed}/${result.passed+result.failed} checks passed`);if(result.failed)process.exitCode=1;
 }
