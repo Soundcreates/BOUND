@@ -9,6 +9,7 @@
 import {
   createPublicClient,
   createWalletClient,
+  decodeAbiParameters,
   encodeFunctionData,
   http,
   namehash,
@@ -64,29 +65,38 @@ export class RootReadError extends Error {
 /** Read the live root record for `cfg.rootName`, resolving the resolver fresh each time. */
 export async function readRootRecord(client: PublicClient, cfg: BoundEnsConfig): Promise<RootRecord> {
   const { resolver } = await findResolver(client, cfg.rootName);
-  // Always derive the node from the name directly — findResolver may return a wildcard
-  // parent's node (e.g. namehash("eth")) rather than namehash(cfg.rootName) itself when the
-  // resolver is set at a parent level. The PermissionedResolver stores records keyed by the
-  // full name's node, so we must use namehash(cfg.rootName) for the read.
-  const node = namehash(cfg.rootName) as Hex;
   if (resolver.toLowerCase() !== cfg.resolverAddress.toLowerCase()) {
     // The name no longer points at BOUND's pinned resolver. Treat exactly like "unreachable" —
     // never silently trust whatever resolver now answers for the name (plan §3: pin the resolver).
     throw new RootReadError(`resolver for ${cfg.rootName} is ${resolver}, expected pinned ${cfg.resolverAddress}`);
   }
-  let value: string;
+  // PermissionedResolver (post-audit-2) derives the record node from the DNS-encoded name
+  // passed to UniversalResolverV2.resolve(), NOT from the node argument in the text()
+  // calldata. Direct calls to text(node, key) on the resolver will revert because the
+  // resolver has no name context — only the UniversalResolver supplies that.
+  const dnsName = toHex(packetToBytes(cfg.rootName));
+  const node = namehash(cfg.rootName) as Hex;
+  const textCalldata = encodeFunctionData({
+    abi: permissionedResolverAbi,
+    functionName: "text",
+    args: [node, ROOT_RECORD_KEY],
+  });
+  let resolveResult: readonly [Hex, Address];
   try {
-    value = (await client.readContract({
-      address: resolver,
-      abi: permissionedResolverAbi,
-      functionName: "text",
-      args: [node, ROOT_RECORD_KEY],
-    })) as string;
+    resolveResult = (await client.readContract({
+      address: ENSV2_SEPOLIA.universalResolverV2,
+      abi: universalResolverV2Abi,
+      functionName: "resolve",
+      args: [dnsName, textCalldata],
+    })) as [Hex, Address];
   } catch {
-    // PermissionedResolver reverts on text() when no record has been set yet (empty storage).
-    // Treat this the same as an empty record — the caller can decide what to do.
     throw new RootReadError(`no root record set at ${cfg.rootName} / ${ROOT_RECORD_KEY} (resolver returned revert)`);
   }
+  const [returnData] = resolveResult;
+  if (!returnData || returnData === "0x") {
+    throw new RootReadError(`empty return data from resolve() for ${cfg.rootName} / ${ROOT_RECORD_KEY}`);
+  }
+  const [value] = decodeAbiParameters([{ type: "string" }], returnData) as [string];
   if (value === "") throw new RootReadError(`empty root record at ${cfg.rootName} / ${ROOT_RECORD_KEY}`);
   return parseRootRecord(value); // throws SchemaError on malformed content
 }
@@ -121,13 +131,31 @@ export async function publishRootRecord(
 
 /** Read a live protocol self-attestation from the protocol's own ENS name (arch §5.5 / §9.1). */
 export async function readAttestation(client: PublicClient, protocolName: string): Promise<Attestation> {
-  const { resolver, node } = await findResolver(client, protocolName);
-  const value = (await client.readContract({
-    address: resolver,
+  // Use the same UniversalResolverV2.resolve() path — PermissionedResolver (post-audit-2)
+  // derives the record from the DNS name, not the node in the calldata.
+  const dnsName = toHex(packetToBytes(protocolName));
+  const node = namehash(protocolName) as Hex;
+  const textCalldata = encodeFunctionData({
     abi: permissionedResolverAbi,
     functionName: "text",
     args: [node, ATTESTATION_RECORD_KEY],
-  })) as string;
+  });
+  let resolveResult: readonly [Hex, Address];
+  try {
+    resolveResult = (await client.readContract({
+      address: ENSV2_SEPOLIA.universalResolverV2,
+      abi: universalResolverV2Abi,
+      functionName: "resolve",
+      args: [dnsName, textCalldata],
+    })) as [Hex, Address];
+  } catch {
+    throw new RootReadError(`no attestation at ${protocolName} / ${ATTESTATION_RECORD_KEY} (resolver returned revert)`);
+  }
+  const [returnData] = resolveResult;
+  if (!returnData || returnData === "0x") {
+    throw new RootReadError(`empty return data from resolve() for ${protocolName} / ${ATTESTATION_RECORD_KEY}`);
+  }
+  const [value] = decodeAbiParameters([{ type: "string" }], returnData) as [string];
   if (value === "") throw new RootReadError(`empty attestation at ${protocolName} / ${ATTESTATION_RECORD_KEY}`);
   return parseAttestation(value);
 }
