@@ -1,6 +1,6 @@
 import {normalizeSettings} from "./settings.mjs";
 const form=document.querySelector("#settings"),status=document.querySelector("#status");
-const fields=["ensRootName","ensResolver","ensRpcUrl","swarmGateways","arkivRpcUrl","watcherOwner","watcherUrl","anonBootstrapUrl","anonRpcUrl"];
+const fields=["ensRootName","ensResolver","swarmGateways","arkivRpcUrl","watcherOwner","watcherUrl","anonBootstrapUrl","anonRpcUrl"];
 const {boundSettings={}}=await chrome.storage.local.get("boundSettings");
 for(const name of fields){const value=boundSettings[name];form.elements[name].value=Array.isArray(value)?value.join("\n"):value??"";}
 form.addEventListener("submit",async event=>{
