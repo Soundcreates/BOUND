@@ -5,7 +5,8 @@ import {createTrustEngine} from "./trust-engine.mjs";
 import {createDecisionContext} from "./decision-context.mjs";
 import {encodeAbiParameters} from "viem";
 const clock=Date.parse("2026-11-07T00:00:00Z"),owner="0x"+"a".repeat(40);
-const settings={ensRootName:"bound-demo.eth",ensResolver:"0x"+"b".repeat(40),swarmGateways:["https://one.example","https://two.example"]};
+// The fixture's rootName is part of the verified snapshot identity.
+const settings={ensRootName:"bound-v2.eth",ensResolver:"0x"+"b".repeat(40),swarmGateways:["https://one.example","https://two.example"]};
 function memory(){const data={};return {async get(key){return {[key]:data[key]};},async set(values){Object.assign(data,structuredClone(values));}};}
 async function seed(epoch=1){const input=await loadCompileInput("fixtures/snapshots/demo-seed.compile-input.json");return compileSnapshot({...input,epoch});}
 test("Dev2 canonical snapshot passes the extension trust and policy boundary",async()=>{

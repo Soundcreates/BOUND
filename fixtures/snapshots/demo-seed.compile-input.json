@@ -1,7 +1,7 @@
 {
-  "epoch": 3,
+  "epoch": 4,
   "network": "sepolia",
-  "rootName": "bound-demo.eth",
+  "rootName": "bound-v2.eth",
   "generatedAt": "2026-11-06T00:00:00Z",
   "validityDays": 30,
   "sites": [

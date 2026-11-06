@@ -46,6 +46,16 @@ export async function readAndVerifyRoot(config: CuratorConfig): Promise<ReadResu
   if (decoded.digest !== root.digest || decoded.snapshot.epoch !== root.epoch || decoded.snapshot.network !== root.network) {
     throw new RootVerificationError("Arkiv snapshot digest, epoch or network does not match the ENS root");
   }
+  if (decoded.snapshot.rootName !== config.ens.rootName) {
+    throw new RootVerificationError(
+      `fetched snapshot is bound to rootName ${JSON.stringify(decoded.snapshot.rootName)} but was read from ` +
+        `${JSON.stringify(config.ens.rootName)} — the extension would reject this snapshot`,
+    );
+  }
+  if (Date.parse(decoded.snapshot.generatedAt) > Date.now()) {
+    throw new RootVerificationError(`fetched snapshot generatedAt ${decoded.snapshot.generatedAt} is in the future`);
+  }
+
   return { root, snapshot: decoded.snapshot };
 }
 

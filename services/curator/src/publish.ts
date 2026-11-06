@@ -49,6 +49,22 @@ export async function publishSnapshot(
     throw new PublishRefusedError((error as Error).message);
   }
 
+  // The extension binds a snapshot to the name it was published under:
+  // `trust-engine.mjs:checkSnapshot` throws unless `snapshot.rootName === anchor.name`,
+  // which stops a snapshot published for one name being replayed under another. Nothing
+  // upstream of here enforced that, so a snapshot compiled with rootName "bound-demo.eth"
+  // could be published to "bound-v2.eth", read back as verified by `curator read` (which
+  // only compared digest and epoch), and then be rejected by every extension in the field.
+  // Refuse it here, before the Swarm upload and the ENS write, per this codebase's rule
+  // that a publisher must refuse exactly what any other reader would refuse.
+  if (snapshot.rootName !== config.ens.rootName) {
+    throw new PublishRefusedError(
+      `snapshot is bound to rootName ${JSON.stringify(snapshot.rootName)} but this config publishes to ` +
+        `${JSON.stringify(config.ens.rootName)}. The extension checks snapshot.rootName against the name it ` +
+        `read the root from and would reject this snapshot. Recompile with rootName set to the publishing name.`,
+    );
+  }
+
   const archive = await openArkivArchive({
     ...config.arkiv,
     hash: keccak256,
