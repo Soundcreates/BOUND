@@ -212,6 +212,31 @@ export async function grantCuratorRole(
   });
 }
 
+/**
+ * Grant a protocol account the least-privilege role to write `bound.attest.v1` only.
+ * Mirrors `grantCuratorRole` but uses `ATTESTATION_RECORD_KEY` as the scoped resource
+ * instead of `ROOT_RECORD_KEY`, satisfying plan §3: "protocol account — separate scoped
+ * setter for that protocol's attestation record; cannot change the BOUND root or another
+ * protocol's record."
+ */
+export async function grantProtocolRole(
+  adminWallet: WalletClient<Transport, typeof sepolia, Account>,
+  resolverAddress: Address,
+  protocolAccount: Address,
+): Promise<Hex> {
+  const setterCalldata = encodeFunctionData({
+    abi: permissionedResolverAbi,
+    functionName: "setText",
+    args: ["0x" as Hex, ATTESTATION_RECORD_KEY, ""],
+  });
+  return adminWallet.writeContract({
+    address: resolverAddress,
+    abi: permissionedResolverAbi,
+    functionName: "grantSetterRoles",
+    args: [setterCalldata, protocolAccount],
+  });
+}
+
 /** Proves the negative half of Phase 0's gate: an unauthorized key cannot write the root key. */
 export async function canWriteRootKey(client: PublicClient, cfg: BoundEnsConfig, account: Address): Promise<boolean> {
   const res = textResource(ROOT_RECORD_KEY);
