@@ -43,6 +43,12 @@ test("only continued green or amber requests with normal incident status can be 
   }
 });
 
+test("only continued green or amber requests with normal incident status can be observed", () => {
+  for (const verdict of ["green", "amber", "red", "escalated", "grey"]) for (const incidentStatus of ["normal", "active", "unknown"]) for (const action of ["continue", "cancel"]) {
+    assert.equal(mayRecordObservation({ verdict, incidentStatus, action }), ["green", "amber"].includes(verdict) && incidentStatus === "normal" && action === "continue");
+  }
+});
+
 test("warned report is site-level and carries no user decision", () => {
   assert.deepEqual(warnedEvent({ site: "swap.example", chain: "1" }), { site: "swap.example", kind: "warned", chain: "1" });
 });
