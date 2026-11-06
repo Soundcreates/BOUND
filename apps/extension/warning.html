@@ -4,28 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BOUND request warning</title>
-  <style>
-    body { margin: 0; padding: 24px; color: #18202a; background: #f4f6f8; font: 15px/1.5 system-ui, sans-serif; }
-    main { max-width: 460px; margin: auto; }
-    .label { color: #56616d; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-    code { overflow-wrap: anywhere; }
-    .notice { padding: 12px; background: #fff3cd; border-radius: 8px; }
-    .field { padding: 10px 0; border-bottom: 1px solid #dce2e8; }
-    .approval-pair { padding: 8px 0; border-top: 1px solid #dce2e8; }
-    button, input { box-sizing: border-box; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid #aab4be; border-radius: 8px; font: inherit; }
-    button { cursor: pointer; }
-    #continue { color: white; background: #263b53; }
-    #cancel { background: #dce2e8; }
-    body.tier-pass .notice { background: #d9f2e1; }
-    body.tier-huge .notice, body.tier-firewall .notice { background: #b42318; color: #fff; font-weight: 600; }
-    body.tier-firewall h1, body.tier-huge h1 { color: #b42318; }
-    .calc { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
-    .calc td, .calc th { padding: 4px 6px; border-bottom: 1px solid #dce2e8; text-align: left; }
-    .calc td.num, .calc th.num { text-align: right; font-variant-numeric: tabular-nums; }
-    .outcome-passed { color: #1d7a3a; } .outcome-failed { color: #b42318; } .outcome-unavailable { color: #8a5a00; }
-  </style>
+  <link rel="stylesheet" href="ui.css">
 </head>
-<body>
+<body class="warning">
   <main>
     <p class="label">BOUND wallet request</p>
     <h1>Wallet request</h1>

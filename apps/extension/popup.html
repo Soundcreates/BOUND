@@ -4,43 +4,45 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BOUND coverage</title>
-  <style>
-    body { width: 360px; margin: 0; padding: 16px; color: #18202a; background: #f4f6f8; font: 14px/1.45 system-ui, sans-serif; }
-    h1 { margin: 0 0 8px; font-size: 19px; }
-    h2 { margin: 18px 0 8px; font-size: 14px; }
-    code { overflow-wrap: anywhere; }
-    .panel { padding: 10px; background: white; border-radius: 8px; }
-    .row { padding: 8px 0; border-top: 1px solid #e2e6e9; }
-    .muted { color: #56616d; }
-    a { color: #174d78; }
-  </style>
+  <link rel="stylesheet" href="ui.css">
 </head>
-<body>
-  <h1>BOUND</h1>
-  <p>BOUND reviews supported wallet requests and opens a warning before they reach your wallet. It scores and warns; it never refuses a request. A grey verdict means there is no baseline to compare.</p>
-  <section class="panel">
-    <strong id="monitoring-state">Monitoring is off.</strong>
-    <p class="muted">While monitoring is off, BOUND checks nothing, records nothing, reads no trust data and sends no reports. Wallet requests go straight to your wallet.</p>
-    <button id="monitoring" type="button">Start monitoring</button>
-  </section>
-  <p id="site" class="muted">Loading current tab…</p>
-  <section class="panel">
-    <strong id="coverage">Checking coverage…</strong>
-    <div id="frames" class="muted"></div>
-    <p id="incident" hidden></p>
-    <p class="muted">A saved wallet reference or an unobserved wallet path can bypass BOUND. Not every bypass can be detected.</p>
-  </section>
-  <h2>Page source and network capture</h2>
-  <p class="muted">Capture uses Chrome debugging for this tab. Start it, then reload the page. It stays local and records only selected response headers, origins and source hashes.</p>
-  <button id="capture" type="button">Loading capture status…</button>
-  <p id="capture-status" class="muted" role="status"></p>
-  <h2>Recent checks on this site</h2>
-  <div id="history" class="panel">Loading…</div>
-  <p><button id="diagnose-data" type="button">Check data connection</button></p>
-  <p id="diagnose-result" class="muted" role="status"></p>
-  <p id="privacy" class="muted">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p>
-  <p id="queue-error" class="muted" hidden>Some observations could not be saved or scheduled in this browser.</p>
-  <button id="settings" type="button">Settings</button>
+<body class="popup">
+  <header class="popup-header">
+    <div class="brand"><img src="BOUND.jpeg" width="40" height="40" alt=""><h1>BOUND</h1></div>
+    <button id="settings" class="button-quiet" type="button">Settings</button>
+  </header>
+  <main class="popup-content">
+    <p class="intro">BOUND reviews supported wallet requests and opens a warning before they reach your wallet. It scores and warns; it never refuses a request. A grey verdict means there is no baseline to compare.</p>
+    <section class="panel status-card" aria-label="Monitoring status">
+      <div class="card-heading"><span class="eyebrow">Monitoring</span><strong id="monitoring-state">Monitoring is off.</strong></div>
+      <p class="muted">While monitoring is off, BOUND checks nothing, records nothing, reads no trust data and sends no reports. Wallet requests go straight to your wallet.</p>
+      <button id="monitoring" type="button">Start monitoring</button>
+    </section>
+    <section class="panel site-card" aria-label="Current site coverage">
+      <span class="eyebrow">Current site</span>
+      <p id="site" class="technical">Loading current tab…</p>
+      <strong id="coverage">Checking coverage…</strong>
+      <div id="frames" class="muted technical"></div>
+      <p id="incident" hidden></p>
+      <p class="muted">A saved wallet reference or an unobserved wallet path can bypass BOUND. Not every bypass can be detected.</p>
+    </section>
+    <section class="section">
+      <h2>Page source and network capture</h2>
+      <p class="muted">Capture uses Chrome debugging for this tab. Start it, then reload the page. It stays local and records only selected response headers, origins and source hashes.</p>
+      <button id="capture" class="button-accent" type="button">Loading capture status…</button>
+      <p id="capture-status" class="muted" role="status"></p>
+    </section>
+    <section class="section">
+      <h2>Recent checks on this site</h2>
+      <div id="history" class="history">Loading…</div>
+    </section>
+    <section class="section diagnostic">
+      <button id="diagnose-data" class="button-outline" type="button">Check data connection</button>
+      <p id="diagnose-result" class="muted" role="status"></p>
+      <p id="queue-error" class="muted" hidden>Some observations could not be saved or scheduled in this browser.</p>
+    </section>
+  </main>
+  <footer class="popup-footer"><p id="privacy">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p></footer>
   <script src="popup.js"></script>
 </body>
 </html>

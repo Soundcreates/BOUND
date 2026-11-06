@@ -10,9 +10,10 @@ const output = path.join(root, "dist");
 try { process.loadEnvFile(path.join(root, '..', '..', '.env')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const scoreConfig = scoreConfigFromEnv(process.env);
 await mkdir(output, { recursive: true });
+await cp(path.join(root, "fonts"), path.join(output, "fonts"), { recursive: true });
 await writeFile(path.join(output, 'score-settings.mjs'), `// Generated from validated build environment; no secrets are included.\nexport const SCORE_SETTINGS = ${JSON.stringify(scoreConfig)};\n`);
 await copyFile(path.join(root, "connection-score.mjs"), path.join(output, "connection-score.mjs"));
-for (const file of ["manifest.json", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "observation-queue.mjs", "observation-dispatcher.mjs", "watcher-adapter.mjs", "ens-cache.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
+for (const file of ["BOUND.jpeg", "ui.css", "manifest.json", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "observation-queue.mjs", "observation-dispatcher.mjs", "watcher-adapter.mjs", "ens-cache.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
   await copyFile(path.join(root, file), path.join(output, file));
 }
 for (const [file, replacements] of [
