@@ -25,7 +25,7 @@ import { loadCuratorConfig, MissingEnvError } from "./env.ts";
 import { loadCompileInput, compileSnapshot } from "./compile.ts";
 import { publishSnapshot, PublishRefusedError } from "./publish.ts";
 import { readAndVerifyRoot, RootVerificationError } from "./read.ts";
-import { decodeSnapshotBytes, type Attestation } from "@bound/snapshot";
+import { decodeSnapshotBytes, normalizeAddress, type Attestation } from "@bound/snapshot";
 import {
   makePublicClient,
   makeWalletClient,
@@ -119,6 +119,15 @@ async function cmdAttestGrant(protocolAddress: `0x${string}`): Promise<void> {
 
   const txHash = await grantProtocolRole(walletClient, resolverAddress, protocolAddress);
   process.stdout.write(`  tx: ${txHash}\n`);
+
+  // Same reason attest-write waits: writeContract() resolves on mempool acceptance, so
+  // without this the command exits before the grant exists. A `diagnose-roles` run straight
+  // afterwards then reports the account as holding no role, which reads as a failed grant.
+  const receipt = await makePublicClient(rpcUrl).waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    throw new Error(`attest-grant: tx ${txHash} reverted (block ${receipt.blockNumber})`);
+  }
+  process.stdout.write(`  mined in block ${receipt.blockNumber} — role is live\n`);
 }
 
 /**
@@ -150,7 +159,13 @@ async function cmdAttestWrite(
   const publicClient = makePublicClient(rpcUrl);
   const walletClient = makeWalletClient(rpcUrl, protocolAccount);
 
-  const addrs = addrsCsv.split(",").map((a) => a.trim().toLowerCase());
+  // normalizeAddress() throws on anything that is not exactly 40 hex chars, so a
+  // truncated or typo'd address is refused here instead of being written on-chain as
+  // trust data that every reader then rejects. parseAttestation() also requires the
+  // list to be strictly sorted and unique, so sort/dedupe at the source too: the
+  // curator tool must never publish a record its own reader would refuse.
+  const addrs = [...new Set(addrsCsv.split(",").map((a) => normalizeAddress(a.trim())))].sort();
+  if (addrs.length === 0) throw new TypeError("attest-write: no addresses given");
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
 
   const attestation: Attestation = {
@@ -169,6 +184,18 @@ async function cmdAttestWrite(
 
   const txHash = await publishAttestation(walletClient, publicClient, ensName, resolverAddress, attestation);
   process.stdout.write(`  tx: ${txHash}\n`);
+
+  // Wait for the receipt before returning. writeContract() resolves as soon as the tx is
+  // accepted into the mempool, so without this the command exits while the record is still
+  // the previous one. An `attest-read` run straight afterwards then resolves stale data and
+  // reports a schema error against a record that was already replaced — which is exactly
+  // how a bad address appeared to survive three corrected writes during bring-up. Printing
+  // a tx hash that is not yet mined makes the tool lie about what is on-chain.
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    throw new Error(`attest-write: tx ${txHash} reverted (block ${receipt.blockNumber})`);
+  }
+  process.stdout.write(`  mined in block ${receipt.blockNumber} — record is live\n`);
 }
 
 /** Read a live protocol self-attestation from ENS via UniversalResolverV2.resolve(). */

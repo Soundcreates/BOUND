@@ -62,6 +62,14 @@ export class RootReadError extends Error {
   }
 }
 
+/** A publish refused locally, before any tx was sent, because a reader would refuse it. */
+export class PublishRefusedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PublishRefusedError";
+  }
+}
+
 /** Read the live root record for `cfg.rootName`, resolving the resolver fresh each time. */
 export async function readRootRecord(client: PublicClient, cfg: BoundEnsConfig): Promise<RootRecord> {
   const { resolver } = await findResolver(client, cfg.rootName);
@@ -120,6 +128,12 @@ export async function publishRootRecord(
     throw new RootReadError(`resolver for ${cfg.rootName} is ${resolver}, expected pinned ${cfg.resolverAddress}`);
   }
   const value = encodeRootRecord(record);
+  // Re-parse our own encoding before spending gas, for the same reason `publish` re-decodes
+  // compiled snapshot bytes: a publisher must refuse exactly what any other reader would
+  // refuse. Without this the writer can put a record on-chain that every reader rejects,
+  // and the failure then surfaces at read time as corrupt trust data rather than here as a
+  // refused write.
+  assertReadableByAnyReader(value, parseRootRecord, "root record");
   const dnsName = toHex(packetToBytes(cfg.rootName));
   return walletClient.writeContract({
     address: resolver,
@@ -127,6 +141,25 @@ export async function publishRootRecord(
     functionName: "setText",
     args: [dnsName, ROOT_RECORD_KEY, value],
   });
+}
+
+/**
+ * Round-trip a value we are about to publish through the reader that will consume it.
+ *
+ * Trust data is only useful if it is readable; a write the verifier refuses is worse than
+ * no write, because it looks published. `attest-write` once put a truncated address
+ * on-chain this way and every read of it failed — the encode step was happy, the decode
+ * step was not, and nothing checked the two agreed before the tx was sent.
+ */
+function assertReadableByAnyReader<T>(value: string, parse: (v: string) => T, what: string): void {
+  try {
+    parse(value);
+  } catch (err) {
+    throw new PublishRefusedError(
+      `refusing to publish ${what}: it does not satisfy the reader that will consume it — ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 /** Read a live protocol self-attestation from the protocol's own ENS name (arch §5.5 / §9.1). */
@@ -172,6 +205,7 @@ export async function publishAttestation(
     throw new RootReadError(`resolver for ${protocolName} is ${resolver}, expected ${protocolResolver}`);
   }
   const value = encodeAttestation(attestation);
+  assertReadableByAnyReader(value, parseAttestation, "attestation");
   const dnsName = toHex(packetToBytes(protocolName));
   return walletClient.writeContract({
     address: resolver,
@@ -199,6 +233,7 @@ export async function grantCuratorRole(
   resolverAddress: Address,
   curator: Address,
 ): Promise<Hex> {
+  assertDedicatedResolver(resolverAddress);
   const setterCalldata = encodeFunctionData({
     abi: permissionedResolverAbi,
     functionName: "setText",
@@ -224,6 +259,7 @@ export async function grantProtocolRole(
   resolverAddress: Address,
   protocolAccount: Address,
 ): Promise<Hex> {
+  assertDedicatedResolver(resolverAddress);
   const setterCalldata = encodeFunctionData({
     abi: permissionedResolverAbi,
     functionName: "setText",
@@ -235,6 +271,30 @@ export async function grantProtocolRole(
     functionName: "grantSetterRoles",
     args: [setterCalldata, protocolAccount],
   });
+}
+
+/**
+ * Refuse ENS's shared PermissionedResolver implementation as a write target.
+ *
+ * `permissionedResolverImpl` is the implementation every dedicated proxy delegates to. It
+ * was never `initialize()`d with our admin, so it holds none of our grants and every role
+ * check against it reverts `MissingRole` (0xd1a3b355) — a revert that reads like a missing
+ * permission rather than a wrong address, which is why it cost a long debugging detour
+ * during Phase 1 bring-up.
+ *
+ * The publishers already catch this via their `findResolver` check; the grant helpers take
+ * a bare address with no name to resolve against, so they get this guard instead. It is
+ * deliberately a hard refusal and not a warning: a grant that lands on the shared
+ * implementation silently confers nothing on the account it names.
+ */
+function assertDedicatedResolver(resolverAddress: Address): void {
+  if (resolverAddress.toLowerCase() === ENSV2_SEPOLIA.permissionedResolverImpl.toLowerCase()) {
+    throw new PublishRefusedError(
+      `refusing to write to ${resolverAddress}: that is ENS's shared PermissionedResolver ` +
+        `implementation, not a dedicated proxy. It holds none of this deployment's grants. ` +
+        `Pass the proxy deployed for the name (BOUND_RESOLVER_ADDRESS / config ens.resolverAddress).`,
+    );
+  }
 }
 
 /** Proves the negative half of Phase 0's gate: an unauthorized key cannot write the root key. */
