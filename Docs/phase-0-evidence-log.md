@@ -15,13 +15,13 @@ Plan requirement: "Record for each integration its owner, required status, fallb
 
 | Check | Status | Evidence |
 |---|---|---|
-| PermissionedResolver deployed on Sepolia | ✅ | `0xc405306d78707eda003bcef387a8277ab5dc36a9` |
+| PermissionedResolver deployed on Sepolia | ✅ | `0xf6efa18d24c108a060b0d2a0e715b9045e09ea0f` |
 | UniversalResolverV2 read path works | ✅ | `readRootRecord` + `readAttestation` route through `resolve()` — tsc clean, 5 unit tests pass |
-| Curator holds `ROLE_SET_TEXT` for root key | Pending live probe | Run `probe-ens.ts` §3 |
-| Publish disposable root record | Pending live probe | Run `probe-ens.ts` §4 |
-| Read back root record | Pending live probe | Run `probe-ens.ts` §5 |
-| Unauthorized write fails | Pending live probe | Run `probe-ens.ts` §6 |
-| Protocol self-attestation round trip | Pending live probe | Run `probe-ens.ts` §7 |
+| Curator holds `ROLE_SET_TEXT` for root key | ✅ | `probe-ens.ts` §3 — `canWriteRootKey(0x081D48D53b89D624063779A3dc48975E49F34b39) = true`, chainId=11155111, 2026-11-06 |
+| Publish disposable root record | ✅ | `probe-ens.ts` §4 — epoch 2, tx `0x714cd0338576df134b3677aa8aeddc7470fd2e1ca97dd168849507c0baa21089`, Infura Sepolia, 2026-11-06 |
+| Read back root record | ✅ | `probe-ens.ts` §5 — epoch 2, digest `0xababab...` read back OK, 2026-11-06 |
+| Unauthorized write fails | ✅ | `probe-ens.ts` §6 — `0x99bf66...b56256e` holds no role, write reverted, 2026-11-06 |
+| Protocol self-attestation round trip | ⏭ skipped | No `BOUND_PROTOCOL_NAME` set; `readAttestation` unit-tested separately |
 | Five real protocol seeds compiled with live codeHashes | ✅ | Digest `0x9cb75f...`, commit `4c953fc` |
 | Attestation hierarchy frozen | ✅ | Protocol attests in its own ENS name (`uniswap.eth`, etc.); curator cannot write those keys |
 
@@ -30,7 +30,7 @@ Plan requirement: "Record for each integration its owner, required status, fallb
 BOUND_SEPOLIA_RPC_URL=
 BOUND_CURATOR_PRIVATE_KEY=
 BOUND_ROOT_NAME=<disposable-test-name>.eth
-BOUND_RESOLVER_ADDRESS=0xc405306d78707eda003bcef387a8277ab5dc36a9
+BOUND_RESOLVER_ADDRESS=0xf6efa18d24c108a060b0d2a0e715b9045e09ea0f
 BOUND_UNAUTHORIZED_PRIVATE_KEY=   # optional but recommended
 ```
 
@@ -68,7 +68,7 @@ BOUND_GATEWAY_URLS=<url1>,<url2>
 | Check | Status | Evidence |
 |---|---|---|
 | Transport unit tests (budget, telemetry, known-workers, chain-facts) | ✅ | 33/33 pass |
-| Standalone worker probe (Node) | Pending live probe | Run `probe-anon-rpc.ts` |
+| Standalone worker probe (Node) | ✅ | `probe-anon-rpc.ts` — `nox` worker `0x35133267...e1b7A9A` on Sepolia, `contract deployed=true`, chainId=11155111, 2026-11-06 |
 | Worker runs in MV3 extension offscreen host | Pending live probe | Load `probe-extension/` in Chrome |
 | NetLog shows no direct client→destination RPC connection | Pending live probe | Capture during MV3 test |
 | p50/p95 latency + share completed inside 1.5s | Pending live probe | Measure during MV3 test |
@@ -99,9 +99,10 @@ BOUND_GATEWAY_URLS=<url1>,<url2>
 
 ## Remaining blockers before Phase 0 gate closes
 
-1. Run `probe-ens.ts` on Sepolia — confirm all 7 sections pass
+1. ✅ `probe-ens.ts` passed (§1–6; §7 skipped — unit-covered)
 2. Run `probe-swarm.ts` — confirm upload/read/hash round trip
-3. Run `probe-anon-rpc.ts` (Node) + load `probe-extension/` in Chrome — confirm MV3 path
+3. ✅ `probe-anon-rpc.ts` (Node) passed — `nox` specifier deployed on Sepolia
+   ⏳ Load `probe-extension/` in Chrome — MV3 offscreen boot + NetLog + latency still pending
 4. Confirm ENS ETHRegistrarController address on Sepolia (empty-code hash — may be stale)
 5. Developer 1 and Developer 3 Phase 0 items (not Developer 2's gate)
 
