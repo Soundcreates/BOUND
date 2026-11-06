@@ -1,11 +1,16 @@
 import http from 'node:http';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import {localArkivConfig} from './local-arkiv-config.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseUniqueJSON, validateObservationBatch, validateIntakeResponse } from '../../packages/contracts/index.js';
 import { createHash } from 'node:crypto';
 import { FetchRequest, JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from 'ethers';
 import { openDurableWatcher } from './durable.js';
+import { openFrontendAggregator } from './frontend.js';
+import { createIntakeRouter } from './intake-router.js';
+import { parseNormalScopes, createScopeSafety, publishLocalStatus } from './scope-safety.js';
+import { createRecoveryApprovalPolicy } from './recovery-approval.js';
 import { openArkivArchive } from '../../integrations/arkiv/archive.js';
 import { createArkivSigner } from '../../integrations/arkiv/signer.js';
 import { importPrivateKey, openReport } from '../../integrations/report-crypto/index.mjs';
@@ -39,23 +44,20 @@ if (!Number.isSafeInteger(corroborationK) || corroborationK < 2) throw new Error
 const declaredScopes = (process.env.BOUND_LOCAL_INTAKE_SCOPES ?? '').split(',').map(value => value.trim()).filter(Boolean).map(entry => {
   const [site, chain] = entry.split('@');
   const chainId = chain === undefined ? CHAIN_ID : Number(chain);
-  if (!site || !Number.isSafeInteger(chainId) || chainId < 1) throw new Error(`invalid BOUND_LOCAL_INTAKE_SCOPES entry: ${entry}`);
+  if (!site || (!Number.isSafeInteger(chainId) || chainId < 1) || chainId < 1) throw new Error(`invalid BOUND_LOCAL_INTAKE_SCOPES entry: ${entry}`);
   return { site, chainId };
 });
 
 async function openArchive() {
   if (process.env.BOUND_LOCAL_INTAKE_ARKIV === 'off') return null;
-  const url = process.env.BOUND_ARKIV_RPC_URL;
-  const owner = process.env.BOUND_ARKIV_OWNER?.toLowerCase();
+  const {url, owner, chainId, privateKey} = localArkivConfig(process.env);
   const target = (process.env.BOUND_ARKIV_SYSTEM_ADDRESS ?? '0x4400000000000000000000000000000000000044').toLowerCase();
-  const chainId = Number(process.env.BOUND_ARKIV_CHAIN_ID);
-  const privateKey = process.env.BOUND_ARKIV_PRIVATE_KEY;
   const accessKey = process.env.ARKIV_ACCESS_KEY || undefined;
-  if (!url || !/^0x[0-9a-f]{40}$/.test(owner ?? '') || !Number.isSafeInteger(chainId) || !/^(?:0x)?[0-9a-fA-F]{64}$/.test(privateKey ?? '')) {
-    throw new Error('Arkiv writer not configured: set BOUND_ARKIV_RPC_URL, BOUND_ARKIV_OWNER, BOUND_ARKIV_CHAIN_ID and BOUND_ARKIV_PRIVATE_KEY (or BOUND_LOCAL_INTAKE_ARKIV=off)');
+  if (!url || !/^0x[0-9a-f]{40}$/.test(owner ?? '') || (!Number.isSafeInteger(chainId) || chainId < 1) || !/^(?:0x)?[0-9a-fA-F]{64}$/.test(privateKey ?? '')) {
+    throw new Error('Arkiv writer not configured: set BOUND_ARKIV_RPC_URL, BOUND_ARKIV_OWNER, BOUND_ARKIV_CHAIN_ID and BOUND_ARKIV_PRIVATE_KEY; also accepts ARKIV_RPC_URL, ARKIV_TEST_WRITER_ADDRESS, ARKIV_CHAIN_ID and ARKIV_TEST_WRITER_PRIVATE_KEY (or BOUND_LOCAL_INTAKE_ARKIV=off)');
   }
   const wallet = new Wallet(privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`);
-  if (wallet.address.toLowerCase() !== owner) throw new Error('BOUND_ARKIV_PRIVATE_KEY does not derive BOUND_ARKIV_OWNER');
+  if (wallet.address.toLowerCase() !== owner) throw new Error('Arkiv writer key/address mismatch: watcher-specific BOUND_ARKIV_* values override ARKIV_TEST_WRITER_*; configure a matching pair');
   const request = new FetchRequest(url);
   if (accessKey) request.setHeader('x-api-key', accessKey);
   const provider = new JsonRpcProvider(request, chainId, { staticNetwork: true });
@@ -69,8 +71,13 @@ async function openArchive() {
     url, accessKey, owner, target, chainId, schemaTag: 'bound.record.v1',
     senderJournal: path.join(stateDir, 'sender.json'),
     registryJournal: path.join(stateDir, 'registry.json'),
-    lifetimes: { observation: 345600, baseline: 43200, drift: 43200, incident: 43200, status: 43200 },
+    lifetimes: { observation: 345600, baseline: 43200, frontend: 43200, drift: 43200, incident: 43200, status: 43200 },
     ...createArkivSigner({ wallet, provider, owner, target, chainId }),
+    getFrontendSafety: async ({site,chainId}, status) => {
+      const rawDrift = status?.state === 'drift' || (await watcher.triggers(site,chainId)).length > 0;
+      const incident = status?.state === 'incident';
+      return {known: normalScopes.some(s => s.site === site && s.chainId === chainId), rawDrift, incident};
+    },
     hash: keccak256, confirmTimeoutMs: 120000, confirmPollMs: 1500
   });
   console.log(`[Watcher] Arkiv writer ready: owner=${owner} chainId=${chainId}`);
@@ -90,6 +97,7 @@ async function loadReportKey() {
 const reportKey = await loadReportKey();
 console.log(`[Watcher] Report key loaded: keyId=${reportKey.keyId}`);
 
+const normalScopes = parseNormalScopes(process.env.BOUND_LOCAL_INTAKE_NORMAL_SCOPES ?? '', CHAIN_ID);
 const archive = await openArchive();
 
 // An existing journal records the retention it was opened with; widening it only keeps
@@ -106,7 +114,9 @@ async function widenJournalRetention() {
 }
 await widenJournalRetention();
 
-const watcher = await openDurableWatcher({
+let watcher, scopeSafety, frontendAggregator;
+try {
+watcher = await openDurableWatcher({
   path: journalPath,
   windowMs: WINDOW_MS,
   retentionMs: RETENTION_MS,
@@ -124,6 +134,29 @@ const watcher = await openDurableWatcher({
   }
 });
 
+scopeSafety = createScopeSafety({normalScopes, watcher, archive});
+frontendAggregator = await openFrontendAggregator({
+  path: path.join(boundDir, 'watcher-frontend-journal.json'),
+  now: () => Date.now(),
+  getScopeSafety: async scope => {
+    let safety;
+    try { safety = await scopeSafety(scope); } catch (error) {
+      await archive?.quarantineFrontend(scope.site, scope.chainId);
+      throw error;
+    }
+    if (!safety || safety.known !== true || safety.rawDrift !== false || safety.incident !== false) await archive?.quarantineFrontend(scope.site, scope.chainId);
+    return safety;
+  },
+  reconcileFrontend: archive ? (record, id) => archive.reconcileFrontend(record, id) : undefined,
+  writeFrontend: archive ? (record, id) => archive.writeFrontend(record, id) : async () => { throw new Error('Arkiv disabled; frontend publication remains pending'); }
+});
+} catch (error) {
+  await frontendAggregator?.close();
+  await archive?.close();
+  throw error;
+}
+const router = createIntakeRouter({addressWatcher: watcher, frontendAggregator});
+
 // What the watcher knows about a site, derived from the observations it holds:
 // durable.js builds the baseline from delivered non-warned reports and drops any
 // address that was ever warned, and reports corroborated warned counterparties as
@@ -133,6 +166,8 @@ const operationId = (...parts) => createHash('sha256').update(JSON.stringify(['b
 const hourBucket = () => new Date(Math.floor(Date.now() / 3600000) * 3600000).toISOString();
 const feedReference = (site, chainId) => keccak256(toUtf8Bytes(JSON.stringify(['bound-local-intake-feed-v1', site, chainId])));
 const publishedState = new Map();
+const canRecover = process.env.BOUND_LOCAL_INTAKE_RECOVERY_APPROVAL_FILE
+  ? createRecoveryApprovalPolicy({path: process.env.BOUND_LOCAL_INTAKE_RECOVERY_APPROVAL_FILE}) : async () => false;
 
 async function publishWatcherState() {
   if (!archive) return;
@@ -149,13 +184,9 @@ async function publishWatcherState() {
       if (publishedState.get(key) === fingerprint) continue;
       const storedBaseline = await archive.writeBaseline(baseline, operationId('baseline', baseline));
       if (storedBaseline.state !== 'current') throw new Error('baseline was superseded while publishing');
-      // A return to normal is a status regression, so it must carry the version the
-      // decision was made against; anything else cannot clear a newer committed state.
-      const version = await archive.getStatusVersion(site, chainId);
       const statusId = operationId('status', status);
-      const storedStatus = state === 'normal' && version !== null
-        ? await archive.writeRecoveryStatus(status, statusId, version)
-        : await archive.writeStatus(status, statusId);
+      const storedStatus = await publishLocalStatus({site,chainId,state,status,statusId,watcher,archive,canRecover,operationId:record=>operationId('status',record)});
+      if (!storedStatus || storedStatus === true) continue;
       publishedState.set(key, fingerprint);
       console.log(`[Watcher] Published ${site} chainId=${chainId}: baseline ${baseline.counterparties.length} counterparties / ${baseline.calledContracts.length} contracts key=${storedBaseline.key}; status=${state} key=${storedStatus.key}`);
       for (const trigger of triggers) console.log(`[Watcher] Corroborated trigger on ${site}: ${trigger.counterparty} (${trigger.trigger})`);
@@ -175,7 +206,11 @@ function scheduleFlush() {
     do {
       flushAgain = false;
       try { await watcher.flush(); await publishWatcherState(); }
-      catch (err) { console.error(`[Watcher] Arkiv flush failed, will retry: ${err.message}`); break; }
+      catch (err) { console.error(`[Watcher] Arkiv flush failed, will retry: ${err.message}`); }
+      try { await frontendAggregator.prune(); }
+      catch (err) { console.error(`[Watcher] Frontend prune failed, will retry: ${err.message}`); }
+      try { await frontendAggregator.publish(); }
+      catch (err) { console.error(`[Watcher] Frontend publish failed, will retry: ${err.message}`); }
     } while (flushAgain);
   })().finally(() => { flushing = null; });
   return flushing;
@@ -188,6 +223,7 @@ const retryTimer = setInterval(async () => {
   if (hour !== lastPublishedHour) { lastPublishedHour = hour; scheduleFlush(); }
   else if ((await watcher.pending()).length) scheduleFlush();
 }, FLUSH_RETRY_MS);
+const frontendTimer = setInterval(scheduleFlush, 3600000);
 if (declaredScopes.length) console.log(`[Watcher] Operator-declared scopes: ${declaredScopes.map(s => `${s.site}@${s.chainId}`).join(', ')}`);
 scheduleFlush();
 
@@ -258,39 +294,39 @@ const server = http.createServer(async (req, res) => {
       return respond(400, { error: 'Invalid observation batch' });
     }
 
-    console.log(`[Watcher] Received observation batch (${batch.events.length} event${batch.events.length === 1 ? '' : 's'}):`);
-    for (const evt of batch.events) {
-      console.log(`  -> site=${evt.site} chainId=${evt.chainId} kind=${evt.kind} value=${evt.value} (key=${evt.reporterKey})`);
-    }
-
-    const result = await watcher.intake(batch);
+    const result = await router.intake(batch);
     if (!validateIntakeResponse(result)) {
       return respond(503, { schemaVersion: 1, result: 'retry' });
     }
 
     if (result.result === 'accepted') scheduleFlush();
-    return respond(result.result === 'accepted' ? 202 : 400, result);
+    return respond(result.result === 'accepted' ? 200 : result.result === 'retry' ? 503 : 400, result);
   } catch (err) {
-    // Details go to the operator's own log only; the client gets a generic answer.
-    console.error(`[Watcher] Intake error: ${err.message}`);
-    return respond(400, { error: 'Invalid report' });
+    console.error('[Watcher] Intake failed');
+    return respond(503, { schemaVersion: 1, result: 'retry' });
   }
 });
 
+server.once('error', error => {
+  console.error(`[Watcher] Server startup failed: ${error.code || error.message}`);
+  void stop(1);
+});
 server.listen(port, host, () => {
   console.log(`Watcher intake server listening on http://${host}:${port}/v1/observations`);
 });
 
 let stopping = false;
-async function stop() {
+async function stop(exitCode = 0) {
   if (stopping) return;
   stopping = true;
   clearInterval(retryTimer);
+  clearInterval(frontendTimer);
   server.close();
   server.closeAllConnections();
   await flushing;
+  await frontendAggregator.close();
   await archive?.close();
-  process.exit(0);
+  process.exit(exitCode);
 }
-process.once('SIGINT', stop);
-process.once('SIGTERM', stop);
+process.once('SIGINT', () => { void stop(); });
+process.once('SIGTERM', () => { void stop(); });

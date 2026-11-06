@@ -65,3 +65,29 @@ test("queue strips extra fields and refuses to discard existing records when ful
   await assert.rejects(enqueue([{ ...record, site: "new.example" }], storage, 2), /queue is full/);
   assert.deepEqual(storage.data.boundObservationQueue, original);
 });
+
+test('migration preserves address entries and dedupes frontend by decimal chain for 24 hours', async () => {
+  const storage=memoryStorage(), old={site:'example.org',kind:'observation',value:'0x'+'1'.repeat(40),observationKind:'called-contract',chain:'0x1',reporterKey:'old'};
+  const oldKey=JSON.stringify(['example.org','0x1','observation',old.value,'called-contract']);
+  Object.assign(storage.data,{boundObservationQueue:[old],boundObservationSeen:{[oldKey]:1}});
+  const front={site:'example.org',kind:'frontend',chain:'0x1',path:'/app.js',hash:'sha256-'+'A'.repeat(43)+'='};
+  await enqueue([front],storage,100); await enqueue([{...front,chain:'1'}],storage,101);
+  assert.deepEqual(storage.data.boundObservationQueue[0],old); assert.equal(storage.data.boundObservationQueue.length,2);
+  assert.equal(storage.data.boundObservationQueueVersion,2); assert.equal(storage.data.boundObservationSeen[oldKey],1);
+  await enqueue([front],storage,100+86400000); assert.equal(storage.data.boundObservationQueue.length,3);
+});
+
+test('full queue fails atomically and malformed stored state is reported', async () => {
+ const storage=memoryStorage(); storage.data.boundObservationQueue=Array.from({length:499},(_,i)=>({site:`s${i}`,kind:'warned',chain:'1',reporterKey:'key'}));
+ const before=structuredClone(storage.data);
+ await assert.rejects(enqueue([{site:'a',kind:'warned',chain:'1'},{site:'b',kind:'warned',chain:'1'}],storage,1),/full/);
+ assert.deepEqual(storage.data,before);
+ storage.data.boundObservationQueue={}; await assert.rejects(flush(async()=>{},storage),/Invalid observation queue/);
+});
+
+test('flush sends the longest prefix within the byte limit', async () => {
+ const storage=memoryStorage(); const site='a'.repeat(63)+'.'+'b'.repeat(63)+'.'+'c'.repeat(63)+'.'+'d'.repeat(60);
+ storage.data.boundObservationQueue=Array.from({length:100},()=>({site,kind:'observation',chain:'1',reporterKey:'é'.repeat(128),value:'0x'+'1'.repeat(40)}));
+ let sent; const count=await flush(async batch=>{sent=batch},storage,100);
+ assert.ok(count>0 && count<100); assert.equal(sent.length,count); assert.equal(storage.data.boundObservationQueue.length,100-count);
+});

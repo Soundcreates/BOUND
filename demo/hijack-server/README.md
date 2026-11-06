@@ -13,3 +13,11 @@ For the selective-content fixture, set `BOUND_DEMO_SCANNER_CLEAN=1` before start
 This is a local HTTP harness only. It does not change public DNS, establish HTTPS, exercise certificate changes or ASN corroboration, or pass the controlled-domain watcher gate. Replace the temporary page with Developer 1's test dApp when it is available.
 
 On 2026-11-06, a browser diagnostic manually installed a fake provider in the local attack page. On chain `0x7a69`, clicking the button produced chain/account checks followed by an `eth_sendTransaction` request containing the synthetic approval calldata. With the fake provider reporting `0x1`, the page stopped after the chain check. The fake provider and manual injection make this a local diagnostic only: it does not prove wallet mediation, an extension warning, a real wallet transaction, HTTPS, or the Phase 2 gate.
+
+Both pages load the cacheable same-origin `/app.js`. Its bytes differ between normal and hijack modes; the HTML itself is not cached. In normal mode, click **Connect wallet** to request accounts interactively. In scanner-clean mode both the HTML and `/app.js` are clean for the scanner user agent.
+
+To prepare a baseline, start the normal backend and a local watcher, then run (adjust ports and chain as needed):
+
+    node demo/hijack-server/seed-frontend.mjs --watcher http://127.0.0.1:8787/v1/observations --site 127.0.0.1:8081 --chain 31337 --asset http://127.0.0.1:8081/app.js
+
+The seed uses three labelled demo reporter keys, not independent users. This CLI is ready ahead of Batch B: the current watcher intake does not yet accept `kind:'frontend'`. Promotion requires the Batch B watcher frontend aggregator and at least one hour of maturity, followed by publication. Posting seed reports alone does not prove extension-generated reporting or promotion.

@@ -13,9 +13,10 @@ async function persist(path,state){const temp=`${path}.${randomUUID()}.tmp`;let 
 // Persist signed bytes before broadcasting so retries never create a new transaction.
 export async function openArkivSender({path,owner,chainId,target,buildCall,prepare,inspect,hash,getChainId,broadcast,confirm,confirmTimeoutMs=0,confirmPollMs=1000}) {
  if(typeof path!=='string'||!path||typeof owner!=='string'||!address.test(owner)||typeof target!=='string'||!address.test(target)||!Number.isSafeInteger(chainId)||chainId<1||[buildCall,prepare,inspect,hash,getChainId,broadcast,confirm].some(fn=>typeof fn!=='function')||!Number.isSafeInteger(confirmTimeoutMs)||confirmTimeoutMs<0||confirmTimeoutMs>300000||!Number.isSafeInteger(confirmPollMs)||confirmPollMs<10||confirmPollMs>10000)throw new Error('invalid sender configuration');
- const config={owner,chainId,target};let state;
- try{state=parseUniqueJSON(await readFile(path,'utf8'));}catch(error){if(error.code==='ENOENT')state={version:1,config,entries:[]};else throw new Error('invalid sender journal',{cause:error});}
+ const config={owner,chainId,target};let state,missing=false;
+ try{state=parseUniqueJSON(await readFile(path,'utf8'));}catch(error){if(error.code==='ENOENT'){state={version:1,config,entries:[]};missing=true;}else throw new Error('invalid sender journal',{cause:error});}
  if(!exact(state,['version','config','entries'])||state.version!==1||!exact(state.config,['owner','chainId','target'])||state.config.owner!==owner||state.config.chainId!==chainId||state.config.target!==target||!Array.isArray(state.entries)||!state.entries.every(validEntry)||new Set(state.entries.map(e=>e.id)).size!==state.entries.length)throw new Error('invalid sender journal or configuration');
+ if(missing)await persist(path,state);
  let queue=Promise.resolve(),uncertain=false;
  const serial=action=>{const result=queue.then(()=>{if(uncertain)throw new Error('sender journal uncertain; reopen required');return action();});queue=result.catch(()=>{});return result;};
  async function save(entries){const next={version:1,config,entries};if(JSON.stringify(next).length>1000000)throw new Error('sender journal full');try{await persist(path,next);state=next;}catch(error){uncertain=true;throw error;}}
@@ -98,6 +99,10 @@ export async function openArkivSender({path,owner,chainId,target,buildCall,prepa
   const entry=state.entries.find(item=>item.id===id);
   if(!entry||entry.state!=='confirmed'||entry.fingerprint!==fingerprint(record))throw new Error('historical Arkiv transaction not confirmed');
  });};
+ const provenance=id=>serial(()=>{
+  if(typeof id!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(id))throw new Error('invalid Arkiv operation id');
+  const entry=state.entries.find(item=>item.id===id);return entry?entry.state:'absent';
+ });
  const hasPending=()=>serial(()=>state.entries.some(item=>item.state==='prepared'));
- return {write,reconcileExisting,assertConfirmed,hasPending};
+ return {write,reconcileExisting,assertConfirmed,hasPending,provenance};
 }

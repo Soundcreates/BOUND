@@ -24,3 +24,10 @@ test("default settings seed once and never overwrite a saved configuration",asyn
  assert.equal(await ensureDefaultSettings(kept),false);
  assert.equal(kept.data().boundSettings.watcherUrl,"");
 });
+
+test('safe page setting preserves gateway paths and accepts only public HTTPS or loopback',()=>{
+ assert.equal(normalizeSettings({}).safePageUrl,'');
+ for(const safePageUrl of ['https://gateway.example/bzz/'+'a'.repeat(64)+'/', 'http://127.0.0.1:8081/safe/', 'http://[::1]:8081/safe.html'])assert.equal(normalizeSettings({safePageUrl}).safePageUrl,safePageUrl);
+ for(const safePageUrl of ['http://gateway.example/safe', 'https://user:pass@gateway.example/safe', 'https://gateway.example/safe?x=1', 'https://gateway.example/safe#x', 'javascript:alert(1)', 'chrome-extension://ext/safe.html'])assert.throws(()=>normalizeSettings({safePageUrl}));
+ assert.notEqual(normalizeSettings({safePageUrl:'https://gateway.example/bzz/release-a/'}).safePageUrl,normalizeSettings({safePageUrl:'https://gateway.example/bzz/release-b/'}).safePageUrl);
+});

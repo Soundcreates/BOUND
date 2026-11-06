@@ -15,7 +15,7 @@ const quantity=/^0x(?:0|[1-9a-f][0-9a-f]*)$/;
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 // This composition requires a trusted signer and a transaction decoder that recovers the signer.
 // Confirm the configured system target and SDK compatibility before using it on a live network.
-export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,chainId,schemaTag,senderJournal,registryJournal,lifetimes,prepare,inspect,hash,confirmTimeoutMs=0,confirmPollMs=1000,renewBeforeBlocks}) {
+export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,chainId,schemaTag,senderJournal,registryJournal,lifetimes,prepare,inspect,hash,confirmTimeoutMs=0,confirmPollMs=1000,renewBeforeBlocks,getFrontendSafety}) {
  if(!lifetimes||kinds.some(kind=>!Number.isSafeInteger(lifetimes[kind])||lifetimes[kind]<1||lifetimes[kind]>7884000))throw new Error('explicit Arkiv lifetimes required');
  if(typeof senderJournal!=='string'||!senderJournal||typeof registryJournal!=='string'||!registryJournal||resolve(senderJournal)===resolve(registryJournal))throw new Error('distinct Arkiv journal paths required');
  const renewalJournal=resolve(registryJournal)+'.renewal';
@@ -26,9 +26,10 @@ export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,cha
  try {
  // New immutable payload kinds inherit a bounded lifetime when older config files
  // omit explicit values. Trust snapshots should set trust_snapshot explicitly.
+ if(lifetimes.frontend!==undefined&&(!Number.isSafeInteger(lifetimes.frontend)||lifetimes.frontend<=renewalThreshold||lifetimes.frontend>7884000))throw new Error('invalid frontend lifetime');
  if(lifetimes.ens_record!==undefined&&(!Number.isSafeInteger(lifetimes.ens_record)||lifetimes.ens_record<=renewalThreshold||lifetimes.ens_record>7884000))throw new Error('invalid ENS cache lifetime');
  for(const kind of ['evidence','trust_snapshot'])if(lifetimes[kind]!==undefined&&(!Number.isSafeInteger(lifetimes[kind])||lifetimes[kind]<1||lifetimes[kind]>7884000))throw new Error(`invalid ${kind} lifetime`);
- const recordLifetimes={...Object.fromEntries(kinds.map(kind=>[kind,lifetimes[kind]])),ens_record:lifetimes.ens_record??lifetimes.status,evidence:lifetimes.evidence??lifetimes.drift,trust_snapshot:lifetimes.trust_snapshot??lifetimes.baseline};
+ const recordLifetimes={...Object.fromEntries(kinds.map(kind=>[kind,lifetimes[kind]])),frontend:lifetimes.frontend??lifetimes.baseline,ens_record:lifetimes.ens_record??lifetimes.status,evidence:lifetimes.evidence??lifetimes.drift,trust_snapshot:lifetimes.trust_snapshot??lifetimes.baseline};
  const transport=createArkivTransport({url,accessKey,fetchImpl});
  const reader=createArkivRpcReader({url,accessKey,fetchImpl,schemaTag,expectedChainId:chainId});
  const entities=createArkivEntityReader({rpc:transport.rpc,owner,schemaTag,chainId});
@@ -38,7 +39,7 @@ export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,cha
   getChainId:async()=>{const value=await transport.rpc('eth_chainId',[]);if(typeof value!=='string'||!quantity.test(value))throw new Error('invalid Arkiv chain');const n=Number(BigInt(value));if(!Number.isSafeInteger(n))throw new Error('invalid Arkiv chain');return n;},
   broadcast:raw=>transport.rpc('eth_sendRawTransaction',[raw]),confirm});
  const writer=createArkivWriter({owner,schemaTag,findByOperationId:reader.findByOperationId,currentBlock:entities.currentBlock,submitOnce:({operationId,record})=>sender.write(operationId,record),reconcileExisting:({operationId,record,entity})=>sender.reconcileExisting(operationId,record,entity)});
- const upsert=await openArkivUpsert({path:registryJournal,owner,currentBlock:entities.currentBlock,getEntity:entities.getEntity,create:(record,id)=>writer.write(record,id),patch:(record,id,entityKey)=>sender.write(id,record,{entityKey}),reconcileSuperseded:({operationId,record,entity,previousKey})=>previousKey===entity.key?sender.reconcileExisting(operationId,record,entity,{allowRecordChanged:true}):sender.assertConfirmed(operationId,record)});
+ const upsert=await openArkivUpsert({path:registryJournal,owner,getFrontendSafety,reconcileQuarantined:async op=>{if(await sender.provenance(op.id)==='absent')return {state:'never_prepared'};const entity=await reader.findByOperationId({owner,operationId:op.id});if(!entity)throw new Error('quarantined frontend transaction unresolved');if(!await sender.reconcileExisting(op.id,op.record,entity))throw new Error('quarantined frontend sender receipt missing');return entity;},currentBlock:entities.currentBlock,getEntity:entities.getEntity,create:(record,id)=>writer.write(record,id),patch:(record,id,entityKey)=>sender.write(id,record,{entityKey}),reconcileSuperseded:({operationId,record,entity,previousKey})=>previousKey===entity.key?sender.reconcileExisting(operationId,record,entity,{allowRecordChanged:true}):sender.assertConfirmed(operationId,record)});
  const renewal=await openExpiryRenewer({path:renewalJournal,owner,currentBlock:entities.currentBlock,getEntity:entities.getEntity,listCurrent:upsert.listCurrent,recordExtension:upsert.recordExtension,extend:(record,id,entityKey,extendBlocks)=>sender.write(id,record,{entityKey,extendBlocks}),hasPending:sender.hasPending,lifetimes:recordLifetimes,renewBeforeBlocks:renewalThreshold});
  let queue=Promise.resolve(),closing;
  function serial(action){if(closing)return Promise.reject(new Error('Arkiv archive closed'));const result=queue.then(action);queue=result.catch(()=>{});return result;}
@@ -51,9 +52,14 @@ export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,cha
   writeEvidence(record,id){const captured=structuredClone(record);return write(async()=>{requireKind(captured,'evidence');return writer.write(captured,id);});},
   writeTrustSnapshot(record,id){const captured=structuredClone(record);return write(async()=>{requireKind(captured,'trust_snapshot');return writer.write(captured,id);});},
   writeBaseline(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'baseline');return upsert.write(captured,id);});},
-  writeStatus(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'status');return upsert.write(captured,id);});},
+  writeStatus(record,id,expectedVersion){const captured=structuredClone(record);return write(()=>{requireKind(captured,'status');return upsert.write(captured,id,expectedVersion===undefined?{}:{expectedVersion});});},
+  writeFrontend(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'frontend');return upsert.write(captured,id);});},
   writeEnsRecord(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'ens_record');return upsert.write(captured,id);});},
+  reconcileFrontend:(record,id)=>serial(()=>upsert.reconcileFrontend(record.site,record.chainId,id)),
+  reconcileStatus:(site,chainId)=>write(()=>upsert.reconcileStatus(site,chainId)),
+  quarantineFrontend:(site,chainId)=>serial(()=>upsert.quarantineFrontend(site,chainId)),
   getStatusVersion:(site,chainId)=>serial(async()=>(await upsert.latestStatus(site,chainId))?.id??null),
+  getLatestStatus:(site,chainId)=>serial(async()=>structuredClone((await upsert.latestStatus(site,chainId))?.record??null)),
   // Recovery must use a version captured by the guarded caller when it made
   // the decision, so a delayed call cannot clear a newer committed incident.
   writeRecoveryStatus(record,id,expectedVersion){const captured=structuredClone(record);return write(async()=>{

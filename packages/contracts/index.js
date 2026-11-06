@@ -1,3 +1,4 @@
+import { isFrontendPath, isFrontendHash, validateFrontendRecord } from './frontend.js';
 // Phase 0 wire contract. Validation does not authenticate an Arkiv owner.
 const ADDRESS_RE = /^0x[0-9a-f]{40}$/;
 const DIGEST_RE = /^0x[0-9a-f]{64}$/;
@@ -66,6 +67,7 @@ export function validateRootSnapshotPair(root, snapshot) {
 
 // This is the extension-to-watcher intake. Its kind is the observation subtype.
 export function validateObservation(v) {
+  if (v?.kind === 'frontend') return exact(v, ['site', 'kind', 'chainId', 'reporterKey', 'path', 'hash']) && host(v.site) && v.site.length <= 253 && integer(v.chainId) && v.chainId > 0 && typeof v.reporterKey === 'string' && /^[\x20-\x7e]{1,128}$/.test(v.reporterKey) && isFrontendPath(v.path) && isFrontendHash(v.hash);
   return exact(v, ['site', 'kind', 'value', 'chainId', 'reporterKey']) &&
     host(v.site) && ['counterparty', 'called-contract', 'warned'].includes(v.kind) &&
     isAddress(v.value) && integer(v.chainId) && v.chainId > 0 && nonempty(v.reporterKey);
@@ -92,6 +94,7 @@ const change = v => exact(v, ['kind', 'before', 'after']) &&
 export function validateRecord(v) {
   if (v === null || typeof v !== 'object' || Array.isArray(v)) return false;
   switch (v.kind) {
+    case 'frontend': return validateFrontendRecord(v);
     case 'observation':
       return baseRecord(v, ['value', 'reporterKey', 'event']) &&
         isAddress(v.value) && nonempty(v.reporterKey) &&
@@ -146,7 +149,7 @@ export function validateBundle(v, watcherAddress, currentBlock) {
         !isDigest(entry.key) || keys.has(entry.key) ||
         !isAddress(entry.owner) || entry.owner !== watcherAddress ||
         !integer(entry.expiresAt) || entry.expiresAt <= currentBlock ||
-        !validateRecord(entry.record) || !['baseline', 'drift', 'incident', 'status', 'ens_record'].includes(entry.record.kind)) return false;
+        !validateRecord(entry.record) || !['baseline', 'drift', 'incident', 'status', 'ens_record', 'frontend'].includes(entry.record.kind)) return false;
     keys.add(entry.key);
   }
   return true;

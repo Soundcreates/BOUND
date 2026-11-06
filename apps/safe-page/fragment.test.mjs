@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {parseSafeFragment,encodeSafeFragment} from './src/fragment.mjs';
+const h='sha256-'+Buffer.alloc(32).toString('base64');
+export const evidence={v:1,site:'example.com',chain:'1',score:55,sev:'warning',reason:['drift'],conflicts:[{path:'/app.js',observed:h,expected:[h]}],unfamiliar:[],cov:{total:1,compared:1,inlineExcluded:0,queryExcluded:0,crossOriginExcluded:0,privatePathExcluded:0,unavailable:0,overCap:0},ticket:'1'.repeat(32),watcher:'0x'+'e'.repeat(40)};
+test('round trip and reject duplicate keys and private paths',()=>{assert.deepEqual(parseSafeFragment(encodeSafeFragment(evidence)),evidence);assert.equal(parseSafeFragment('#'+encodeURIComponent(JSON.stringify(evidence).replace('"v":1','"v":1,"v":1'))),null);assert.throws(()=>encodeSafeFragment({...evidence,conflicts:[{...evidence.conflicts[0],path:'/0x'+'a'.repeat(40)}]}));assert.equal(parseSafeFragment('#'+'x'.repeat(65537)),null);});
+test('rejects unknown keys, invalid types, malformed encoding and oversized decoded JSON',()=>{for(const v of [{...evidence,other:1},{...evidence,ticket:123},{...evidence,chain:'01'},{...evidence,reason:['drift','drift']},{...evidence,site:'<script>'}])assert.equal(parseSafeFragment('#'+encodeURIComponent(JSON.stringify(v))),null);assert.equal(parseSafeFragment('#%ff'),null);assert.equal(parseSafeFragment('#'+encodeURIComponent(' '.repeat(16385))),null);});

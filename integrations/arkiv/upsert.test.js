@@ -146,3 +146,27 @@ test('ENS cache records upsert per site and refuse an older resolution',async t=
  await assert.rejects(registry.write({...record,resolvedAt:'2026-01-01T00:00:00.000Z'},'ens-old'),/stale ENS cache record/);
  assert.deepEqual(counts(),{creates:1,patches:1});
 });
+test('frontend records upsert and reject an older publication',async t=>{
+ const {options,counts}=await setup(t);options.getFrontendSafety=async()=>({known:true,rawDrift:false,incident:false});const registry=await openArkivUpsert(options);
+ const record={schemaVersion:1,kind:'frontend',site,chainId:1,scripts:[],updatedAt:'2026-01-01T01:00:00.000Z'};
+ await registry.write(record,'frontend-first');
+ await registry.write({...record,updatedAt:'2026-01-01T02:00:00.000Z'},'frontend-second');
+ await assert.rejects(registry.write(record,'frontend-old'),/stale frontend/);
+ assert.deepEqual(counts(),{creates:1,patches:1});
+});
+test('frontend safety fails closed and quarantine survives restart',async t=>{
+ const {options,counts}=await setup(t);const record={schemaVersion:1,kind:'frontend',site,chainId:1,scripts:[],updatedAt:'2026-01-01T01:00:00.000Z'};
+ let registry=await openArkivUpsert(options);await assert.rejects(registry.write(record,'first'),/quarantined/);assert.equal(counts().creates,0);
+ options.getFrontendSafety=async()=>({known:true,rawDrift:false,incident:false});registry=await openArkivUpsert(options);
+ await assert.rejects(registry.write({...record,updatedAt:'2026-01-01T02:00:00.000Z'},'second'),/quarantined/);assert.equal(counts().creates,0);
+});
+
+test('ordinary normal status is version bound and cannot clear a risk racing its decision',async t=>{
+ const {options}=await setup(t),registry=await openArkivUpsert(options);
+ const normal={...pending,state:'normal'},risk={...pending,updatedAt:'2026-01-01T01:00:00.000Z'};
+ await registry.write(normal,'normal-1'); const version=(await registry.latestStatus(site,1)).id;
+ await registry.write(risk,'risk-1');
+ await assert.rejects(registry.write({...normal,updatedAt:'2026-01-01T02:00:00.000Z'},'normal-2',{expectedVersion:version}),/stale status version/);
+ await assert.rejects(registry.write({...normal,updatedAt:'2026-01-01T02:00:00.000Z'},'normal-3',{expectedVersion:'risk-1'}),/recovery approval/);
+ assert.equal((await registry.latestStatus(site,1)).record.state,'incident');
+});

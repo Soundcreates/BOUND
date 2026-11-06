@@ -26,6 +26,7 @@ test("ambiguous drift evidence cannot create a corroborated signal",async()=>{
 });
 test("unavailable anonymous block or expired owner records never become a baseline",async()=>{
  const f=fixture([row(baseline,1,owner,11)]);await f.reader.refresh();assert.deepEqual(await f.reader.readWatcherBundle(),[]);
+ f.data.boundWatcherBundle.verifiedAt=null;
  const reader=createArkivReader({getSettings:async()=>settings,storage:{get:async()=>f.data,set:async()=>{}},anonymousRequest:async()=>({error:"offline"}),fetchImpl:async()=>{},now:()=>time});
  await assert.rejects(reader.readWatcherBundle(),/Anonymized Arkiv unavailable/);
 });
@@ -69,4 +70,122 @@ test("watcher ENS cache records are looked up locally, owner-checked and freshne
  assert.equal(await expired.reader.readEnsRecord({site,chain:String(chainId)}),null);
  const duplicate=fixture([row(ens,1),row({...ens,name:"second.eth"},2)]);await duplicate.reader.refresh();
  assert.equal(await duplicate.reader.readEnsRecord({site,chain:String(chainId)}),null,"ambiguous rows are ignored");
+});
+
+test("concurrent refreshes join one whole-bundle download",async()=>{
+ const f=fixture([]);await Promise.all([f.reader.refresh(),f.reader.refresh(),f.reader.refresh()]);
+ assert.equal(f.direct.filter(r=>r.method==="arkiv_query").length,1);
+});
+test("community freshness boundaries and block verification reuse",async()=>{
+ const f=fixture([]);await f.reader.refresh();await f.reader.verifyBundleBlock();await f.reader.verifyBundleBlock();
+ assert.equal(f.anonymous.length,2);
+ const read=at=>f.reader.readCommunityCache({site,chain:chainId,now:at});
+ assert.equal((await read(time)).state,"fresh");
+ assert.equal((await read(time+30_000)).state,"unavailable");
+ assert.equal((await read(time+300_000)).state,"stale");
+ assert.equal((await read(time+3_600_000)).state,"unavailable");
+ assert.equal((await read(time-1)).state,"unavailable");
+});
+test("ensure budget leaves refresh running and background completion fills cache",async()=>{
+ let release;const wait=new Promise(resolve=>{release=resolve;});const data={};let calls=0;
+ const storage={get:async key=>({[key]:data[key]}),set:async value=>Object.assign(data,value)};
+ const reader=createArkivReader({getSettings:async()=>settings,storage,now:()=>time,anonymousRequest:async r=>({result:r.method==="eth_chainId"?"0x76edaf":"0xb"}),fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);if(r.method==="arkiv_query"){calls++;await wait;}return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result:r.method==="eth_chainId"?"0x76edaf":{data:[],blockNumber:"0xa"}})};}});
+ assert.equal((await reader.ensureCommunity({site,chain:chainId,budgetMs:1})).state,"unavailable");
+ const joined=reader.refresh();release();await joined;
+ // Join the verification begun by ensureCommunity as well.
+ await reader.verifyBundleBlock();assert.equal((await reader.readCommunityCache({site,chain:chainId})).state,"fresh");assert.equal(calls,1);
+});
+test("v1 cache triggers refresh and mismatched settings cannot use it",async()=>{
+ const f=fixture([]);f.data.boundWatcherBundle={version:1,owner,url:settings.arkivRpcUrl,fetchedAt:time,block:10,records:[]};
+ assert.equal((await f.reader.readCommunityCache({site,chain:chainId})).state,"unavailable");
+ await f.reader.ensureCommunity({site,chain:chainId});assert.equal(f.data.boundWatcherBundle.version,2);
+ f.data.boundWatcherBundle.owner=other;assert.equal((await f.reader.readCommunityCache({site,chain:chainId})).state,"unavailable");
+});
+
+test("settings change prevents an in-flight refresh from writing",async()=>{
+ let current=settings,release;const wait=new Promise(resolve=>{release=resolve;}),data={};
+ const storage={get:async key=>({[key]:data[key]}),set:async v=>Object.assign(data,v)};
+ const reader=createArkivReader({getSettings:async()=>current,storage,anonymousRequest:async()=>({result:"0xb"}),fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);if(r.method==="arkiv_query")await wait;return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result:r.method==="eth_chainId"?"0x76edaf":{data:[],blockNumber:"0xa"}})};}});
+ const pending=reader.refresh();await new Promise(resolve=>setImmediate(resolve));current={...settings,watcherOwner:other};release();await assert.rejects(pending,/settings changed/);assert.equal(data.boundWatcherBundle,undefined);
+});
+test("changed pagination block restarts once then rejects",async()=>{
+ let pages=0;const storage={get:async()=>({}),set:async()=>{throw Error("unexpected write");}};
+ const reader=createArkivReader({getSettings:async()=>settings,storage,anonymousRequest:async()=>({}),fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);const result=r.method==="eth_chainId"?"0x76edaf":{data:Array.from({length:32},(_,i)=>row(baseline,i+1)),blockNumber:++pages%2?"0xa":"0xb"};return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result})};}});
+ await assert.rejects(reader.refresh(),/pagination changed block/);assert.equal(pages,4);
+});
+test("aggregate response bytes are bounded",async()=>{
+ let pages=0;const storage={get:async()=>({}),set:async()=>{throw Error("unexpected write");}};
+ const reader=createArkivReader({getSettings:async()=>settings,storage,anonymousRequest:async()=>({}),fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);const result=r.method==="eth_chainId"?"0x76edaf":{data:Array.from({length:32},(_,i)=>row(baseline,pages*32+i+1)),blockNumber:"0xa"};pages++;return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result,padding:"x".repeat(900000)})};}});
+ await assert.rejects(reader.refresh(),/response too large/);
+});
+test("pagination limit rejects an endless full result",async()=>{
+ let page=0;const storage={get:async()=>({}),set:async()=>{throw Error("unexpected write");}};
+ const reader=createArkivReader({getSettings:async()=>settings,storage,anonymousRequest:async()=>({}),fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);const result=r.method==="eth_chainId"?"0x76edaf":{data:Array.from({length:32},(_,i)=>row(baseline,page*32+i+1)),blockNumber:"0xa"};if(r.method!=="eth_chainId")page++;return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result})};}});
+ await assert.rejects(reader.refresh(),/pagination limit/);assert.equal(page,256);
+});
+
+test("community mapping rejects orphan, recovered, duplicate and mismatched drift signals",async()=>{
+ const front={schemaVersion:1,kind:"frontend",site,chainId,scripts:[],updatedAt:hour};
+ const incident={schemaVersion:1,kind:"incident",site,chainId,trigger:"drift+warned",severity:"high",counterparty:owner,reportDigest:ref,reportReference:"d".repeat(64),createdAt:hour};
+ const key="0x"+(3).toString(16).padStart(64,"0");
+ async function read(rows){const f=fixture(rows);await f.reader.refresh();await f.reader.verifyBundleBlock();return f.reader.readCommunityCache({site,chain:chainId});}
+ assert.equal((await read([row(front,1),row({...status,state:"incident",incidentReference:key},2),row(incident,3)])).activeIncident,true);
+ assert.equal((await read([row(front,1),row({...status,state:"incident",incidentReference:ref},2),row(incident,3)])).activeIncident,false);
+ assert.equal((await read([row(front,1),row({...status,state:"normal"},2),row(incident,3)])).activeIncident,false);
+ assert.equal((await read([row(front,1),row(status,2),row({...drift,detectedAt:"2026-11-06T23:00:00.000Z"},3)])).corroboratedDrift,false);
+ assert.equal((await read([row(front,1),row(status,2),row(status,3)])).ambiguous,true);
+});
+test("concurrent anonymous status reads for different sites share one whole-owner query",async()=>{
+ const otherSite="other.example",otherStatus={...status,site:otherSite,state:"normal"};
+ const f=fixture([row(status,1),row(drift,2),row(otherStatus,3)]);
+ const [first,second]=await Promise.all([f.reader.readSiteStatusViaAnonRpc({site}),f.reader.readSiteStatusViaAnonRpc({site:otherSite})]);
+ assert.equal(f.anonymous.filter(item=>item.method==="arkiv_query").length,1);
+ assert.ok(first.length>0&&first.every(item=>item.site===site));
+ assert.deepEqual(second.map(item=>[item.site,item.kind,item.status]),[[otherSite,"status","normal"]]);
+ // A later call after the flight settled issues a fresh query instead of reusing stale data.
+ await f.reader.readSiteStatusViaAnonRpc({site});
+ assert.equal(f.anonymous.filter(item=>item.method==="arkiv_query").length,2);
+});
+
+test("refresh preserves verified watermark and stale display through failed or stalled verification",async()=>{
+ let clock=time,queryBlock=100,verifyBlock=100,offline=false,stall=false,release;
+ const waiting=new Promise(resolve=>{release=resolve;});
+ const data={},storage={get:async key=>({[key]:data[key]}),set:async value=>Object.assign(data,structuredClone(value))};
+ const front={schemaVersion:1,kind:"frontend",site,chainId,scripts:[],updatedAt:hour};
+ const reader=createArkivReader({getSettings:async()=>settings,storage,now:()=>clock,fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result:r.method==="eth_chainId"?"0x76edaf":{data:[row(front,1,owner,1000),row({...status,state:"normal"},2,owner,1000)],blockNumber:`0x${queryBlock.toString(16)}`}})};},anonymousRequest:async r=>{if(offline)throw Error("offline");if(stall)await waiting;return {result:r.method==="eth_chainId"?"0x76edaf":`0x${verifyBlock.toString(16)}`};}});
+ await reader.refresh();await reader.verifyBundleBlock();clock+=300000;
+ queryBlock=10;await assert.rejects(reader.refresh(),/backwards/);verifyBlock=11;
+ await assert.rejects(reader.verifyBundleBlock(),/superseded|backwards/);assert.equal((await reader.readCommunityCache({site,chain:chainId})).state,"stale");
+ queryBlock=101;await reader.refresh();offline=true;await assert.rejects(reader.verifyBundleBlock());
+ assert.equal((await reader.readCommunityCache({site,chain:chainId})).frontend.kind,"frontend");
+ offline=false;stall=true;assert.equal((await reader.ensureCommunity({site,chain:chainId,budgetMs:1})).state,"stale");
+ verifyBlock=102;release();await reader.verifyBundleBlock();assert.equal((await reader.readCommunityCache({site,chain:chainId})).state,"fresh");assert.equal(data.boundWatcherBundle.block,102);
+});
+
+test("negative status survives frontend and status ambiguity and reporting requires a unique normal scope",async()=>{
+ const front={schemaVersion:1,kind:"frontend",site,chainId,scripts:[],updatedAt:hour};
+ async function read(rows){const f=fixture(rows);await f.reader.refresh();await f.reader.verifyBundleBlock();return f.reader.readCommunityCache({site,chain:chainId});}
+ for(const rows of [[row(status,1)],[row(front,1),row(front,2),row(status,3)],[row(front,1),row(status,2),row({...status,state:"normal"},3)]]){const result=await read(rows);assert.equal(result.rawDrift,true);assert.equal(result.communityReportingSafe,false);}
+ assert.equal((await read([row(front,1)])).communityReportingSafe,false);
+ assert.equal((await read([row(front,1),row({...status,state:"normal"},2)])).communityReportingSafe,true);
+});
+
+
+test("block watermark prevents expired records returning after a reader restart",async()=>{
+ let clock=time,block=100;const data={},storage={get:async key=>({[key]:data[key]}),set:async value=>Object.assign(data,structuredClone(value))};
+ const make=()=>createArkivReader({getSettings:async()=>settings,storage,now:()=>clock,fetchImpl:async(_u,o)=>{const r=JSON.parse(o.body);return {ok:true,text:async()=>JSON.stringify({jsonrpc:"2.0",id:1,result:r.method==="eth_chainId"?"0x76edaf":{data:[row(baseline,1,owner,175)],blockNumber:"0x64"}})};},anonymousRequest:async r=>({result:r.method==="eth_chainId"?"0x76edaf":`0x${block.toString(16)}`})});
+ let reader=make();await reader.refresh();await reader.verifyBundleBlock();assert.equal((await reader.readWatcherBundle()).length,1);
+ clock+=30000;block=200;assert.deepEqual(await reader.readWatcherBundle(),[]);
+ clock+=30000;block=150;await assert.rejects(reader.readWatcherBundle(),/backwards/);
+ reader=make();await assert.rejects(reader.readWatcherBundle(),/backwards/);
+});
+
+test("unverified bundles never become stale display data",async()=>{
+ const f=fixture([row(status,1)]);await f.reader.refresh();
+ for(const age of [0,299999,300000,3599999,3600000])assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+age})).state,"unavailable");
+ await f.reader.verifyBundleBlock();
+ assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+299999})).state,"unavailable");
+ assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+300000})).state,"stale");
+ assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+3599999})).state,"stale");
+ assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+3600000})).state,"unavailable");
 });
