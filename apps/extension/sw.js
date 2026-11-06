@@ -8,6 +8,8 @@ import { createDecisionContext, readPreconnectionSiteStatus } from "./decision-c
 import { decisionAdapters, getWatcherOwner } from "./trust-adapter.mjs";
 import { anonRpc } from "./anon-rpc-host.mjs";
 import { createNetworkCapture, isCapturePage } from "./network-capture.mjs";
+import { scoreConnection } from "./connection-score.mjs";
+import { SCORE_SETTINGS } from "./score-settings.mjs";
 
 const pending = new Map();
 const pendingObservations = new Map();
@@ -71,6 +73,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     isObservationConfigured().then(observationReporting=>sendResponse({ observationReporting }),()=>sendResponse({ observationReporting:false }));
     return true;
   }
+  if (message?.type === "BOUND_DATA_DIAGNOSTIC_V1" && sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("popup.html")) {
+    diagnoseData().then(sendResponse, () => sendResponse({ error: "diagnostic_failed" }));
+    return true;
+  }
   if (message?.type === "BOUND_REQUEST_V1") {
     handleRequest(message, sender, sendResponse).catch(() => sendResponse({ action: "cancel", digest: message.digest, stateDigest: message.stateDigest }));
     return true;
@@ -106,6 +112,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     setCoverage(sender.tab.id, sender.frameId, sender.documentId, "bypass_possible").catch(() => {});
   }
 });
+
+async function diagnoseData() {
+  const { boundSettings } = await chrome.storage.local.get("boundSettings");
+  const configured = Boolean(boundSettings?.ensRootName && boundSettings?.ensResolver && boundSettings?.arkivRpcUrl && boundSettings?.watcherOwner && boundSettings?.anonBootstrapUrl && boundSettings?.anonRpcUrl && boundSettings?.anonWorkerId === "nox");
+  if (!configured) return { configured: false };
+  const [ens, arkiv] = await Promise.all([anonRpc({ method: "eth_chainId" }), anonRpc({ network: "arkiv", method: "eth_chainId" })]);
+  const result = { configured: true, anonymousEns: ens?.result === "0xaa36a7" ? "ok" : (ens?.error || "unexpected_chain"), anonymousArkiv: arkiv?.result === "0x76edaf" ? "ok" : (arkiv?.error || "unexpected_chain") };
+  if (result.anonymousEns !== "ok" || result.anonymousArkiv !== "ok") return result;
+  try { await decisionAdapters.readVerifiedSnapshot(); result.snapshot = "ok"; }
+  catch { result.snapshot = "unavailable"; return result; }
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab?.url) return { ...result, siteStatus: "no_active_site" };
+  const owner = await getWatcherOwner();
+  const status = await readPreconnectionSiteStatus({ siteOrigin: tab.url, watcherOwner: owner, adapters: decisionAdapters });
+  return { ...result, siteStatus: status.status, evidence: status.evidence };
+}
 
 chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (change.status === "loading" || change.url) {
@@ -168,6 +190,33 @@ async function handleRequest(message, sender, sendResponse) {
     return;
   }
   const classification = classifyRequest(request);
+  if (["eth_requestAccounts", "wallet_requestPermissions", "eth_accounts", "eth_coinbase", "metamask_getProviderState"].includes(request.method)) {
+    let statuses = [];
+    const origins = [...new Set([originOf(sender.tab?.url), originOf(sender.url)])];
+    try {
+      const owner = await getWatcherOwner();
+      if (origins.every(origin => origin !== "unknown" && origin !== "null")) {
+        statuses = await Promise.all(origins.map(siteOrigin => readPreconnectionSiteStatus({ siteOrigin, watcherOwner: owner, adapters: decisionAdapters })));
+      }
+    } catch { /* Missing evidence blocks the connection. */ }
+    const connectionScore = scoreConnection({ origins: origins.map((origin, index) => ({ origin, status: statuses[index] })), providerValid: validProviderState(message.state) });
+    const allowed = connectionScore.allowed;
+    if (!valid() || !(await currentDocument(sender)) || !validProviderState(message.state)) {
+      sendResponse({ action: "cancel", digest, stateDigest, connectionStatus: "unknown" });
+      return;
+    }
+    const connectionStatus = statuses.some(item => item.status === "active") ? "active" : statuses.some(item => item.status === "drift") ? "drift" : "unknown";
+    const connectionCoverage = await bypassPossible(sender.tab.id) ? "bypass_possible" : "mediated";
+    await setCoverage(sender.tab.id, sender.frameId, sender.documentId, connectionCoverage).catch(() => {});
+    const reason = `Connection score ${connectionScore.score}/100; requires ${connectionScore.threshold}. ${connectionScore.blockers.join('; ') || (allowed ? 'Connection checks passed.' : 'Some checks failed or are unavailable.')}`;
+    await recordWarning({ topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), method: request.method, chainId: message.state.chainId, verdict: allowed ? "connection allowed" : "connection blocked", score: connectionScore.score, connectionScore, reasons: [reason], entries: [] }).catch(() => {});
+    if (!valid() || !(await currentDocument(sender)) || !valid()) {
+      sendResponse({ action: "cancel", digest, stateDigest, connectionStatus: "unknown" });
+      return;
+    }
+    sendResponse({ action: allowed ? "continue" : "cancel", digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(allowed ? {} : { connectionStatus }) });
+    return;
+  }
   if (classification.kind === "read_only") {
     sendResponse({ action: "continue", digest, stateDigest, readOnly: true });
     return;
@@ -183,7 +232,7 @@ async function handleRequest(message, sender, sendResponse) {
   }
   const frontend = await frontendPromise;
   if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
-  const evaluated = evaluate({ classification, ...context, signerAccounts: locked ? [] : message.state.accounts, coverage });
+  const evaluated = evaluate({ classification, ...context, signerAccounts: locked ? [] : message.state.accounts, coverage, thresholds: SCORE_SETTINGS.transaction });
   const id = crypto.randomUUID();
   const details = {
     id,
@@ -217,7 +266,7 @@ async function handleRequest(message, sender, sendResponse) {
     const timer = setTimeout(() => finish(id, "cancel"), DEADLINE_MS);
     pending.set(id, { details, resolve, timer, used: false });
   });
-  const warnings = !locked && evaluated.score !== null && evaluated.score <= 39
+  const warnings = !locked && evaluated.score !== null && evaluated.score < SCORE_SETTINGS.transaction.amber
     ? warningCandidates({ site: siteFrom(sender.tab?.url), chain: message.state.chainId, addresses: evaluated.warnedAddresses, request, accounts: message.state.accounts }) : [];
   openWarning(id, warnings);
   result.then((action) => {
@@ -262,7 +311,7 @@ async function enqueueCurrentObservation({ classification, request, state, sende
   const watcherOwner=await getWatcherOwner();if(!watcherOwner)return;
   const latest = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: state.chainId, watcherOwner, adapters: decisionAdapters });
   const currentCoverage = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id) ? "bypass_possible" : coverage;
-  const evaluated = evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage });
+  const evaluated = evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage, thresholds: SCORE_SETTINGS.transaction });
   if (!mayRecordObservation({ verdict: evaluated.verdict, incidentStatus: latest.incidentStatus, action: "continue" })) return;
   await enqueueReports(observationCandidates({ site: siteFrom(sender.tab?.url), chain: state.chainId, classification, request, accounts: state.accounts }));
 }
@@ -441,6 +490,8 @@ async function recordWarning(details) {
     chainId: details.chainId,
     verdict: details.verdict,
     score: details.score,
+    reasons: details.reasons || [],
+    ...(details.connectionScore ? { connectionScore: details.connectionScore } : {}),
     entries: (details.entries || []).map(({ address, role }) => ({ address, role })),
     approvals: (details.approvals || []).map(({ token, spender }) => ({ token, spender }))
   });

@@ -33,14 +33,19 @@ entity keys, expiry blocks, and transaction hashes to
 changed, expired, or unreadable by the extension reader. Queries that span a
 block transition are retried a bounded number of times, never accepted partially.
 
+For the complete localhost snapshot and ENS setup, see
+[`Docs/localhost-arkiv-demo.md`](../../Docs/localhost-arkiv-demo.md). The verified
+snapshot command is `npm run demo:snapshot:check`; `demo:snapshot:publish` adds
+the local scopes to a new ENS-authenticated Arkiv snapshot epoch.
+
 These are explicitly synthetic normal-state fixtures, not security assessments
 or fabricated historical incidents. Baselines start empty and grant no trust
 to contracts. The status `feedReference` is a hash identifying this local demo
 fixture, not a claim that a Swarm feed was published. No real wallet activity is
 performed. The scripts do not bypass the extension's verified ENS/Swarm
 snapshot requirement or prove Anon-RPC/browser connectivity. Configure and save
-the matching Rabdi URL and watcher owner in extension options, plus working
-snapshot gateways and Anon-RPC settings. Without those dependencies, the UI can
+the matching ENS root, pinned resolver, Rabdi URL and watcher owner in extension
+options, plus working Anon-RPC settings. Without those dependencies, the UI can
 still correctly remain grey even when the Arkiv seed passes.
 
 `npm test` runs `local.test.js`, which covers watcher intake, local durable retry, fake observation storage, hourly baseline generation and refresh, and owner-checked bundle filtering. The in-memory client is deliberately a fake; the tests do not exercise a real wallet, browser extension, ENSv2, Swarm, Arkiv write, or Anon-RPC worker.

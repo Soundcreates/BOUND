@@ -15,6 +15,9 @@
     "check:arkiv-live": "node --env-file=.env scripts/integration/live-arkiv.mjs",
     "demo:arkiv:seed": "node --env-file=.env scripts/integration/seed-demo-arkiv.mjs",
     "demo:arkiv:check": "node --env-file=.env scripts/integration/seed-demo-arkiv.mjs --check",
+    "demo:snapshot:prepare": "node --env-file=.env --experimental-strip-types scripts/integration/demo-snapshot.mjs --prepare",
+    "demo:snapshot:publish": "node --env-file=.env --experimental-strip-types scripts/integration/demo-snapshot.mjs --publish",
+    "demo:snapshot:check": "node --env-file=.env --experimental-strip-types scripts/integration/demo-snapshot.mjs --check",
     "check:ens-read": "node --env-file=.env scripts/integration/ens-read-probe.mjs"
   },
   "dependencies": {

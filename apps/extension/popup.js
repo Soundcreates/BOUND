@@ -3,6 +3,22 @@ const coverageNode = document.querySelector("#coverage");
 const framesNode = document.querySelector("#frames");
 const historyNode = document.querySelector("#history");
 document.querySelector("#settings").addEventListener("click", () => chrome.runtime.openOptionsPage());
+document.querySelector("#diagnose-data").addEventListener("click", async () => {
+  const button = document.querySelector("#diagnose-data"), result = document.querySelector("#diagnose-result");
+  button.disabled = true;
+  result.textContent = "Checking anonymous ENS and Arkiv connections. This can take up to a minute…";
+  try {
+    const data = await chrome.runtime.sendMessage({ type: "BOUND_DATA_DIAGNOSTIC_V1" });
+    if (!data?.configured) result.textContent = data?.error ? "Data check failed. Try again." : "Settings are incomplete or not saved. Open Settings and save them.";
+    else {
+      const parts = [`Anonymous ENS: ${data.anonymousEns}`, `Anonymous Arkiv: ${data.anonymousArkiv}`];
+      if (data.snapshot) parts.push(`Verified snapshot: ${data.snapshot}`);
+      if (data.siteStatus) parts.push(`Current site status: ${data.siteStatus}`);
+      result.textContent = parts.join(" · ");
+    }
+  } catch { result.textContent = "Data check failed. Try again."; }
+  finally { button.disabled = false; }
+});
 const captureButton = document.querySelector("#capture"), captureStatus = document.querySelector("#capture-status");
 let capturing = false;
 async function updateCapture(action) {
@@ -50,7 +66,7 @@ updateCapture("status");
 
   const rows = boundWarningHistory.filter((item) => item.site === currentOrigin).slice(-10).reverse();
   historyNode.replaceChildren();
-  if (!rows.length) historyNode.textContent = "No local warning history for this site.";
+  if (!rows.length) historyNode.textContent = "No local checks recorded for this site. An existing session or an unobserved provider path may show a wallet as connected without a new connection request.";
   for (const item of rows) {
     const row = document.createElement("div");
     row.className = "row";
@@ -60,6 +76,29 @@ updateCapture("status");
     context.className = "muted";
     context.textContent = `${new Date(item.time).toLocaleString()} · chain ${item.chainId || "unknown"}`;
     row.append(title, context);
+    if (item.connectionScore) {
+      const summary = document.createElement("div");
+      summary.textContent = `Connection threshold: ${item.connectionScore.threshold}/100`;
+      row.append(summary);
+      for (const scope of item.connectionScore.scopes || []) {
+        const breakdown = document.createElement("details");
+        const heading = document.createElement("summary");
+        heading.textContent = `${scope.origin}: ${scope.score}/100`;
+        breakdown.append(heading);
+        for (const check of scope.checks || []) {
+          const line = document.createElement("div");
+          line.textContent = `${check.points > 0 ? "+" : ""}${check.points} · ${check.label}: ${check.outcome}`;
+          breakdown.append(line);
+        }
+        row.append(breakdown);
+      }
+    }
+    if (Array.isArray(item.reasons) && item.reasons.length) {
+      const reason = document.createElement("div");
+      reason.className = "muted";
+      reason.textContent = item.reasons.join("; ");
+      row.append(reason);
+    }
     for (const { token, spender } of uniqueApprovalPairs(item.approvals)) {
       const pair = document.createElement("div");
       pair.className = "approval-pair";

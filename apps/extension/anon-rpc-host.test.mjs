@@ -13,3 +13,7 @@ test("configured read uses only the anonymizing engine and respects the deadline
  const timed=createAnonRpcHost({getSettings:async()=>settings,loadEngine:async()=>({request:()=>new Promise(()=>{})}),timeoutMs:5});
  assert.deepEqual(await timed({method:"eth_call",params:[]}),{error:"anon_rpc_unavailable"});
 });
+test("default deadline allows a slow worker initialization",async()=>{
+ const host=createAnonRpcHost({getSettings:async()=>settings,loadEngine:async()=>({request:async()=>{await new Promise(resolve=>setTimeout(resolve,1600));return '0x1';}})});
+ assert.deepEqual(await host({method:'eth_chainId',params:[]}),{result:'0x1'});
+});

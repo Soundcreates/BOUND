@@ -29,7 +29,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     const decoderRoot = path.join(resolvedTemp, "packages", "decoder");
     const policyRoot = path.join(resolvedTemp, "packages", "policy-core");
     await Promise.all([mkdir(extensionRoot, { recursive: true }), mkdir(decoderRoot, { recursive: true }), mkdir(policyRoot, { recursive: true })]);
-    for (const file of ["sw.js", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "anon-rpc-host.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
+    for (const file of ["sw.js", "connection-score.mjs", "score-settings.mjs", "score-config.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "anon-rpc-host.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
       await copyFile(path.join(repoRoot, "apps", "extension", file), path.join(extensionRoot, file));
     }
     await copyFile(path.join(repoRoot, "packages", "decoder", "index.mjs"), path.join(decoderRoot, "index.mjs"));
@@ -44,6 +44,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
         async readWatcherBundle() { const adapters = globalThis.__boundFake.adapters; return adapters.getRecords ? adapters.getRecords() : adapters.records; }
       };
     `);
+    await writeFile(path.join(extensionRoot, "anon-rpc-engine.mjs"), `export function createAnonEngine() { throw new Error('not used by fake integration'); }`);
     await writeFile(path.join(extensionRoot, "watcher-adapter.mjs"), `
       export async function isObservationConfigured() { return true; }
       export async function sendObservationBatch(records, { signal } = {}) {
@@ -155,6 +156,33 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       fake.currentDocuments.set(`1:0`, documentId);
       return { id: "fake-extension", tab: { id: 1, url: `https://${site}/` }, frameId: 0, documentId, url: `https://${site}/` };
     };
+    const connectionState = { chainId: "0x1", accounts: [] };
+    const connect = async (method, sender) => {
+      const request = { method, params: method === "wallet_requestPermissions" ? [{ eth_accounts: {} }] : [] };
+      return send({ type: "BOUND_REQUEST_V1", request, state: connectionState, digest: await hash(JSON.stringify(request)), stateDigest: await hash(JSON.stringify(connectionState)) }, sender);
+    };
+    for (const method of ["eth_requestAccounts", "wallet_requestPermissions", "eth_accounts", "eth_coinbase", "metamask_getProviderState"]) {
+      const connectionSender = makeSender(SITE, `connection-${method}`);
+      fake.site = SITE;
+      fake.adapters.records = scenarioRecords("normal");
+      assert.equal((await connect(method, connectionSender)).action, "continue");
+      for (const status of ["active", "drift"]) {
+        fake.adapters.records = scenarioRecords(status);
+        const result = await connect(method, connectionSender);
+        assert.equal(result.action, "cancel");
+        assert.equal(result.connectionStatus, status);
+      }
+      fake.adapters.records = [];
+      assert.equal((await connect(method, connectionSender)).connectionStatus, "unknown");
+      assert.equal(local.boundWarningHistory.at(-1).method, method);
+      assert.equal(local.boundWarningHistory.at(-1).verdict, "connection blocked");
+      assert.match(local.boundWarningHistory.at(-1).reasons[0], /unavailable/);
+    }
+    const connectionSender = makeSender(SITE, "connection-cross-frame");
+    fake.adapters.records = scenarioRecords("normal");
+    assert.equal((await connect("eth_requestAccounts", { ...connectionSender, url: "https://unknown.example/" })).connectionStatus, "unknown");
+    fake.currentDocuments.set("1:0", "replacement-doc");
+    assert.equal((await connect("eth_requestAccounts", connectionSender)).action, "cancel");
     const startRequest = async (site, request, status = "normal") => {
       fake.site = site;
       fake.adapters.records = scenarioRecords(status);

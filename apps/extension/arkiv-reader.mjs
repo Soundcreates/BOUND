@@ -1,7 +1,9 @@
 import {parseUniqueJSON,validateRecord} from "../../packages/contracts/index.js";
 import {normalizeSettings} from "./settings.mjs";
 const ADDRESS=/^0x[0-9a-f]{40}$/,KEY=/^0x[0-9a-f]{64}$/,QUANTITY=/^0x(?:0|[1-9a-f][0-9a-f]*)$/;
-const CACHE_MS=5*60_000,DECISION_MS=30_000,ENS_BUNDLE_MS=60*60_000,ENS_RECORD_MS=24*60*60_000,LIMIT=5,MAX_PAGES=1000,MAX_RESPONSE=1_000_000;
+// A larger bounded page avoids several sequential mixnet round trips and the
+// accompanying risk that the chain advances between pages.
+const CACHE_MS=5*60_000,DECISION_MS=30_000,ENS_BUNDLE_MS=60*60_000,ENS_RECORD_MS=24*60*60_000,LIMIT=32,MAX_PAGES=1000,MAX_RESPONSE=1_000_000;
 function quantity(value){if(typeof value!=="string"||!QUANTITY.test(value))throw new Error("Invalid Arkiv quantity");const n=Number(BigInt(value));if(!Number.isSafeInteger(n))throw new Error("Invalid Arkiv quantity");return n;}
 function decode(attributes){
  if(!Array.isArray(attributes))throw new Error("Invalid Arkiv attributes");

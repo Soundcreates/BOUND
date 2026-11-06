@@ -35,7 +35,7 @@ export function createAnonEngine({fetchImpl=fetch,makeWorker=options=>new AnonRp
  async function request(settings,request,{signal}={}){
   const {worker:ready,destination}=await getWorker(settings,request.network),id=++nextId;
   if(signal?.aborted)throw new Error("Anonymized RPC timed out");
-  const response=await ready.fetch(destination,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method:request.method,params:request.params??[]}),signal:signal??AbortSignal.timeout(1500)});
+  const response=await ready.fetch(destination,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method:request.method,params:request.params??[]}),signal:signal??AbortSignal.timeout(8000)});
   if(!response.ok)throw new Error("Anonymized RPC unavailable");return rpcResponse(await response.json(),id);
  }
  return {request,close(){worker?.close();worker=null;key=null;}};

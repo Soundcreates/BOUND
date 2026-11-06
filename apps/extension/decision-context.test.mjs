@@ -377,7 +377,7 @@ test("preconnection status uses only current exact-site owned records from the w
 
   const active = await read([statusRecord("active")]);
   const futureIso = new Date(Date.parse(future)).toISOString();
-  assert.deepEqual(active, { site, status: "active", checkedAt: new Date(now).toISOString(), expiresAt: futureIso });
+  assert.deepEqual(active, { site, status: "active", checkedAt: new Date(now).toISOString(), expiresAt: futureIso, evidence: { snapshotVerified: true, siteMatched: true, watcherLookup: true } });
   assert.deepEqual(bundleArgs, []);
 
   const normal = await read([statusRecord("normal")]);
@@ -424,6 +424,14 @@ test("preconnection status uses only current exact-site owned records from the w
   assert.equal(snapshotBounded.expiresAt, new Date(Date.parse(expiresAtSnapshot)).toISOString());
 });
 
+test("preconnection status allows a slow anonymous Arkiv lookup", async () => {
+  const result = await readPreconnectionSiteStatus({siteOrigin:`https://${site}`,watcherOwner:owner,now,adapters:{
+    readVerifiedSnapshot:async()=>snapshot(),
+    readSiteStatusViaAnonRpc:async()=>{await new Promise(resolve=>setTimeout(resolve,1600));return [{owner,kind:'status',site,chain:'1',expiresAt:future,status:'normal'}];}
+  }});
+  assert.equal(result.status,'normal');
+});
+
 test("preconnection status allows only loopback HTTP test origins and times out", async () => {
   const localSite = "localhost:5173";
   const localSnapshot = snapshot({ sites: { [localSite]: { "1": {
@@ -439,7 +447,7 @@ test("preconnection status allows only loopback HTTP test origins and times out"
       }
     }
   });
-  assert.deepEqual(localStatus, { site: localSite, status: "normal", checkedAt: new Date(now).toISOString(), expiresAt: new Date(Date.parse(future)).toISOString() });
+  assert.deepEqual(localStatus, { site: localSite, status: "normal", checkedAt: new Date(now).toISOString(), expiresAt: new Date(Date.parse(future)).toISOString(), evidence: { snapshotVerified: true, siteMatched: true, watcherLookup: true } });
 
   const timeout = await readPreconnectionSiteStatus({
     siteOrigin: `https://${site}`, watcherOwner: owner, now,

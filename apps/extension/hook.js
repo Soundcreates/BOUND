@@ -308,7 +308,10 @@
         }), item.resolve, item.reject);
       }
     } else {
-      const error = new NativeError("User rejected the request.");
+      const statusMessages = { active: "BOUND blocked the connection: the watcher reports an active incident.", drift: "BOUND blocked the connection: the watcher reports an infrastructure change.", unknown: "BOUND blocked the connection: site verification or current watcher status is unavailable." };
+      const score = event.data.connectionScore;
+      const scoreText = typeof score?.score === "number" && typeof score?.threshold === "number" ? ` Connection score ${score.score}/100; requires ${score.threshold}.` : "";
+      const error = new NativeError((statusMessages[event.data.connectionStatus] || "User rejected the request.") + scoreText);
       error.code = 4001;
       item.reject(error);
     }
@@ -320,4 +323,12 @@
   }, 2_000);
   try { mediate(window.ethereum); } catch { window.__boundCoverage = "bypass_possible"; }
   addEvent("eip6963:announceProvider", (event) => { try { mediate(event.detail?.provider); } catch { window.__boundCoverage = "bypass_possible"; } });
+  const discoverProvider = () => {
+    try { mediate(window.ethereum); } catch { reportBypass(); }
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+  };
+  addEvent("ethereum#initialized", discoverProvider);
+  discoverProvider();
+  setTimeoutNative(discoverProvider, 1000);
+  setTimeoutNative(discoverProvider, 2500);
 })();

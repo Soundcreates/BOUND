@@ -23,9 +23,11 @@
   <iframe title="Cross-origin fake wallet" src="http://127.0.0.1:8001/iframe.html" width="100%" height="300"></iframe>
 
   <h2>Real wallet attack scenarios</h2>
-  <p>Uses your actual installed wallet (<code>window.ethereum</code>) on whatever chain it is set to.
+  <p>Uses your selected installed wallet on Sepolia.
     Real transactions, real MetaMask popup, real BOUND mediation. Use a disposable testnet
     account only &mdash; never a wallet holding real funds.</p>
+  <label for="real-wallet">Wallet provider:</label>
+  <select id="real-wallet"><option value="">Searching for wallets…</option></select>
   <button id="real-connect">Connect real wallet</button>
   <pre id="real-status">Not connected.</pre>
   <div>

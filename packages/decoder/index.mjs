@@ -6,8 +6,7 @@ const READ_ONLY = new Set([
   "eth_getTransactionReceipt", "eth_getLogs", "eth_feeHistory", "eth_syncing",
   "eth_mining", "eth_hashrate", "eth_protocolVersion", "wallet_getPermissions",
   "eth_sendRawTransaction",
-  // Connect/handshake calls: no funds move and no message is signed. The wallet itself
-  // shows its own consent UI for account exposure, so a second BOUND warning is noise.
+  // Connection requests receive an additional site-status gate in the service worker.
   "eth_requestAccounts", "wallet_requestPermissions", "metamask_getProviderState"
 ]);
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;

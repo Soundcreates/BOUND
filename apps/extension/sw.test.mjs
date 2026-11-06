@@ -81,6 +81,12 @@ test("extension reports that observation transport is not configured", async () 
   assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "extension" }), { observationReporting: false });
 });
 
+test("popup data diagnostic reports missing saved settings without starting a network lookup", async () => {
+  delete data.boundSettings;
+  const result = await send({ type: "BOUND_DATA_DIAGNOSTIC_V1" }, { id: "extension", url: "chrome-extension://extension/popup.html" });
+  assert.deepEqual(result, { configured: false });
+});
+
 test("warning decisions require the matching browser window and extension page", async () => {
   const index = windows.length;
   const pending = send(await message({ topOrigin: "https://attacker.example", frameOrigin: "https://attacker.example" }), page);

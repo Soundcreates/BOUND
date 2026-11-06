@@ -29,7 +29,7 @@ window.addEventListener("message", async (event) => {
         state: message.state,
         request: message.request
       });
-      window.postMessage({ type: "BOUND_DECISION_V1", channel, id: message.id, digest: result?.digest || message.digest, stateDigest: result?.stateDigest || message.stateDigest, receiptToken: result?.receiptToken, readOnly: result?.readOnly === true, action: result?.action === "continue" ? "continue" : "cancel" }, location.origin);
+      window.postMessage({ type: "BOUND_DECISION_V1", channel, id: message.id, digest: result?.digest || message.digest, stateDigest: result?.stateDigest || message.stateDigest, receiptToken: result?.receiptToken, connectionStatus: result?.connectionStatus, connectionScore: result?.connectionScore, readOnly: result?.readOnly === true, action: result?.action === "continue" ? "continue" : "cancel" }, location.origin);
     } catch {
       window.postMessage({ type: "BOUND_DECISION_V1", channel, id: message.id, digest: message.digest, stateDigest: message.stateDigest, action: "cancel" }, location.origin);
     }

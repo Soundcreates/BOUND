@@ -29,8 +29,10 @@
   <p class="muted">Capture uses Chrome debugging for this tab. Start it, then reload the page. It stays local and records only selected response headers, origins and source hashes.</p>
   <button id="capture" type="button">Loading capture status…</button>
   <p id="capture-status" class="muted" role="status"></p>
-  <h2>Recent warnings on this site</h2>
+  <h2>Recent checks on this site</h2>
   <div id="history" class="panel">Loading…</div>
+  <p><button id="diagnose-data" type="button">Check data connection</button></p>
+  <p id="diagnose-result" class="muted" role="status"></p>
   <p id="privacy" class="muted">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p>
   <p id="queue-error" class="muted" hidden>Some observations could not be saved or scheduled in this browser.</p>
   <button id="settings" type="button">Settings</button>
