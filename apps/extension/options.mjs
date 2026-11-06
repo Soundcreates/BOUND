@@ -2,7 +2,7 @@ import {normalizeSettings,DEFAULT_SETTINGS} from "./settings.mjs";
 import {INTAKE_KEY} from "./score-settings.mjs";
 if(INTAKE_KEY?.keyId)document.querySelector("#intake-key").textContent=INTAKE_KEY.keyId;
 const form=document.querySelector("#settings"),status=document.querySelector("#status");
-const fields=["ensRootName","ensResolver","arkivRpcUrl","watcherOwner","watcherUrl","anonBootstrapUrl","anonRpcUrl"];
+const fields=["ensRootName","ensResolver","arkivRpcUrl","watcherOwner","watcherUrl","anonBootstrapUrl","anonRpcUrl","safePageUrl"];
 // Defaults are seeded into storage by the service worker; they also fill the form
 // when nothing is saved yet. A deliberately-cleared field saves as "" and stays empty.
 const DEFAULTS=DEFAULT_SETTINGS;
