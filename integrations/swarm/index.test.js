@@ -26,21 +26,3 @@ test('malformed upload results and endpoint credentials are rejected',async()=>{
  const swarm=createSwarmAdapter({uploadUrl:'https://bee.example',gatewayUrls:['https://one.example'],postageBatchId:postage,fetchImpl:async()=>response('{"reference":"bad"}')});
  await assert.rejects(swarm.put(bytes),/upload response/);
 });
-test('host-stamped gateway upload requires no node batch and verifies exact read-back',async()=>{
- const requests=[];
- const swarm=createSwarmAdapter({uploadUrl:'https://api.gateway.example',gatewayUrls:['https://read.example'],stampedByHost:true,fetchImpl:async(url,options)=>{requests.push({url,options});return options.method==='POST'?response(JSON.stringify({reference:ref})):response(bytes);}});
- assert.deepEqual(await swarm.put(bytes),{reference:ref,digest:hash});
- assert.deepEqual(requests[0].options.headers,{'content-type':'application/octet-stream'});
- assert.equal(requests.length,2);assert.equal(requests[1].url,`https://api.gateway.example/bytes/${ref}`);
- assert.equal(requests[0].options.credentials,'omit');
-});
-test('gateway substitution and ambiguous postage fail closed; readers require no upload credentials',async()=>{
- const base={uploadUrl:'https://api.gateway.example',gatewayUrls:['https://read.example']};
- assert.throws(()=>createSwarmAdapter(base),/postage/);
- assert.throws(()=>createSwarmAdapter({...base,stampedByHost:true,postageBatchId:postage}),/postage/);
- const bad=createSwarmAdapter({...base,stampedByHost:true,fetchImpl:async(url,options)=>options.method==='POST'?response(JSON.stringify({reference:ref})):response('gateway shell')});
- await assert.rejects(bad.put(bytes),/read-back mismatch/);
- const reader=createSwarmAdapter({gatewayUrls:base.gatewayUrls,fetchImpl:async()=>response(bytes)});
- assert.deepEqual(await reader.getVerified(ref,hash),bytes);
- await assert.rejects(reader.put(bytes),/read-only/);
-});

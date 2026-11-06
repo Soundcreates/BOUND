@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS=Object.freeze({
  anonBootstrapUrl:"https://ethereum-sepolia-rpc.publicnode.com",
  anonRpcUrl:"https://ethereum-sepolia-rpc.publicnode.com"
 });
-const URL_FIELDS=["arkivRpcUrl","watcherUrl","anonBootstrapUrl","anonRpcUrl","safePageUrl"];
+const URL_FIELDS=["ensRpcUrl","arkivRpcUrl","watcherUrl","anonBootstrapUrl","anonRpcUrl","safePageUrl"];
 function cleanUrl(value,{local=false}={}){
  if(value==="")return "";
  let url;try{url=new URL(value);}catch{throw new Error("Enter a valid endpoint URL.");}
@@ -24,6 +24,9 @@ export function normalizeSettings(input){
  if(settings.watcherUrl&&new URL(settings.watcherUrl).pathname!=="/v1/observations")throw new Error("The watcher URL must end with /v1/observations.");
  for(const name of ["ensResolver","watcherOwner"]){if(input[name]!==undefined&&typeof input[name]!=="string")throw new Error("Invalid address.");const value=(input[name]??"").trim().toLowerCase();if(value&&!/^0x[0-9a-f]{40}$/.test(value))throw new Error("Enter a valid 20-byte address.");settings[name]=value;}
  if(input.ensRootName!==undefined&&typeof input.ensRootName!=="string")throw new Error("Invalid ENS root name.");const root=(input.ensRootName??"").trim().toLowerCase();if(root&&!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]+$/.test(root))throw new Error("Enter a valid ENS root name.");settings.ensRootName=root;
+ const gateways=Array.isArray(input.swarmGateways)?input.swarmGateways:typeof input.swarmGateways==="string"?input.swarmGateways.split(/\r?\n/):[];
+ if(gateways.some(value=>typeof value!=="string"))throw new Error("Invalid Swarm gateway.");settings.swarmGateways=gateways.map(value=>cleanUrl(value.trim())).filter(Boolean);
+ if(settings.swarmGateways.length>8||new Set(settings.swarmGateways.map(value=>new URL(value).origin)).size!==settings.swarmGateways.length)throw new Error("Swarm gateways must have distinct origins.");
  return settings;
 }
 

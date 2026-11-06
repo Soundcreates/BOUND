@@ -1,12 +1,18 @@
-/** Store the canonical snapshot in Arkiv, then publish its owner-checked pointer through ENS. */
-import { keccak256 } from "ethers";
+/**
+ * The curator's publish path: compile -> upload to Swarm -> publish the ENS root record.
+ *
+ * Plan §5 Phase 1, Developer 2 gate (verbatim): "Make the curator CLI refuse an epoch less
+ * than or equal to the published epoch." That is enforced here, against the LIVE published
+ * root — not just against whatever epoch the curator last compiled locally — because the
+ * live root is the thing a rollback/equivocation attempt would actually be judged against.
+ * `@bound/snapshot`'s `assertMonotonicEpoch` is the same guard `compile.ts` uses against a
+ * caller-supplied "previous epoch"; this module is what supplies that previous epoch from
+ * the real chain instead of trusting a local file.
+ */
 import { makePublicClient, makeWalletClient, readRootRecord, publishRootRecord, RootReadError } from "@bound/integrations-ens";
-import { openArkivArchive } from "../../../integrations/arkiv/archive.js";
+import { uploadAndSelfVerify } from "@bound/integrations-swarm";
 import { assertMonotonicEpoch, type Snapshot } from "@bound/snapshot";
 import type { CuratorConfig } from "./env.ts";
-
-const MAX_SNAPSHOT_BYTES = 61_440;
-const utf8 = new TextDecoder("utf-8", { fatal: true });
 
 export class PublishRefusedError extends Error {
   constructor(message: string) {
@@ -16,38 +22,47 @@ export class PublishRefusedError extends Error {
 }
 
 export interface PublishResult {
-  readonly arkivKey: string;
-  readonly arkivOwner: string;
+  readonly swarmRef: string;
   readonly digest: `0x${string}`;
   readonly epoch: number;
   readonly txHash: `0x${string}`;
+  /** Block the root write was confirmed in. Present because publish waits for the receipt. */
   readonly blockNumber: bigint;
+  /** undefined if this is the first-ever publish for this name (no live root to compare against). */
   readonly previousEpoch?: number;
 }
 
+/**
+ * Reads the live root (if any), refuses a non-advancing epoch, uploads the compiled bytes
+ * to Swarm (our own Bee node, or unstamped to a public gateway; self-verified round-trip either way), and publishes the new root
+ * record. Every step is sequential and each failure is specific — a caller must be able to
+ * tell "refused due to rollback" apart from "Swarm upload failed" apart from "ENS write
+ * reverted," since the three call for different operator responses.
+ */
 export async function publishSnapshot(
   config: CuratorConfig,
   snapshot: Snapshot,
   compiled: { bytes: Uint8Array; digest: `0x${string}` },
 ): Promise<PublishResult> {
-  if (compiled.bytes.length > MAX_SNAPSHOT_BYTES) {
-    throw new PublishRefusedError(`snapshot is ${compiled.bytes.length} bytes; the Arkiv record limit is ${MAX_SNAPSHOT_BYTES} bytes`);
-  }
-  if (typeof config.arkiv.prepare !== "function" || typeof config.arkiv.inspect !== "function" || !config.arkiv.senderJournal || !config.arkiv.registryJournal) {
-    throw new Error("Arkiv publishing requires BOUND_ARKIV_PRIVATE_KEY and distinct Arkiv journal paths");
-  }
-
   const publicClient = makePublicClient(config.rpcUrl);
+
   let previousEpoch: number | undefined;
   try {
-    previousEpoch = (await readRootRecord(publicClient, config.ens)).epoch;
-  } catch (error) {
-    if (!(error instanceof RootReadError) || !/empty root record/.test(error.message)) throw error;
+    const current = await readRootRecord(publicClient, config.ens);
+    previousEpoch = current.epoch;
+  } catch (e) {
+    // No live root yet (first publish for this name) is fine and expected; anything else —
+    // wrong pinned resolver, a malformed existing record — must NOT be silently treated as
+    // "no root," or a publish could paper over a real problem with the live name.
+    if (!(e instanceof RootReadError) || !/empty root record/.test(e.message)) {
+      throw e;
+    }
   }
+
   try {
     assertMonotonicEpoch(previousEpoch, snapshot.epoch);
-  } catch (error) {
-    throw new PublishRefusedError((error as Error).message);
+  } catch (e) {
+    throw new PublishRefusedError((e as Error).message);
   }
 
   // The extension binds a snapshot to the name it was published under:
@@ -66,39 +81,36 @@ export async function publishSnapshot(
     );
   }
 
-  const archive = await openArkivArchive({
-    ...config.arkiv,
-    hash: keccak256,
-    confirmTimeoutMs: 20_000,
-    confirmPollMs: 1_000,
-  });
-  try {
-    const canonical = utf8.decode(compiled.bytes);
-    const stored = await archive.writeTrustSnapshot({
-      schemaVersion: 1,
-      kind: "trust_snapshot",
-      network: snapshot.network,
-      epoch: snapshot.epoch,
-      digest: compiled.digest,
-      canonical,
-    }, compiled.digest.slice(2));
-    if (stored.owner !== config.arkiv.owner || stored.record.kind !== "trust_snapshot" || stored.record.digest !== compiled.digest || stored.record.canonical !== canonical) {
-      throw new Error("Arkiv snapshot write did not return the expected owner-checked record");
-    }
+  const swarmRef = await uploadAndSelfVerify(
+    config.swarmUpload.mode === "bee"
+      ? { apiUrl: config.swarmUpload.apiUrl, batchId: config.swarmUpload.batchId }
+      : { apiUrl: config.swarmUpload.apiUrl, stampedByHost: true },
+    compiled.bytes,
+  );
 
-    const walletClient = makeWalletClient(config.rpcUrl, config.curatorAccount);
-    const txHash = await publishRootRecord(walletClient, publicClient, config.ens, {
-      arkivKey: stored.key as `0x${string}`,
-      arkivOwner: stored.owner as `0x${string}`,
-      digest: compiled.digest,
-      epoch: snapshot.epoch,
-      network: snapshot.network,
-      schemaVersion: snapshot.schemaVersion,
-    });
-    const receipt = await publicClient.waitForTransactionReceipt({hash: txHash});
-    if (receipt.status !== "success") throw new Error(`root publish tx ${txHash} reverted in block ${receipt.blockNumber}`);
-    return { arkivKey: stored.key, arkivOwner: stored.owner, digest: compiled.digest, epoch: snapshot.epoch, txHash, blockNumber: receipt.blockNumber, previousEpoch };
-  } finally {
-    await archive.close();
+  const walletClient = makeWalletClient(config.rpcUrl, config.curatorAccount);
+  const txHash = await publishRootRecord(walletClient, publicClient, config.ens, {
+    digest: compiled.digest,
+    epoch: snapshot.epoch,
+    network: snapshot.network,
+    schemaVersion: snapshot.schemaVersion,
+    swarmRef,
+  });
+
+  // `writeContract` resolves as soon as the transaction is accepted into the mempool, not
+  // when it is mined. Returning that hash as if the publish were done means anything that
+  // reads the root immediately afterwards — `curator read`, the extension, a demo script —
+  // resolves the PREVIOUS epoch and reports a mismatch against data that is seconds away
+  // from being correct. That failure is maximally confusing because every value it prints
+  // is real, just one epoch stale.
+  //
+  // This is the third time this exact race has been fixed in this codebase: `attest-write`
+  // (05a3891) and `attest-grant` (9513545) both had it. It lives in the library this time
+  // rather than in the CLI, so a new caller cannot reintroduce it by forgetting to wait.
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    throw new Error(`root publish tx ${txHash} reverted in block ${receipt.blockNumber} — the root was NOT updated`);
   }
+
+  return { swarmRef, digest: compiled.digest, epoch: snapshot.epoch, txHash, blockNumber: receipt.blockNumber, previousEpoch };
 }

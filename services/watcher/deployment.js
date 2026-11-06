@@ -1,5 +1,6 @@
 import {keccak256} from 'ethers';
 import {openArkivArchive} from '../../integrations/arkiv/archive.js';
+import {createSwarmAdapter} from '../../integrations/swarm/index.js';
 import {createPinnedTextReader} from '../../integrations/ens/index.js';
 import {createCymruLookup} from './asn.js';
 import {createNetworkPollAdapters} from './network.js';
@@ -30,7 +31,7 @@ function ensCacheJob({ensCache,archive,fetchImpl,factories}){
 
 // The caller supplies signing, curated reference samples, and a recovery policy.
 // No network connections are opened until the first scheduled job or write.
-export async function openWatcherDeployment({arkiv,watcher,zones,readBaseline,canRecover,ensCache,fetchImpl=fetch}, factories={}) {
+export async function openWatcherDeployment({arkiv,swarm,watcher,zones,readBaseline,canRecover,ensCache,fetchImpl=fetch}, factories={}) {
  if(!arkiv||!watcher||!Array.isArray(watcher.feeds)||!zones||typeof zones!=='object'||typeof readBaseline!=='function'||typeof canRecover!=='function')throw new Error('deployment configuration required');
  const siteZones=new Map();
  for(const {site} of watcher.feeds){
@@ -38,17 +39,20 @@ export async function openWatcherDeployment({arkiv,watcher,zones,readBaseline,ca
   if(typeof site!=='string'||typeof zone!=='string'||!/^[a-z0-9.-]+$/.test(zone)||zone.endsWith('.')||(site!==zone&&!site.endsWith('.'+zone))||(siteZones.has(site)&&siteZones.get(site)!==zone))throw new Error('valid parent nameserver zone required for each site');
   siteZones.set(site,zone);
  }
+ const swarmAdapter=swarm?(factories.createSwarmAdapter??createSwarmAdapter)({...swarm,fetchImpl}):null;
  const lookupAsn=(factories.createCymruLookup??createCymruLookup)();
  const network=(factories.createNetworkPollAdapters??createNetworkPollAdapters)({fetchImpl,lookupAsn});
  const archive=await (factories.openArkivArchive??openArkivArchive)({...arkiv,fetchImpl,hash:keccak256});
  try {
   const ensJob=ensCacheJob({ensCache,archive,fetchImpl,factories});
-  const app=await (factories.openWatcherApplication??openWatcherApplication)({...watcher,archive,hash:keccak256,writeEvidence:(record,id)=>archive.writeEvidence(record,id),readBaseline,canRecover,poll:site=>{
+  const upload=swarmAdapter?(bytes=>swarmAdapter.put(bytes)):undefined;
+  const writeEvidence=archive.writeEvidence?((record,id)=>archive.writeEvidence(record,id)):undefined;
+  const app=await (factories.openWatcherApplication??openWatcherApplication)({...watcher,archive,hash:keccak256,upload,writeEvidence,readBaseline,canRecover,poll:site=>{
    if(!siteZones.has(site))throw new Error('unconfigured watcher site');
    return pollSite(site,network,{nameserverZone:siteZones.get(site)});
   }});
   let closed;
-  const start=ensJob?async(...args)=>{const result=await app.start(...args);ensJob.start();return result;}:app.start;
+  const start=ensJob?async(...args)=>{const result=await app.start?.(...args);ensJob.start();return result;}:app.start;
   return {...app,start,...(ensJob?{runEnsCache:ensJob.run}:{}),close(){if(!closed)closed=(async()=>{await ensJob?.stop();await app.close();await archive.close();})();return closed;}};
  } catch(error){await archive.close();throw error;}
 }

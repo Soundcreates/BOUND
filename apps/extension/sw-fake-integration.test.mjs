@@ -26,15 +26,42 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     assert.ok(relative && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 
     const extensionRoot = path.join(resolvedTemp, "apps", "extension");
+    const safePageRoot = path.join(resolvedTemp, "apps", "safe-page", "src");
     const decoderRoot = path.join(resolvedTemp, "packages", "decoder");
     const policyRoot = path.join(resolvedTemp, "packages", "policy-core");
-    await Promise.all([mkdir(extensionRoot, { recursive: true }), mkdir(decoderRoot, { recursive: true }), mkdir(policyRoot, { recursive: true })]);
-    for (const file of ["sw.js", "connection-score.mjs", "score-settings.mjs", "score-config.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "settings.mjs", "anon-rpc-host.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
+    const contractsRoot = path.join(resolvedTemp, "packages", "contracts");
+    await Promise.all([
+      mkdir(extensionRoot, { recursive: true }),
+      mkdir(safePageRoot, { recursive: true }),
+      mkdir(decoderRoot, { recursive: true }),
+      mkdir(policyRoot, { recursive: true }),
+      mkdir(contractsRoot, { recursive: true })
+    ]);
+    for (const file of [
+      "sw.js",
+      "connection-score.mjs",
+      "score-settings.mjs",
+      "score-config.mjs",
+      "observation-queue.mjs",
+      "observation-dispatcher.mjs",
+      "decision-context.mjs",
+      "settings.mjs",
+      "anon-rpc-host.mjs",
+      "network-capture.mjs",
+      "frontend-integrity.mjs",
+      "frontend-redirect.mjs",
+      "ticket-store.mjs",
+      "frontend-routing.mjs"
+    ]) {
       await copyFile(path.join(repoRoot, "apps", "extension", file), path.join(extensionRoot, file));
     }
+    await copyFile(path.join(repoRoot, "apps", "safe-page", "src", "fragment.mjs"), path.join(safePageRoot, "fragment.mjs"));
     await copyFile(path.join(repoRoot, "packages", "decoder", "index.mjs"), path.join(decoderRoot, "index.mjs"));
-    for (const file of ["index.mjs", "observations.mjs"]) {
+    for (const file of ["index.mjs", "observations.mjs", "frontend.mjs"]) {
       await copyFile(path.join(repoRoot, "packages", "policy-core", file), path.join(policyRoot, file));
+    }
+    for (const file of ["index.js", "frontend.js"]) {
+      await copyFile(path.join(repoRoot, "packages", "contracts", file), path.join(contractsRoot, file));
     }
 
     await writeFile(path.join(extensionRoot, "trust-adapter.mjs"), `
@@ -50,6 +77,28 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       export async function sendObservationBatch(records, { signal } = {}) {
         if (signal?.aborted) throw new Error("aborted");
         globalThis.__boundFake.sent.push(structuredClone(records));
+      }
+      const ADDRESS = /^0x[0-9a-f]{40}$/i;
+      export function toIntakeEvent(record) {
+        if (!record || typeof record !== "object" || typeof record.site !== "string" || typeof record.chain !== "string" || typeof record.reporterKey !== "string" || !record.reporterKey || record.reporterKey.length > 128) throw new Error("Invalid queued observation");
+        if (!/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(record.chain)) throw new Error("Invalid observation chain");
+        let chainId; try { chainId = BigInt(record.chain); } catch { throw new Error("Invalid observation chain"); }
+        if (chainId < 1n || chainId > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Invalid observation chain");
+        let url; try { url = new URL(\`https://\${record.site}\`); } catch { throw new Error("Invalid observation site"); }
+        if (url.host !== record.site || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error("Invalid observation site");
+        if (record.kind === "frontend") {
+          return { site: record.site, kind: "frontend", chainId: Number(chainId), reporterKey: record.reporterKey, path: record.path, hash: record.hash };
+        }
+        if (record.kind === "warned" && record.value === undefined) return null;
+        if (!ADDRESS.test(record.value) || !["observation", "warned"].includes(record.kind) || (record.observationKind !== undefined && (record.kind !== "observation" || record.observationKind !== "called-contract"))) throw new Error("Invalid queued observation");
+        return { site: record.site, kind: record.kind === "warned" ? "warned" : record.observationKind ?? "counterparty", value: record.value, chainId: Number(chainId), reporterKey: record.reporterKey };
+      }
+      export function encodeObservationBatch(records) {
+        if (!Array.isArray(records) || !records.length || records.length > 100) throw new Error("Invalid observation batch count");
+        const events = records.map(toIntakeEvent).filter(Boolean);
+        const body = JSON.stringify({ schemaVersion: 1, events });
+        if (new TextEncoder().encode(body).length > 60000) throw new Error("Observation batch exceeds 60000 bytes");
+        return body;
       }
     `);
 
@@ -109,9 +158,20 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       tabs: {
         onUpdated: { addListener(fn) { fake.onUpdated = fn; } },
         onRemoved: { addListener() {} },
-        async query() { return [{ id: 1, url: `https://${SITE}/` }]; },
-        async get(id) { return { id, url: `https://${SITE}/` }; },
-        async sendMessage(_id, _message, options) { assert.equal(options.documentId, fake.currentDocuments.get("1:0")); return { scripts: [{ label: "Inline script", source: "inline DOM", hash: "sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=" }], unavailable: 0 }; }
+        async query() { return [{ id: 1, url: `https://${fake.site}/` }]; },
+        async get(id) { return { id, url: `https://${fake.site}/` }; },
+        async sendMessage(_id, message, options) {
+          if (message?.type === "BOUND_RETRY_GUARD_V1") return true;
+          assert.equal(options.documentId, fake.currentDocuments.get("1:0"));
+          const hash = "sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=";
+          const url = `https://${fake.site}/`;
+          return {
+            version: 1,
+            documentUrl: url,
+            scripts: [{ path: "/app.js", hash }],
+            coverage: { total: 1, compared: 1, inlineExcluded: 0, queryExcluded: 0, crossOriginExcluded: 0, privatePathExcluded: 0, unavailable: 0, overCap: 0 }
+          };
+        }
       },
       webNavigation: {
         async getFrame({ tabId, frameId }) { return { documentId: fake.currentDocuments.get(`${tabId}:${frameId}`) }; }

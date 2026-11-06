@@ -411,7 +411,8 @@ async function handleRequest(message, sender, sendResponse) {
       connectionScore, connectionStatus, reasons: [reason], entries: [], approvals: [], coverage: connectionCoverage, locked: false,
       tabId: sender.tab?.id, frameId: sender.frameId, documentId: sender.documentId,
       topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), chainId: message.state?.chainId ?? null,
-      incidentStatus: connectionStatus === "active" ? "active" : statuses.length && statuses.every(item => item.status === "normal") ? "normal" : "unknown"
+      incidentStatus: connectionStatus === "active" ? "active" : statuses.length && statuses.every(item => item.status === "normal") ? "normal" : "unknown",
+      frontend: frontendData.evidence
     };
     details = applyFrontendWarning({details, assessment: frontendData.assessment});
     const route = await routeFrontend(details, frontendData);
@@ -464,6 +465,7 @@ async function handleRequest(message, sender, sendResponse) {
     score: evaluated.score,
     reasons: [...(locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons), ...(!locked && evaluated.verdict === "grey" && evaluated.coverage !== "unsupported" && uncheckedReason(context) ? [uncheckedReason(context)] : [])],
     entries: classification.entries,
+    frontend: frontendData.evidence,
     networkCapture: networkCapture?.snapshot(sender.tab?.id) || { active: false, rows: [], missing: 0 },
     observedAddresses: [...new Set(classification.entries.filter(entry => entry.verified !== false && typeof entry.address === "string" && context.observed?.has(entry.address.toLowerCase())).map(entry => entry.address.toLowerCase()))],
     approvals: classification.approvals || [],
