@@ -76,7 +76,9 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
       const time = clock();
       if (time < state.lastNow) throw new Error('watcher clock moved backwards');
       const liveEntries = state.entries.filter(entry => !entry.delivered || time - entry.acceptedAt < retentionMs);
-      const seen = new Set(liveEntries.filter(entry => time - entry.acceptedAt < windowMs).map(entry => eventKey({
+      // Deduplicate across everything retained, not only the counting window: a replayed
+      // batch must not add entries (and Arkiv writes) for as long as the original is kept.
+      const seen = new Set(liveEntries.map(entry => eventKey({
         site: entry.record.site, chainId: entry.record.chainId, value: entry.record.value,
         reporterKey: entry.record.reporterKey, kind: entry.record.event,
       })));

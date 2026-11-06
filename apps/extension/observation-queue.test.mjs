@@ -18,9 +18,14 @@ test("queue deduplicates for a week and stores only site-level report fields", a
   await enqueue([record], storage, 10_000_001);
   assert.equal(storage.data.boundObservationQueue.length, 1);
   assert.deepEqual(Object.keys(storage.data.boundObservationQueue[0]).sort(), ["chain", "kind", "reporterKey", "site", "value"]);
-  await enqueue([record], storage, 10_000_000 + 7 * 24 * 60 * 60 * 1000);
-  assert.equal(storage.data.boundObservationQueue.length, 2);
-  assert.notEqual(storage.data.boundObservationQueue[0].reporterKey, storage.data.boundObservationQueue[1].reporterKey);
+  // A report counts against the weekly limit once it has been sent.
+  const firstKey = storage.data.boundObservationQueue[0].reporterKey;
+  await flush(async () => {}, storage, 20, () => 10_000_002);
+  await enqueue([record], storage, 10_000_003);
+  assert.equal(storage.data.boundObservationQueue.length, 0);
+  await enqueue([record], storage, 10_000_002 + 7 * 24 * 60 * 60 * 1000);
+  assert.equal(storage.data.boundObservationQueue.length, 1);
+  assert.notEqual(storage.data.boundObservationQueue[0].reporterKey, firstKey);
 });
 
 test("failed sends retain queued reports for retry; successful sends remove one batch", async () => {

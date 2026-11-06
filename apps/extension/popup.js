@@ -28,12 +28,13 @@ monitoringButton.addEventListener("click", async () => {
   monitoringButton.disabled = true;
   try {
     const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring");
-    const current = boundMonitoring !== false;
+    const current = boundMonitoring === true;
     await chrome.storage.local.set({ boundMonitoring: !current });
     renderMonitoring(!current);
+    monitoringState.textContent += " Reload open tabs to apply.";
   } finally { monitoringButton.disabled = false; }
 });
-chrome.storage.local.get("boundMonitoring").then(({ boundMonitoring }) => renderMonitoring(boundMonitoring !== false)).catch(() => {});
+chrome.storage.local.get("boundMonitoring").then(({ boundMonitoring }) => renderMonitoring(boundMonitoring === true)).catch(() => {});
 
 const captureButton = document.querySelector("#capture"), captureStatus = document.querySelector("#capture-status");
 let capturing = false;
@@ -64,7 +65,7 @@ updateCapture("status");
     chrome.runtime.sendMessage({ type: "BOUND_STATUS_V1" }).catch(() => null)
   ]);
   const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring");
-  const monitoringOn = boundMonitoring !== false;
+  const monitoringOn = boundMonitoring === true;
   renderMonitoring(monitoringOn);
   if (status?.observationReporting) document.querySelector("#privacy").textContent = "Warning history stays in this browser. Site observations are public, and the watcher may see your network address.";
   else if (!monitoringOn) document.querySelector("#privacy").textContent = "Monitoring is off: nothing is checked, recorded or reported.";

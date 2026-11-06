@@ -19,10 +19,22 @@ async function boundedText(response){
  const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}return new TextDecoder("utf-8",{fatal:true}).decode(bytes);
 }
 function checkedSettings(input){const settings=normalizeSettings(input);if(!settings.arkivRpcUrl||!ADDRESS.test(settings.watcherOwner))throw new Error("Arkiv settings incomplete");return settings;}
+// Only the kinds decisions use. Observations are never read here, so their number
+// (they grow with every report) cannot push the listing over many pages.
+const READ_KINDS=["baseline","status","drift","ens_record"];
+const KIND_FILTER=`(${READ_KINDS.map(kind=>`kind = str('${kind}')`).join(" OR ")})`;
+// Rabdi makes a block every ~2s; a listing that spans a new block is restarted
+// rather than failing, so one block landing mid-read does not drop watcher data.
 async function queryAll(request,owner){
+ for(let attempt=0;;attempt++){
+  try{return await queryPages(request,owner);}
+  catch(error){if(attempt>=4||error?.message!=="Arkiv pagination changed block")throw error;}
+ }
+}
+async function queryPages(request,owner){
  let cursor=null,block=null;const records=[];
  for(let page=0;page<MAX_PAGES;page++){
-  const expression=`$owner = addr(${owner}) AND arkiv.schema = str('bound.record.v1')${cursor?` AND $key > key(${cursor})`:""} ORDER BY $key ASC`;
+  const expression=`$owner = addr(${owner}) AND arkiv.schema = str('bound.record.v1') AND ${KIND_FILTER}${cursor?` AND $key > key(${cursor})`:""} ORDER BY $key ASC`;
   const result=await request("arkiv_query",[expression,{select:{key:true,owner:true,expiresAt:true,attributes:true},limit:`0x${LIMIT.toString(16)}`}]);
   if(!result||!Array.isArray(result.data)||result.data.length>LIMIT)throw new Error("Invalid Arkiv query");
   const current=quantity(result.blockNumber);if(block!==null&&block!==current)throw new Error("Arkiv pagination changed block");block=current;
@@ -30,7 +42,7 @@ async function queryAll(request,owner){
    if(!row||typeof row.key!=="string"||!KEY.test(row.key)||(cursor&&row.key<=cursor))throw new Error("Invalid Arkiv pagination");cursor=row.key;
    if(typeof row.owner!=="string"||!ADDRESS.test(row.owner))throw new Error("Invalid Arkiv owner");if(row.owner!==owner)continue;
    const expiresAt=quantity(row.expiresAt);if(expiresAt<=block)continue;
-   const record=decode(row.attributes);if(["baseline","status","drift","ens_record"].includes(record.kind))records.push({key:row.key,owner:row.owner,expiresAt,record});
+   const record=decode(row.attributes);if(READ_KINDS.includes(record.kind))records.push({key:row.key,owner:row.owner,expiresAt,record});
   }
   if(result.data.length<LIMIT)return {records,block};
  }
@@ -65,13 +77,20 @@ export function createArkivReader({getSettings,storage,anonymousRequest,fetchImp
   if(!Number.isSafeInteger(time)||time<0)throw new Error("Invalid cache clock");
   await storage.set({boundWatcherBundle:{version:1,owner:settings.watcherOwner,url:settings.arkivRpcUrl,fetchedAt:time,...result}});
  }
+ let refreshing=null;
+ function refreshOnce(){return refreshing??=refresh().finally(()=>{refreshing=null;});}
+ function usableBundle(cache,settings,time){return !!cache&&cache.version===1&&cache.owner===settings.watcherOwner&&cache.url===settings.arkivRpcUrl&&Number.isSafeInteger(cache.fetchedAt)&&cache.fetchedAt<=time&&time-cache.fetchedAt<CACHE_MS&&Number.isSafeInteger(cache.block)&&Array.isArray(cache.records);}
  async function currentBlock(settings){
   const [chain,block]=await Promise.all([anon("eth_chainId",[]),anon("eth_blockNumber",[])]);
   if(quantity(chain)!==settings.arkivChainId)throw new Error("Unexpected Arkiv chain");return quantity(block);
  }
  async function readWatcherBundle(){
-  const settings=checkedSettings(await getSettings()),cache=(await storage.get("boundWatcherBundle")).boundWatcherBundle,time=now();
-  if(!cache||cache.version!==1||cache.owner!==settings.watcherOwner||cache.url!==settings.arkivRpcUrl||!Number.isSafeInteger(cache.fetchedAt)||cache.fetchedAt>time||time-cache.fetchedAt>=CACHE_MS||!Number.isSafeInteger(cache.block)||!Array.isArray(cache.records))throw new Error("Watcher bundle unavailable or stale");
+  const settings=checkedSettings(await getSettings()),time=now();
+  let cache=(await storage.get("boundWatcherBundle")).boundWatcherBundle;
+  // A stale or missing bundle is refreshed on demand (one shared refresh), so a
+  // late alarm or a wake from sleep does not turn every request grey.
+  if(!usableBundle(cache,settings,time)){await refreshOnce();cache=(await storage.get("boundWatcherBundle")).boundWatcherBundle;}
+  if(!usableBundle(cache,settings,now()))throw new Error("Watcher bundle unavailable or stale");
   const block=await currentBlock(settings);if(block<cache.block)throw new Error("Arkiv block moved backwards");return mapRecords(cache,block,time);
  }
  async function readSiteStatusViaAnonRpc({site}){
