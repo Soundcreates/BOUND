@@ -1,7 +1,6 @@
 import { classifyRequest, cloneRequest } from "../../packages/decoder/index.mjs";
 import { canonicalSite, evaluate } from "../../packages/policy-core/index.mjs";
 import { mayRecordObservation, observationCandidates, warningCandidates } from "../../packages/policy-core/observations.mjs";
-import { enqueue } from "./observation-queue.mjs";
 import { createObservationDispatcher } from "./observation-dispatcher.mjs";
 import { sendObservationBatch, isObservationConfigured } from "./watcher-adapter.mjs";
 import { createDecisionContext, readPreconnectionSiteStatus } from "./decision-context.mjs";
@@ -21,6 +20,8 @@ const statusRequests = new Map();
 const networkCapture = chrome.debugger ? createNetworkCapture({ api: chrome.debugger }) : null;
 const MAX_PENDING_PER_FRAME = 8;
 // The user decides; BOUND only gives up on a warning nobody answers for this long.
+// Deadline timers call timer?.unref?.(): a browser timer id is a number with no unref,
+// and under Node's test runner unref lets the process exit instead of waiting it out.
 const DEADLINE_MS = 10 * 60_000;
 // Only these prompt the wallet to grant access; they always get a BOUND review.
 const CONNECTION_METHODS = new Set(["eth_requestAccounts", "wallet_requestPermissions", "wallet_createSession"]);
@@ -40,42 +41,78 @@ const STATUS_EXPIRY_PREFIX = "bound-site-status-expiry:";
 let coverageOperation = Promise.resolve();
 let coverageUncertain = false;
 let settingsRevision = 0;
-const dispatcher = typeof sendObservationBatch === "function" ? createObservationDispatcher({ send: sendObservationBatch }) : null;
+const dispatcher = createObservationDispatcher({ send: sendObservationBatch });
 async function enqueueReports(records) {
   if (!records.length || !(await monitoringEnabled())) return;
-  try { await (dispatcher ? dispatcher.enqueue(records) : enqueue(records)); }
+  try { await dispatcher.enqueue(records); }
   catch { await chrome.storage.local.set({ boundObservationQueueError: true }).catch(() => {}); }
 }
 
 // Monitoring is opt-in. Until the user clicks Start monitoring in the popup, BOUND
-// checks no request, records nothing, reads no trust data and sends no report:
-// every wallet request goes straight to the wallet as the page sent it.
+// injects nothing into pages, checks no request, records nothing, reads no trust
+// data and sends no report: every wallet request goes straight to the wallet.
 let monitoringCache = null;
 async function monitoringEnabled() {
   if (monitoringCache === null) {
     const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring");
-    monitoringCache = boundMonitoring !== false;
+    monitoringCache = boundMonitoring === true;
   }
   return monitoringCache;
 }
+
+// Page scripts exist only while monitoring is on. They are registered on Start and
+// removed on Stop, so a page loaded while monitoring is off runs no BOUND code at
+// all. Open tabs keep whatever they loaded with until they are reloaded.
+const PAGE_MATCHES = ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"];
+const PAGE_SCRIPTS = [
+  { id: "bound-hook", js: ["hook.js"], world: "MAIN" },
+  { id: "bound-relay", js: ["relay.js", "frontend-collector.js"], world: "ISOLATED" }
+].map((script) => ({ ...script, matches: PAGE_MATCHES, runAt: "document_start", allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true }));
+const QUEUE_KEYS = ["boundObservationQueue", "boundObservationDispatchAt", "boundObservationGeneration", "boundObservationScheduledGeneration", "boundObservationRetry"];
+let monitoringOperation = Promise.resolve();
+function applyMonitoring(on) {
+  monitoringOperation = monitoringOperation.catch(() => {}).then(async () => {
+    const scripting = chrome.scripting;
+    if (scripting?.getRegisteredContentScripts) {
+      const ids = PAGE_SCRIPTS.map((script) => script.id);
+      const registered = (await scripting.getRegisteredContentScripts({ ids })).map((script) => script.id);
+      if (on) {
+        const missing = PAGE_SCRIPTS.filter((script) => !registered.includes(script.id));
+        if (missing.length) await scripting.registerContentScripts(missing);
+      } else if (registered.length) await scripting.unregisterContentScripts({ ids: registered });
+    }
+    if (on) {
+      if (decisionAdapters) await chrome.alarms.create(STATUS_ALARM, { periodInMinutes: 5 });
+      return;
+    }
+    // Consent withdrawn: reports not yet sent are dropped, never sent later.
+    await chrome.alarms.clear(dispatcher.alarmName);
+    await chrome.storage.local.remove(QUEUE_KEYS);
+    await chrome.alarms.clear(STATUS_ALARM);
+    for (const alarm of await chrome.alarms.getAll()) if (alarm.name.startsWith(STATUS_EXPIRY_PREFIX)) await chrome.alarms.clear(alarm.name);
+    await networkCapture?.stopAll();
+  });
+  return monitoringOperation;
+}
 chrome.storage.onChanged?.addListener((changes, area) => {
   if (area !== "local" || !changes.boundMonitoring) return;
-  monitoringCache = changes.boundMonitoring.newValue !== false;
+  monitoringCache = changes.boundMonitoring.newValue === true;
+  applyMonitoring(monitoringCache).catch(() => {});
   if (monitoringCache) {
     refreshPublicData().catch(() => {});
-    dispatcher?.resume().catch(() => {});
+    dispatcher.resume().catch(() => {});
   } else {
     // Stopping hands any open warning's request to the wallet rather than dropping it.
     for (const id of [...pending.keys()]) finish(id, "forward");
   }
 });
+// Reconcile registrations with the stored choice every time the worker starts.
+monitoringEnabled().then(applyMonitoring).catch(() => {});
 
-if (dispatcher) {
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === dispatcher.alarmName) monitoringEnabled().then((on) => on && dispatcher.dispatch()).catch(() => {});
-  });
-  monitoringEnabled().then((on) => on && dispatcher.resume()).catch(() => {});
-}
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === dispatcher.alarmName) monitoringEnabled().then((on) => on && dispatcher.dispatch()).catch(() => {});
+});
+monitoringEnabled().then((on) => on && dispatcher.resume()).catch(() => {});
 
 // Seed the defaults on first run so requests are checked instead of all scoring
 // grey. Decisions wait for this; a failure leaves the extension unconfigured.
@@ -103,7 +140,6 @@ if (decisionAdapters) {
       }).catch(() => {});
     }
   });
-  chrome.alarms.create(STATUS_ALARM, { periodInMinutes: 5 }).catch(() => {});
   refreshPublicData().catch(() => {});
 }
 
@@ -112,6 +148,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       if (!networkCapture || !Number.isInteger(tab?.id)) return { ok: false, error: "Capture unavailable" };
+      if (message.action === "start" && !(await monitoringEnabled())) return { ok: false, error: "Start monitoring first. While monitoring is off, BOUND captures nothing." };
       if (message.action === "start" && !isCapturePage(tab.url)) return { ok: false, error: "Open an HTTPS website or a local test page first. Chrome internal pages such as chrome://newtab cannot be captured." };
       if (message.action === "start") await networkCapture.start(tab.id);
       else if (message.action === "stop") await networkCapture.stop(tab.id);
@@ -270,7 +307,9 @@ async function handleRequest(message, sender, sendResponse) {
       }
     } catch { /* Missing evidence blocks the connection. */ }
     const connectionScore = scoreConnection({ origins: origins.map((origin, index) => ({ origin, status: statuses[index] })), providerValid: validProviderState(message.state) });
-    const allowed = connectionScore.allowed;
+    // A connection is never refused on score: "verified" only decides whether the
+    // review is a quiet pass or a louder tier the user has to read.
+    const silentPass = connectionScore.verified;
     if (!valid() || !(await currentDocument(sender)) || !validProviderState(message.state)) {
       sendResponse({ action: "cancel", digest, stateDigest, connectionStatus: "unknown" });
       return;
@@ -279,8 +318,8 @@ async function handleRequest(message, sender, sendResponse) {
     const connectionCoverage = await bypassPossible(sender.tab.id) ? "bypass_possible" : "mediated";
     await setCoverage(sender.tab.id, sender.frameId, sender.documentId, connectionCoverage).catch(() => {});
     // Every connection request gets a review; the score only sets its severity.
-    const tier = connectionTier(connectionScore, allowed);
-    const reason = `Connection score ${connectionScore.score}/100; silent-pass threshold ${connectionScore.threshold}. ${connectionScore.blockers.join('; ') || (allowed ? 'Connection checks passed.' : 'Some checks failed or are unavailable.')}`;
+    const tier = connectionTier(connectionScore, silentPass);
+    const reason = `Connection score ${connectionScore.score}/100; silent-pass threshold ${connectionScore.threshold}. ${connectionScore.blockers.join('; ') || (silentPass ? 'Connection checks passed.' : 'Some checks failed or are unavailable.')}`;
     const id = crypto.randomUUID();
     const details = {
       id, kind: "connection", method: request.method, target: "", tier, verdict: TIER_VERDICT[tier], score: connectionScore.score,
@@ -296,10 +335,11 @@ async function handleRequest(message, sender, sendResponse) {
     }
     const result = new Promise((resolve) => {
       const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
+      timer?.unref?.();
       pending.set(id, { details, resolve, timer, used: false });
     });
     openWarning(id);
-    result.then((action) => sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(allowed ? {} : { connectionStatus }) }));
+    result.then((action) => sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(silentPass ? {} : { connectionStatus }) }));
     return;
   }
   if (classification.kind === "read_only") {
@@ -351,6 +391,7 @@ async function handleRequest(message, sender, sendResponse) {
   const result = new Promise((resolve) => {
     // Unanswered for the whole deadline: hand it to the wallet, which still asks the user.
     const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
+    timer?.unref?.();
     pending.set(id, { details, resolve, timer, used: false });
   });
   const warnings = !locked && evaluated.score !== null && evaluated.score < SCORE_SETTINGS.transaction.amber

@@ -1,8 +1,10 @@
 import { enqueue as queueObservations, flush } from "./observation-queue.mjs";
 
 const ALARM = "bound-observation-dispatch";
-const MIN_DELAY_MS = 30_000;
-const MAX_DELAY_MS = 30 * 60_000;
+// Short send delay (2–10 s), chosen for testing over the 30 s–30 min privacy delay:
+// a report now lands close to its on-chain transaction, so timing can link them.
+const MIN_DELAY_MS = 2_000;
+const MAX_DELAY_MS = 10_000;
 const MAX_RETRY_MS = 60 * 60_000;
 const SEND_TIMEOUT_MS = 15_000;
 
@@ -91,7 +93,8 @@ export function createObservationDispatcher({
       "boundObservationGeneration", "boundObservationDispatchAt", "boundObservationScheduledGeneration"
     ]);
     if (boundObservationDispatchAt != null && boundObservationScheduledGeneration === boundObservationGeneration && boundObservationGeneration != null) {
-      await alarms.create(ALARM, { when: Math.max(now(), boundObservationDispatchAt) });
+      // A send time scheduled under an older, longer delay is pulled in to the current maximum.
+      await alarms.create(ALARM, { when: Math.max(now(), Math.min(boundObservationDispatchAt, now() + MAX_DELAY_MS)) });
     } else await scheduleQueued();
   }
 

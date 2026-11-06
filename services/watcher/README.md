@@ -27,3 +27,15 @@ When drift information is unavailable, the watcher reports that condition and st
 `drift-publisher.js` journals public drift evidence before writing it to Arkiv, pins the hour-rounded publication time across retries, verifies the returned entity key and digest, and renews continuing drift in configured windows. Completed entries from earlier windows are compacted; pending entries are retained for retry. `guarded-flows.js` supplies a single-process status guard that serializes drift publication and incident transitions when all site operations use its wrappers. Live Arkiv publication remains to be verified.
 
 Status timestamps are hour-rounded for privacy. Same-hour recovery uses a separate capability that is called only inside the per-site guard after a clean infrastructure check and, for incidents, the configured recovery decision. The caller captures the current status version, and the upsert coordinator rejects a recovery based on an outdated version; retries of an already superseded recovery cannot overwrite a newer status. Ordinary status writes still reject same-hour severity regressions. Chain publication is asynchronous, so the public status may lag local detection or recovery. This ordering has local unit coverage and still needs live verification.
+
+## Encrypted reports (local intake)
+
+The extension seals every observation batch to the aggregator's public key with HPKE (RFC 9180, base mode: DHKEM(P-256, HKDF-SHA256), HKDF-SHA256, AES-128-GCM; `integrations/report-crypto`). Relays, proxies and TLS-terminating front ends see only ciphertext. The encryption key is a dedicated P-256 key, separate from the Arkiv writer key.
+
+1. `node scripts/integration/intake-keygen.mjs` writes the private key to `.bound/intake-key.json` (mode 0600; override with `BOUND_INTAKE_KEY_FILE`) and prints `BOUND_INTAKE_PUBLIC_KEY=…`. `--rotate` replaces an existing key.
+2. Put that line in `.env` and rebuild the extension. The public key is pinned in the build and shown read-only (as its key ID) in Options; it cannot be changed from settings.
+3. `local-intake.mjs` refuses to start without the key file and accepts only sealed envelopes:
+   `{"schemaVersion":2,"suite":"hpke-p256-sha256-aes128gcm","keyId":"<16 hex>","enc":"<base64url>","ct":"<base64url>"}`.
+   A plaintext `schemaVersion: 1` batch is rejected with 400. The decrypted payload is the unchanged `{schemaVersion:1, events}` batch, validated as before.
+
+Without a pinned key the extension keeps reports queued and sends nothing. Batches are sealed at send time, so after a rotation and rebuild, queued reports go out under the new key; only an extension still running the old build is rejected until it is updated.

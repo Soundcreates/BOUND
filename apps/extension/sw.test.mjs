@@ -10,7 +10,7 @@ let blockHistory;
 const windows = [];
 const currentDocuments = new Map();
 let failCreate = false;
-const data = {};
+const data = { boundMonitoring: true };
 const storage = {
   async get(keys) {
     if (keys === "boundWarningHistory" && blockHistory) {
@@ -80,7 +80,8 @@ test("a request from a replaced browser document cannot open a warning", async (
 test("first run seeds the default settings so requests are checked and reported", async () => {
   assert.equal(data.boundSettings?.watcherOwner, "0xe63393558e36df643347326e7e03ad5fb0e6c867");
   assert.equal(data.boundSettings?.watcherUrl, "http://127.0.0.1:8787/v1/observations");
-  assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "extension" }), { observationReporting: true });
+  // Source runs pin no aggregator key, and reports are never sent unencrypted.
+  assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "extension" }), { observationReporting: false });
 });
 
 test("extension reports that observation transport is not configured", async () => {

@@ -10,6 +10,7 @@
 <label>Watcher intake URL<input name="watcherUrl" placeholder="https://…/v1/observations"></label>
 <label>Anon-RPC bootstrap RPC URL<input name="anonBootstrapUrl" placeholder="https://…"></label>
 <label>Anon-RPC destination RPC URL<input name="anonRpcUrl" placeholder="https://…"></label>
+<p>Aggregator report key: <code id="intake-key">not configured</code> <small>(pinned in this build; reports are encrypted to it and are not sent without it)</small></p>
 <button type="submit">Save settings</button><p id="status" role="status"></p></form>
 <p>ENS root, protocol attestation, and site-specific chain reads use the anonymizing worker. Its configured bootstrap endpoint is contacted directly to fetch and verify the worker; eligible reads never fall back to public RPC.</p>
 </main><script type="module" src="options.mjs"></script></body></html>
