@@ -7,6 +7,11 @@ const word = (n) => n.toString(16).padStart(64, "0");
 const addressWord = (value) => value.slice(2).padStart(64, "0");
 const tx = (selector, ...words) => ({ to: addr(1), data: `0x${selector}${words.join("")}` });
 
+test("MetaMask provider state is read only; unknown wallet methods remain unsupported", () => {
+  assert.equal(classifyRequest({ method: "metamask_getProviderState" }).kind, "read_only");
+  assert.equal(classifyRequest({ method: "metamask_unknownMethod" }).kind, "unsupported");
+});
+
 test("approve and increaseAllowance identify a rights-role spender", () => {
   for (const selector of ["095ea7b3", "39509351"]) {
     const result = classifyRequest({ method: "eth_sendTransaction", params: [tx(selector, word(2), word(1))] });

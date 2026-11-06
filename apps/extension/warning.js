@@ -19,6 +19,7 @@ async function awaitDetails() {
   document.querySelector("#target").textContent = data.target || "Not decoded";
   document.querySelector("#coverage").textContent = `${data.coverage} · ${data.kind}`;
   document.querySelector("#verdict").textContent = data.coverage === "unsupported" ? "unsupported · no score" : data.score === null ? `${data.verdict} · no baseline` : `${data.verdict} · score ${data.score}`;
+  document.querySelector("#verdict").dataset.verdict = data.coverage === "unsupported" ? "grey" : data.verdict;
   document.querySelector("#reasons").textContent = data.reasons.join("; ") || "No policy snapshot is configured in this prototype.";
   if (data.incidentStatus === "active") {
     document.querySelector("#incident").hidden = false;
@@ -48,7 +49,16 @@ async function awaitDetails() {
     pair.className = "approval-pair";
     const addresses = document.createElement("div");
     addresses.className = "approval-addresses";
-    addresses.textContent = `Token: ${token} · Spender: ${spender}`;
+    for (const [label, value] of [["Token", token], ["Spender", spender]]) {
+      const line = document.createElement("div");
+      const name = document.createElement("span");
+      name.className = "address-label";
+      name.textContent = `${label}: `;
+      const address = document.createElement("code");
+      address.textContent = value;
+      line.append(name, address);
+      addresses.append(line);
+    }
     const link = document.createElement("a");
     link.className = "approval-link";
     link.href = revokeUrl(data.chainId);

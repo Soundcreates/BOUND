@@ -4,27 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BOUND request warning</title>
-  <style>
-    body { margin: 0; padding: 24px; color: #18202a; background: #f4f6f8; font: 15px/1.5 system-ui, sans-serif; }
-    main { max-width: 460px; margin: auto; }
-    .label { color: #56616d; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-    code { overflow-wrap: anywhere; }
-    .notice { padding: 12px; background: #fff3cd; border-radius: 8px; }
-    .field { padding: 10px 0; border-bottom: 1px solid #dce2e8; }
-    .approval-pair { padding: 8px 0; border-top: 1px solid #dce2e8; }
-    button, input { box-sizing: border-box; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid #aab4be; border-radius: 8px; font: inherit; }
-    button { cursor: pointer; }
-    #continue { color: white; background: #263b53; }
-    #cancel { background: #dce2e8; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
-    <p class="label">BOUND wallet request</p>
-    <h1>Wallet request</h1>
+  <main class="warning">
+    <header class="header"><span class="brand">BOUND</span><span class="eyebrow">Wallet request</span></header>
+    <div class="intro"><h1>Review before you continue.</h1></div>
+    <section class="card verdict-card"><span class="label">Verdict</span><strong id="verdict">Loading...</strong></section>
     <p class="notice" id="notice">No live trust snapshot or baseline is connected yet. This screen shows decoding and coverage only; it cannot mark a request safe.</p>
-    <p class="notice" id="incident" hidden></p>
-    <p class="field"><span class="label">Verdict</span><br><strong id="verdict">Loading…</strong></p>
+    <p class="notice incident" id="incident" hidden></p>
+    <section class="card details"><h2>Request details</h2>
     <p class="field"><span class="label">Coverage</span><br><code id="coverage">Loading…</code></p>
     <p class="field"><span class="label">Top-level site</span><br><code id="top">Loading…</code></p>
     <p class="field"><span class="label">Requesting frame</span><br><code id="frame">Loading…</code></p>
@@ -39,10 +28,11 @@
       <span class="label">The link selects the chain when available, but does not select a token or spender. Find the same pair there manually before revoking.</span>
     </section>
     <p class="field"><span class="label">Why</span><br><span id="reasons">Loading…</span></p>
+    </section>
     <label id="confirmation-label" for="confirmation" hidden>Type <code>I UNDERSTAND</code> to continue this escalated request</label>
     <input id="confirmation" autocomplete="off" hidden>
-    <button id="continue" disabled>Continue to wallet</button>
-    <button id="cancel">Cancel request</button>
+    <div class="actions"><button id="cancel">Cancel request</button>
+    <button id="continue" disabled>Continue to wallet</button></div>
   </main>
   <script src="warning.js"></script>
 </body>

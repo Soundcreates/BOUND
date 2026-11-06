@@ -4,7 +4,7 @@ const READ_ONLY = new Set([
   "eth_getBalance", "eth_getStorageAt", "eth_getTransactionCount", "eth_getCode",
   "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getTransactionByHash",
   "eth_getTransactionReceipt", "eth_getLogs", "eth_feeHistory", "eth_syncing",
-  "eth_mining", "eth_hashrate", "eth_protocolVersion", "wallet_getPermissions",
+  "eth_mining", "eth_hashrate", "eth_protocolVersion", "wallet_getPermissions", "metamask_getProviderState",
   "eth_sendRawTransaction"
 ]);
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;

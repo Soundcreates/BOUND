@@ -4,32 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BOUND coverage</title>
-  <style>
-    body { width: 360px; margin: 0; padding: 16px; color: #18202a; background: #f4f6f8; font: 14px/1.45 system-ui, sans-serif; }
-    h1 { margin: 0 0 8px; font-size: 19px; }
-    h2 { margin: 18px 0 8px; font-size: 14px; }
-    code { overflow-wrap: anywhere; }
-    .panel { padding: 10px; background: white; border-radius: 8px; }
-    .row { padding: 8px 0; border-top: 1px solid #e2e6e9; }
-    .muted { color: #56616d; }
-    a { color: #174d78; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>BOUND</h1>
+<main class="popup">
+  <header class="header"><span class="brand">BOUND</span><button id="settings" type="button">Settings</button></header>
+  <div class="intro"><span class="eyebrow">Wallet protection</span><h1>Know what you're approving.</h1>
   <p>BOUND reviews supported wallet requests and opens a warning before they reach your wallet. A grey verdict means there is no baseline to compare.</p>
-  <p id="site" class="muted">Loading current tab…</p>
+  <p id="site" class="muted">Loading current tab…</p></div>
   <section class="panel">
     <strong id="coverage">Checking coverage…</strong>
     <div id="frames" class="muted"></div>
     <p id="incident" hidden></p>
     <p class="muted">A saved wallet reference or an unobserved wallet path can bypass BOUND. Not every bypass can be detected.</p>
   </section>
-  <h2>Recent warnings on this site</h2>
+  <h2 class="section-title">Recent warnings on this site</h2>
   <div id="history" class="panel">Loading…</div>
-  <p id="privacy" class="muted">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p>
+  <p id="privacy" class="muted footer">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p>
   <p id="queue-error" class="muted" hidden>Some observations could not be saved or scheduled in this browser.</p>
-  <button id="settings" type="button">Settings</button>
+</main>
   <script src="popup.js"></script>
 </body>
 </html>

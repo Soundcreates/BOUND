@@ -62,6 +62,12 @@ try {
   const dapp = await connect(page.webSocketDebuggerUrl);
   await until(async () => (await dapp.call('Runtime.evaluate', { expression: "document.readyState === 'complete' && !!document.querySelector('#connect')" })).result.value === true, 'page load');
   console.log('Startup:', JSON.stringify(await dapp.call('Runtime.evaluate', { expression: "window.__errors=[]; window.addEventListener('error', e => window.__errors.push(e.message)); document.querySelector('#connect').click(); JSON.stringify({result:document.querySelector('#result').textContent, enabled:!document.querySelector('#request').disabled, errors:window.__errors})" })));
+  const startupReads = await dapp.call('Runtime.evaluate', { expression: "Promise.all([provider.request({method:'metamask_getProviderState'}), provider.request({method:'metamask_getProviderState'})])", awaitPromise: true, returnByValue: true });
+  if (startupReads.exceptionDetails || startupReads.result.value?.length !== 2 || (await targets()).some(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request='))) throw new Error('Provider state reads should pass without warning windows');
+  console.log('PASS: repeated MetaMask provider-state reads do not open warnings');
+  await dapp.call('Page.reload');
+  await until(async () => (await dapp.call('Runtime.evaluate', { expression: "document.readyState === 'complete' && !!document.querySelector('#connect')" })).result.value === true, 'page reload');
+  await dapp.call('Runtime.evaluate', { expression: "document.querySelector('#connect').click()" });
   await dapp.call('Runtime.evaluate', { expression: "document.querySelector('#request').click()" });
   let warning;
   try { warning = await until(async () => (await targets()).find(t => t.url.startsWith('chrome-extension://') && t.url.includes('/warning.html?request=')), 'extension warning'); }
@@ -72,6 +78,7 @@ try {
     throw error;
   }
   const popup = await connect(warning.webSocketDebuggerUrl);
+  if ((await popup.call('Runtime.evaluate', { expression: "document.querySelectorAll('#verdict').length" })).result.value !== 1) throw new Error('Warning must show exactly one verdict');
   await until(async () => (await popup.call('Runtime.evaluate', { expression: "document.querySelector('#method')?.textContent" })).result.value === 'eth_sendTransaction', 'warning details');
   const revoke = (await popup.call('Runtime.evaluate', { expression: "({hidden: document.querySelector('#approval-links').hidden, href: document.querySelector('.approval-link')?.href, guidance: document.querySelector('#approval-links').textContent, pairs: document.querySelectorAll('.approval-pair').length})", returnByValue: true })).result.value;
   if (revoke.hidden || revoke.pairs !== 1 || revoke.href !== 'https://revoke.cash/?chainId=31337' || !revoke.guidance.includes('Find the same pair')) throw new Error('Revocation guidance is missing or misleading');
