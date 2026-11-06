@@ -1,4 +1,7 @@
 (() => {
+  // Opaque sandbox frames have no origin that can authenticate our message channel.
+  // In particular, the string "null" is not a valid postMessage targetOrigin.
+  if (location.origin === "null") return;
   const NativePromise = Promise;
   const promiseResolve = Promise.resolve;
   const promiseReject = Promise.reject;

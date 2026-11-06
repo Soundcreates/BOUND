@@ -461,6 +461,13 @@ async function handleRequest(message, sender, sendResponse) {
     method: classification.method,
     target: classification.entries.find((entry) => entry.role === "called")?.address || request.params?.[0]?.to || "",
     kind: classification.kind,
+    checkEvidence: {
+      snapshotVerified: context.snapshotAvailable === true ? true : null,
+      siteMatched: context.siteMatched ?? null,
+      watcherLookup: context.watcherBaselineAvailable === true ? true : null,
+      watcherStatus: context.incidentStatus || "unknown",
+      walletAvailable: !locked
+    },
     verdict: evaluated.verdict,
     score: evaluated.score,
     reasons: [...(locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons), ...(!locked && evaluated.verdict === "grey" && evaluated.coverage !== "unsupported" && uncheckedReason(context) ? [uncheckedReason(context)] : [])],

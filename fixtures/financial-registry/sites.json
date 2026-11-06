@@ -1,0 +1,1456 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-06T22:48:21.674144+00:00",
+  "method": "Top 50 unique candidate HTTPS hosts by reported protocol TVL within selected financial categories and EVM-supported chains. Not transaction-volume ranking, proof of safety, or verified app frontend inventory.",
+  "sources": [
+    {
+      "url": "https://api.llama.fi/protocols",
+      "sha256": "6f5194b5ce49761171a64701d0104483c1bac2dd70dd8989ddbe6f58f4899ca1",
+      "protocolCount": 8956
+    },
+    {
+      "url": "https://ethereum.org/en/defi/",
+      "status": "read",
+      "publicLinkCount": 242,
+      "sha256": "8724531b2187c6a756c6df949972fa6223c893e9164cdcc2a0ebae10ec50bcae"
+    },
+    {
+      "url": "https://ethereum.org/en/dapps/",
+      "status": "read",
+      "publicLinkCount": 228,
+      "sha256": "932f3cfcd720440fb046048f7d41563bbb18e49ca39ba73ae04dfa2699a83424"
+    }
+  ],
+  "sites": [
+    {
+      "priority": 1,
+      "name": "Lido",
+      "site": "lido.fi",
+      "candidateUrl": "https://lido.fi/",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum",
+        "Solana",
+        "Terra",
+        "Moonriver",
+        "Moonbeam"
+      ],
+      "tvlUsdObserved": 21656548945.66143,
+      "moneyInvolvement": "Liquid staking for Ethereum and Polygon. Daily staking rewards, no lock ups.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/lido"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 2,
+      "name": "LayerZero V2",
+      "site": "layerzero.network",
+      "candidateUrl": "https://layerzero.network/",
+      "category": "Bridge",
+      "chainsReported": [
+        "Polygon",
+        "Ethereum",
+        "ApeChain",
+        "Arbitrum",
+        "Base",
+        "Solana",
+        "Tron",
+        "Binance",
+        "Flare",
+        "Stable",
+        "Plasma",
+        "Citrea",
+        "Hyperliquid L1",
+        "Abstract",
+        "Peaq",
+        "Gensyn",
+        "Somnia",
+        "Hemi",
+        "Kava",
+        "Fraxtal",
+        "Avalanche",
+        "zkSync Era",
+        "0G",
+        "TAC",
+        "Sei",
+        "Fantom",
+        "Optimism",
+        "Chiliz",
+        "Goat",
+        "Metis",
+        "RSK",
+        "Telos",
+        "Robinhood Chain",
+        "Mantle",
+        "Celo",
+        "Linea",
+        "Soneium",
+        "Katana",
+        "Cronos",
+        "Unichain",
+        "Berachain",
+        "Scroll",
+        "Ink",
+        "Vana",
+        "Sonic",
+        "Flow",
+        "Redbelly",
+        "Conflux",
+        "Astar",
+        "Mode",
+        "CORE",
+        "Story",
+        "Manta",
+        "xDai",
+        "XDC",
+        "LightLink",
+        "Monad",
+        "Plume Mainnet",
+        "XPLA",
+        "Tempo",
+        "X Layer",
+        "Blast",
+        "Morph",
+        "Swellchain",
+        "Taiko",
+        "BOB",
+        "Canto",
+        "World Chain",
+        "Hedera",
+        "Op_Bnb",
+        "Moonriver",
+        "Lisk",
+        "MegaETH",
+        "Harmony",
+        "Degen",
+        "Moonbeam",
+        "Polygon zkEVM",
+        "Zora",
+        "Sophon",
+        "Ethereal",
+        "Etherlink",
+        "Codex",
+        "KiteAI",
+        "TomoChain",
+        "Rayls",
+        "Irys",
+        "zkVerify",
+        "Bittensor EVM",
+        "Apex Fusion",
+        "Nibiru",
+        "Klaytn"
+      ],
+      "tvlUsdObserved": 17682922987.495644,
+      "moneyInvolvement": "LayerZero is a technology that enables applications to move data across blockchains, uniquely supporting censorship-resistant messages and permissionless development through immutable smart contracts.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/layerzero-v2"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 3,
+      "name": "Aave V3",
+      "site": "aave.com",
+      "candidateUrl": "https://aave.com",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum",
+        "Base",
+        "Arbitrum",
+        "Plasma",
+        "Monad",
+        "Avalanche",
+        "Binance",
+        "Polygon",
+        "X Layer",
+        "Mantle",
+        "xDai",
+        "Optimism",
+        "MegaETH",
+        "Linea",
+        "Sonic",
+        "Celo",
+        "Scroll",
+        "zkSync Era",
+        "Metis",
+        "Soneium",
+        "Fantom"
+      ],
+      "tvlUsdObserved": 15775417160.703842,
+      "moneyInvolvement": "Earn interest, borrow assets, and build applications",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/aave-v3"
+      ],
+      "ethereumDirectoryHostMatch": true,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 4,
+      "name": "SSV Network",
+      "site": "ssv.network",
+      "candidateUrl": "https://ssv.network/",
+      "category": "Staking Pool",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 11666900835.892878,
+      "moneyInvolvement": "SSV Network enables decentralized Ethereum validation by distributing validator operations across multiple nodes, providing infrastructure for secure and decentralized staking.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/ssv-network"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 5,
+      "name": "Morpho Blue",
+      "site": "app.morpho.org",
+      "candidateUrl": "https://app.morpho.org",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum",
+        "Base",
+        "Robinhood Chain",
+        "Arc",
+        "Arbitrum",
+        "Monad",
+        "Hyperliquid L1",
+        "Pharos",
+        "Tempo",
+        "Flare",
+        "World Chain",
+        "Stable",
+        "Katana",
+        "Citrea",
+        "Etherlink",
+        "Optimism",
+        "Morph",
+        "Polygon",
+        "Plume Mainnet",
+        "Sei",
+        "MegaETH",
+        "Unichain",
+        "Celo",
+        "XDC",
+        "TAC",
+        "Klaytn",
+        "Abstract",
+        "Soneium",
+        "Avalanche",
+        "Sonic",
+        "RISE",
+        "Binance",
+        "0G",
+        "Ink",
+        "Lisk",
+        "xDai",
+        "Linea",
+        "Fraxtal",
+        "Scroll",
+        "Mode",
+        "Corn",
+        "Hemi",
+        "Zircuit",
+        "Bitlayer",
+        "Botanix"
+      ],
+      "tvlUsdObserved": 10817894376.534155,
+      "moneyInvolvement": "Morpho Blue is a trustless and efficient lending primitive with permissionless market creation",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/morpho-blue"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 6,
+      "name": "Binance staked ETH",
+      "site": "www.binance.com",
+      "candidateUrl": "https://www.binance.com/en/wbeth",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum",
+        "Binance"
+      ],
+      "tvlUsdObserved": 8650665767.117014,
+      "moneyInvolvement": "A token created by depositing BETH into the BETH wrapper. Each WBETH represents 1 BETH (1:1 to staked ETH) plus all of its accrued ETH2.0 staking rewards",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/binance-staked-eth"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 7,
+      "name": "Hyperliquid Bridge",
+      "site": "app.hyperliquid.xyz",
+      "candidateUrl": "https://app.hyperliquid.xyz",
+      "category": "Bridge",
+      "chainsReported": [
+        "Hyperliquid L1",
+        "Arbitrum"
+      ],
+      "tvlUsdObserved": 6426832677.456986,
+      "moneyInvolvement": "Hyperliquid is a Layer 1 blockchain best known for perpetual futures and spot trading. Native USDC is minted on Hyperliquid via CCTP, and USDC is bridged from Arbitrum.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/hyperliquid-bridge"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 8,
+      "name": "EigenCloud",
+      "site": "www.eigencloud.xyz",
+      "candidateUrl": "https://www.eigencloud.xyz",
+      "category": "Restaking",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 5698425628.887536,
+      "moneyInvolvement": "Eigen Labs is an AI research lab building tools for human and agent coordination that preserve and maximize individual agency in the PostAGI era",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/eigencloud"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 9,
+      "name": "SparkLend",
+      "site": "spark.finance",
+      "candidateUrl": "https://spark.finance/",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum",
+        "xDai"
+      ],
+      "tvlUsdObserved": 5001521159.7630415,
+      "moneyInvolvement": "SparkLend is a stablecoin lending market. Unlike other lending protocols where rates fluctuate based on utilization or loan size, SparkLend offers governance-defined rates that do not vary based on those factors. This is made possible by Spark\u2019s Liquidity Layer (SLL), which supplies consistent stablecoin liquidity to the protocol",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/sparklend"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 10,
+      "name": "ether.fi Stake",
+      "site": "www.ether.fi",
+      "candidateUrl": "https://www.ether.fi",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum",
+        "Base",
+        "Arbitrum",
+        "Berachain",
+        "Optimism",
+        "Scroll"
+      ],
+      "tvlUsdObserved": 4221024667.4020605,
+      "moneyInvolvement": "Decentralized and non-custodial Ethereum staking protocol.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/ether.fi-stake"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 11,
+      "name": "Sky Lending",
+      "site": "app.sky.money",
+      "candidateUrl": "https://app.sky.money/",
+      "category": "CDP",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 4087654052.684557,
+      "moneyInvolvement": "The USDS stablecoin powers the open Sky ecosystem. It is the upgraded version of DAI, providing new ways for you to have more rewarding crypto experiences.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/sky-lending"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 12,
+      "name": "USDT0",
+      "site": "usdt0.to",
+      "candidateUrl": "https://usdt0.to",
+      "category": "Bridge",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 3360563456.257874,
+      "moneyInvolvement": "USDT0 is a one stop solution for Tether\u2019s Interoperability and Expansion.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/usdt0"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 13,
+      "name": "Maple",
+      "site": "www.maple.finance",
+      "candidateUrl": "https://www.maple.finance",
+      "category": "Lending",
+      "chainsReported": [
+        "Bitcoin",
+        "Ethereum",
+        "Ripple",
+        "Hyperliquid L1",
+        "Solana"
+      ],
+      "tvlUsdObserved": 2470472964.1959333,
+      "moneyInvolvement": "Maple Finance is an institutional capital marketplace powered by blockchain technology.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/maple"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 14,
+      "name": "CCIP",
+      "site": "chain.link",
+      "candidateUrl": "https://chain.link/cross-chain",
+      "category": "Bridge",
+      "chainsReported": [
+        "Ethereum",
+        "Solana",
+        "Avalanche",
+        "Base",
+        "Hyperliquid L1",
+        "Arbitrum",
+        "Ronin",
+        "Bittensor EVM",
+        "Optimism",
+        "Pharos",
+        "BOB",
+        "Binance",
+        "0G",
+        "World Chain",
+        "Astar",
+        "zkSync Era",
+        "Polygon",
+        "Linea",
+        "HashKey Chain",
+        "Shibarium",
+        "Sonic"
+      ],
+      "tvlUsdObserved": 1856708046.5142229,
+      "moneyInvolvement": "Chainlink CCIP is a cross-chain interoperability protocol that lets apps and assets move tokens and messages across blockchains through Chainlink\u2019s own secure messaging and transfer layer",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/ccip"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 15,
+      "name": "Uniswap V3",
+      "site": "app.uniswap.org",
+      "candidateUrl": "https://app.uniswap.org/",
+      "category": "Dexs",
+      "chainsReported": [
+        "Ethereum",
+        "Base",
+        "Arbitrum",
+        "Robinhood Chain",
+        "Binance",
+        "X Layer",
+        "Polygon",
+        "Arc",
+        "Optimism",
+        "Unichain",
+        "Plasma",
+        "Ink",
+        "Avalanche",
+        "Celo",
+        "xDai",
+        "Monad",
+        "RSK",
+        "World Chain",
+        "0G",
+        "Etherlink",
+        "Boba",
+        "zkSync Era",
+        "Mantle",
+        "Filecoin",
+        "Sei",
+        "XDC",
+        "Telos",
+        "Nibiru",
+        "BOB",
+        "Hemi",
+        "Linea",
+        "Scroll",
+        "Redbelly",
+        "Sonic",
+        "Taiko",
+        "MegaETH",
+        "Goat",
+        "Manta",
+        "Tempo",
+        "LightLink",
+        "Blast",
+        "Lisk",
+        "Saga",
+        "Lens"
+      ],
+      "tvlUsdObserved": 1517763255.4819221,
+      "moneyInvolvement": "A fully decentralized protocol for automated liquidity provision on Ethereum. V2",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/uniswap-v3"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 16,
+      "name": "PancakeSwap AMM",
+      "site": "pancakeswap.finance",
+      "candidateUrl": "https://pancakeswap.finance/",
+      "category": "Dexs",
+      "chainsReported": [
+        "Binance",
+        "Ethereum",
+        "Aptos",
+        "Base",
+        "Arbitrum",
+        "zkSync Era",
+        "Robinhood Chain",
+        "Op_Bnb",
+        "Linea",
+        "Monad",
+        "Polygon zkEVM"
+      ],
+      "tvlUsdObserved": 1455221196.1672215,
+      "moneyInvolvement": "The #1 AMM and yield farm on Binance Smart Chain",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/pancakeswap-amm"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 17,
+      "name": "Portal",
+      "site": "portalbridge.com",
+      "candidateUrl": "https://portalbridge.com",
+      "category": "Bridge",
+      "chainsReported": [
+        "Ethereum",
+        "Algorand",
+        "Binance",
+        "Solana",
+        "Near",
+        "Polygon",
+        "Avalanche",
+        "Sui",
+        "Base",
+        "Arbitrum",
+        "Optimism",
+        "Aptos",
+        "Celo",
+        "Klaytn",
+        "Terra",
+        "Oasis",
+        "Aurora",
+        "Fantom",
+        "Karura",
+        "Acala",
+        "Moonbeam",
+        "Terra2",
+        "Injective",
+        "XPLA"
+      ],
+      "tvlUsdObserved": 1373713968.2285726,
+      "moneyInvolvement": "A token bridge built on Wormhole.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/portal"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 18,
+      "name": "Compound V3",
+      "site": "www.compound.xyz",
+      "candidateUrl": "https://www.compound.xyz/",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum",
+        "Arbitrum",
+        "Base",
+        "Optimism",
+        "Polygon",
+        "Mantle",
+        "Unichain",
+        "Linea",
+        "Scroll",
+        "Ronin"
+      ],
+      "tvlUsdObserved": 1251897365.6446192,
+      "moneyInvolvement": "Compound is an algorithmic, autonomous interest rate protocol built for developers, to unlock a universe of open financial applications.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/compound-v3"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 19,
+      "name": "Obol",
+      "site": "obol.org",
+      "candidateUrl": "https://obol.org/",
+      "category": "Staking Pool",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 1240187934.1730928,
+      "moneyInvolvement": "The Obol Collective is the largest Decentralized Operator Ecosystem. Powered by Obol Distributed Validators, the end game of Ethereum staking.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/obol"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 20,
+      "name": "USDD",
+      "site": "usdd.io",
+      "candidateUrl": "https://usdd.io/",
+      "category": "CDP",
+      "chainsReported": [
+        "Tron",
+        "Ethereum",
+        "Binance"
+      ],
+      "tvlUsdObserved": 1086276595.1799374,
+      "moneyInvolvement": "Decentralized USD (USDD) is a fully decentralized stablecoin pegged to the US dollar through crypto reserves",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/usdd"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 21,
+      "name": "Rocket Pool",
+      "site": "rocketpool.net",
+      "candidateUrl": "https://rocketpool.net",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 1082618366.8418264,
+      "moneyInvolvement": "Rocket Pool is the first truly decentralised Ethereum staking pool. Liquid Staking, Audited SC, and Minimised Penalty Risk. Unlike solo stakers, who are required to put 32 ETH up for deposit to create a new validator, Rocket Pool nodes only need to deposit 16 ETH per validator. This will be coupled with 16 ETH from the staking pool (which stakers deposited in exchange for rETH) to create a new ETH2 validator.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/rocket-pool"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 22,
+      "name": "Curve DEX",
+      "site": "curve.finance",
+      "candidateUrl": "https://curve.finance",
+      "category": "Dexs",
+      "chainsReported": [
+        "Ethereum",
+        "Fraxtal",
+        "Etherlink",
+        "Monad",
+        "Base",
+        "Arbitrum",
+        "Polygon",
+        "Plasma",
+        "Avalanche",
+        "xDai",
+        "Optimism",
+        "Fantom",
+        "Unichain",
+        "X Layer",
+        "Robinhood Chain",
+        "Celo",
+        "Sonic",
+        "Hyperliquid L1",
+        "Kava",
+        "Binance",
+        "XDC",
+        "Aurora",
+        "Plume Mainnet",
+        "TAC",
+        "Taiko",
+        "Ink",
+        "Stable",
+        "Moonbeam",
+        "Mantle",
+        "Corn",
+        "Arc",
+        "Harmony"
+      ],
+      "tvlUsdObserved": 1079593246.1650417,
+      "moneyInvolvement": "Curve is a decentralized exchange liquidity pool on Ethereum designed for extremely efficient stablecoin trading",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/curve-dex"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 23,
+      "name": "Venus Core Pool",
+      "site": "app.venus.io",
+      "candidateUrl": "https://app.venus.io/#/core-pool",
+      "category": "Lending",
+      "chainsReported": [
+        "Binance",
+        "Ethereum",
+        "Arbitrum",
+        "zkSync Era",
+        "Base",
+        "Unichain",
+        "Optimism",
+        "Op_Bnb"
+      ],
+      "tvlUsdObserved": 1076335463.353266,
+      "moneyInvolvement": "A Decentralized Marketplace for Lenders and Borrowers with Borderless Stablecoins.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/venus-core-pool"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 24,
+      "name": "Pendle V2",
+      "site": "pendle.finance",
+      "candidateUrl": "https://pendle.finance/",
+      "category": "Yield",
+      "chainsReported": [
+        "Ethereum",
+        "Monad",
+        "Arbitrum",
+        "X Layer",
+        "Hyperliquid L1",
+        "Binance",
+        "Base",
+        "Plasma",
+        "Sonic",
+        "Robinhood Chain",
+        "Mantle",
+        "Avalanche",
+        "Berachain",
+        "Optimism"
+      ],
+      "tvlUsdObserved": 998003561.0012676,
+      "moneyInvolvement": "Pendle Finance is a protocol that enables the trading of tokenized future yield on an AMM system.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/pendle-v2"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 25,
+      "name": "Unit",
+      "site": "hyperunit.xyz",
+      "candidateUrl": "https://hyperunit.xyz/deposit",
+      "category": "Bridge",
+      "chainsReported": [
+        "Bitcoin",
+        "Zcash",
+        "Ethereum",
+        "Solana",
+        "Plasma",
+        "Monad",
+        "Base",
+        "Avalanche"
+      ],
+      "tvlUsdObserved": 956555341.715891,
+      "moneyInvolvement": "Unit is the asset tokenization layer on Hyperliquid, enabling seamless deposits and withdrawals.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/unit"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 26,
+      "name": "Lista Lending",
+      "site": "lista.org",
+      "candidateUrl": "https://lista.org/lending",
+      "category": "Lending",
+      "chainsReported": [
+        "Binance",
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 911379982.8248062,
+      "moneyInvolvement": "Lista Lending is a decentralized P2P lending protocol on BNB Chain that uses a vault-based system to pool liquidity and allocate it across lending markets based on supply and demand.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/lista-lending"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 27,
+      "name": "StakeWise V3",
+      "site": "stakewise.io",
+      "candidateUrl": "https://stakewise.io/",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum",
+        "xDai"
+      ],
+      "tvlUsdObserved": 876625903.0311648,
+      "moneyInvolvement": "Stake your ETH and manage your capital flexibly with the principal and yield tokens from StakeWise.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/stakewise-v3"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 28,
+      "name": "Kelp",
+      "site": "kelpdao.xyz",
+      "candidateUrl": "https://kelpdao.xyz/restake/?utm_source=0x798fF1e6D7AFd28c333eE6eBe03125d30ec6eF10",
+      "category": "Liquid Restaking",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 838284300.4825732,
+      "moneyInvolvement": "Kelp is the second largest liquid restaking protocol with ~$2B+ in TVL. Its liquid restaked token, rsETH, is live across 10+ major L2s and 40+ DeFi platforms, allowing users to restake while maintaining full liquidity.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/kelp"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 29,
+      "name": "Fluid Lending",
+      "site": "www.fluid.io",
+      "candidateUrl": "https://www.fluid.io/",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum",
+        "Arbitrum",
+        "Plasma",
+        "Base",
+        "Polygon",
+        "Sui"
+      ],
+      "tvlUsdObserved": 617071883.2309655,
+      "moneyInvolvement": "An ever-evolving DeFi protocol and financial system of the future by Instadapp",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/fluid-lending"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 30,
+      "name": "Liquid Collective",
+      "site": "liquidcollective.io",
+      "candidateUrl": "https://liquidcollective.io",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 611681687.857842,
+      "moneyInvolvement": "Liquid Collective is a non-custodial staking protocol launched on Ethereum. Liquid Collective is built and run by a collective of leading web3 teams. The protocol was initially launched in 2023.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/liquid-collective"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 31,
+      "name": "Aster Bridge",
+      "site": "www.asterdex.com",
+      "candidateUrl": "https://www.asterdex.com",
+      "category": "Bridge",
+      "chainsReported": [
+        "Binance",
+        "Ethereum",
+        "Arbitrum",
+        "Solana",
+        "Scroll"
+      ],
+      "tvlUsdObserved": 578841146.3016409,
+      "moneyInvolvement": "Aster is a decentralized perpetual exchange built for everyone. It offers MEV-free, one-click trading with up to 1001x leverage in Simple Mode, and full-featured, pro-grade tools in Pro Mode. Backed by YZi Labs, Aster is building the future of DeFi: fast, flexible, and community-first",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/aster-bridge"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 32,
+      "name": "Lighter Bridge",
+      "site": "app.lighter.xyz",
+      "candidateUrl": "https://app.lighter.xyz",
+      "category": "Bridge",
+      "chainsReported": [
+        "Ethereum",
+        "Arbitrum"
+      ],
+      "tvlUsdObserved": 573145798.5338224,
+      "moneyInvolvement": "Lighter is a decentralized trading platform that is designed to deliver unmatched security and scale. Lighter provides verifiable matching and liquidations, while operating at the best-in-class traditional exchange level performances.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/lighter-bridge"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 33,
+      "name": "mETH Protocol",
+      "site": "www.methprotocol.xyz",
+      "candidateUrl": "https://www.methprotocol.xyz/",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 520827937.8781686,
+      "moneyInvolvement": "A permissionless, non-custodial ETH liquid staking protocol deployed on Ethereum L1 and governed by Mantle.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/meth-protocol"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 34,
+      "name": "Convex Finance",
+      "site": "www.convexfinance.com",
+      "candidateUrl": "https://www.convexfinance.com/",
+      "category": "Yield",
+      "chainsReported": [
+        "Ethereum",
+        "Fraxtal",
+        "Arbitrum",
+        "Polygon"
+      ],
+      "tvlUsdObserved": 504587707.2486305,
+      "moneyInvolvement": "Convex simplifies your Curve-boosting experience to maximize your yields.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/convex-finance"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 35,
+      "name": "Re",
+      "site": "app.re.xyz",
+      "candidateUrl": "https://app.re.xyz",
+      "category": "RWA",
+      "chainsReported": [
+        "Ethereum",
+        "Base",
+        "Arbitrum",
+        "Avalanche"
+      ],
+      "tvlUsdObserved": 484763205.556903,
+      "moneyInvolvement": "Re is a decentralized reinsurance protocol that bridges real-world insurance risk on-chain. It pools capital through stablecoins, issues tokenized receipt assets (reUSD, reUSDe), and allocates funds into regulated reinsurance contracts. Returns are generated from underwriting premiums and on-chain yield, with transparent reporting of collateral and performance.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/re"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 36,
+      "name": "SolvBTC",
+      "site": "app.solv.finance",
+      "candidateUrl": "https://app.solv.finance/solvbtc",
+      "category": "Bridge",
+      "chainsReported": [
+        "Bitcoin",
+        "Binance",
+        "Ethereum",
+        "Solana",
+        "Base",
+        "Arbitrum",
+        "X Layer",
+        "Mantle",
+        "Polygon",
+        "Merlin",
+        "Avalanche",
+        "BOB"
+      ],
+      "tvlUsdObserved": 469044065.5970452,
+      "moneyInvolvement": "SolvBTC is a universal Bitcoin reserve token that connects Bitcoin\u2019s value across blockchains, backed 1:1 by a transparent, secure reserve. It empowers you to tap into DeFi and CeFi markets effortlessly, transforming idle Bitcoin into a dynamic asset for lending, trading, or yield generation\u2014while keeping you in full control.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/solvbtc"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 37,
+      "name": "Coinbase Wrapped Staked ETH",
+      "site": "www.coinbase.com",
+      "candidateUrl": "https://www.coinbase.com/price/coinbase-wrapped-staked-eth",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 442241895.5669319,
+      "moneyInvolvement": "Coinbase is allowing customers who stake ETH to receive an ERC20 utility token called Coinbase Wrapped Staked ETH (\u201ccbETH\u201d), which is a liquid representation of their staked-ETH.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/coinbase-wrapped-staked-eth"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 38,
+      "name": "Ethena USDtb",
+      "site": "usdtb.money",
+      "candidateUrl": "https://usdtb.money",
+      "category": "RWA",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 416127460.29852545,
+      "moneyInvolvement": "USDtb is a digital dollar, otherwise known as a USD stablecoin. USDtb can be used the same way a holder would use any other dollar, whether to send and receive payments, acquire and trade assets, or to simply hold dollars.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/ethena-usdtb"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 39,
+      "name": "Merlins Seal",
+      "site": "merlinchain.io",
+      "candidateUrl": "https://merlinchain.io/bridge/staking",
+      "category": "Bridge",
+      "chainsReported": [
+        "Bitcoin",
+        "Ethereum",
+        "Arbitrum",
+        "Zkfair"
+      ],
+      "tvlUsdObserved": 390965604.2540761,
+      "moneyInvolvement": "Merlin's Seal is an event associated with the Merlin Chain, focusing on the fair launch of its governance token, $MERL. Users stake assets to earn M-points, which are then used to determine the distribution of $MERL rewards",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/merlins-seal"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 40,
+      "name": "Huma",
+      "site": "app.huma.finance",
+      "candidateUrl": "https://app.huma.finance",
+      "category": "RWA",
+      "chainsReported": [
+        "Solana",
+        "Ethereum",
+        "Stellar",
+        "Monad"
+      ],
+      "tvlUsdObserved": 365664599.84153247,
+      "moneyInvolvement": "Permissionless DeFi yield, powered by real-world payment flows.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/huma"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 41,
+      "name": "Euler V2",
+      "site": "www.euler.finance",
+      "candidateUrl": "https://www.euler.finance",
+      "category": "Lending",
+      "chainsReported": [
+        "Monad",
+        "Ethereum",
+        "Base",
+        "Avalanche",
+        "Plasma",
+        "Unichain",
+        "Hyperliquid L1",
+        "Arbitrum",
+        "BOB",
+        "Binance",
+        "Sonic",
+        "Linea",
+        "Berachain",
+        "TAC",
+        "Swellchain",
+        "Mantle"
+      ],
+      "tvlUsdObserved": 283855329.1962524,
+      "moneyInvolvement": "Euler revolutionizes DeFi by letting any asset become collateral for a lending market. Lenders and borrowers get market leading risk-adjusted rates. Builders can create and manage markets exactly how they want them, with institutional-grade security.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/euler-v2"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 42,
+      "name": "CIAN Yield Layer",
+      "site": "yieldlayer.cian.app",
+      "candidateUrl": "https://yieldlayer.cian.app/vaults/0xB13aa2d0345b0439b064f26B82D8dCf3f508775d?chainId=1&utm_source=TPFDZE",
+      "category": "Yield Aggregator",
+      "chainsReported": [
+        "Ethereum",
+        "Mantle",
+        "Arbitrum",
+        "Optimism",
+        "Base",
+        "Binance",
+        "Scroll"
+      ],
+      "tvlUsdObserved": 267212650.74512702,
+      "moneyInvolvement": "Redistribute Yield Sources For Sustainable DeFi & Optimized APY For Your Assets",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/cian-yield-layer"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 43,
+      "name": "OpenTrade",
+      "site": "www.opentrade.io",
+      "candidateUrl": "https://www.opentrade.io",
+      "category": "RWA",
+      "chainsReported": [
+        "Avalanche",
+        "Ethereum",
+        "Plume Mainnet"
+      ],
+      "tvlUsdObserved": 245532685.29767478,
+      "moneyInvolvement": "Fintechs around the world use OpenTrade to power safe, compliant stablecoin yield products.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/opentrade"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 44,
+      "name": "Aave Horizon RWA",
+      "site": "app.aave.com",
+      "candidateUrl": "https://app.aave.com/markets/?marketName=proto_horizon_v3",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 219056992.08912542,
+      "moneyInvolvement": "A specialized Aave lending market on Ethereum, where institutions or other qualified users borrow stablecoins against real-world assets (RWAs). Unlocking stablecoin liquidity against their previously siloed tokenized assets.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/aave-horizon-rwa"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 45,
+      "name": "Plume Vaults",
+      "site": "app.plume.org",
+      "candidateUrl": "https://app.plume.org/vaults",
+      "category": "RWA",
+      "chainsReported": [
+        "Ethereum",
+        "Plume Mainnet",
+        "Solana",
+        "Binance",
+        "Avalanche"
+      ],
+      "tvlUsdObserved": 218249526.50299612,
+      "moneyInvolvement": "Plume Vaults is Plume's flagship real-world asset protocol, built to enable onchain access to real world yield through structured vaults",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/plume-vaults"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 46,
+      "name": "Benqi Staked Avax",
+      "site": "app.benqi.fi",
+      "candidateUrl": "https://app.benqi.fi/savax",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Avalanche"
+      ],
+      "tvlUsdObserved": 202226601.23214826,
+      "moneyInvolvement": "Stake AVAX on BENQI's Liquid Staking Protocol and freely utilize it within powerful Decentralized Financial applications.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/benqi-staked-avax"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 47,
+      "name": "Cooler Loans",
+      "site": "app.olympusdao.finance",
+      "candidateUrl": "https://app.olympusdao.finance/#/lending/cooler",
+      "category": "Lending",
+      "chainsReported": [
+        "Ethereum"
+      ],
+      "tvlUsdObserved": 201595417.20794365,
+      "moneyInvolvement": "Cooler Loans is Olympus DAO's native lending protocol. Borrowers deposit gOHM as collateral to borrow stablecoins at a fixed 0.5% APR.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/cooler-loans"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 48,
+      "name": "GMX EVM",
+      "site": "gmx.io",
+      "candidateUrl": "https://gmx.io",
+      "category": "Derivatives",
+      "chainsReported": [
+        "Arbitrum",
+        "Avalanche",
+        "MegaETH",
+        "Botanix"
+      ],
+      "tvlUsdObserved": 199390654.3468323,
+      "moneyInvolvement": "GMX is a decentralized spot and perpetual exchange that supports low swap fees and zero price impact trades. Trading is supported by a unique multi-asset pool that earns liquidity providers fees from market making, swap fees, leverage trading (spreads, funding fees & liquidations) and asset rebalancing.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/gmx-evm"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 49,
+      "name": "NEAR Intents",
+      "site": "near.com",
+      "candidateUrl": "https://near.com/",
+      "category": "Bridge",
+      "chainsReported": [
+        "Near",
+        "Ethereum",
+        "Tron",
+        "Bitcoin",
+        "Binance",
+        "Arbitrum",
+        "Base",
+        "Ripple",
+        "Polygon",
+        "Litecoin",
+        "xDai",
+        "Doge",
+        "Avalanche",
+        "Sui",
+        "Dash",
+        "Optimism",
+        "Cardano",
+        "Monad",
+        "TON",
+        "Solana",
+        "Berachain",
+        "X Layer",
+        "ADI",
+        "Aurora",
+        "Aptos",
+        "Stellar"
+      ],
+      "tvlUsdObserved": 186317375.29533136,
+      "moneyInvolvement": "NEAR Intents are a new type of transaction that allow information, requests, assets, and actions to be exchanged between AI agents, services, and end users",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/near-intents"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    },
+    {
+      "priority": 50,
+      "name": "Stader",
+      "site": "staderlabs.com",
+      "candidateUrl": "https://staderlabs.com",
+      "category": "Liquid Staking",
+      "chainsReported": [
+        "Ethereum",
+        "Hedera",
+        "Fantom",
+        "Terra2",
+        "Binance",
+        "Near"
+      ],
+      "tvlUsdObserved": 185571387.4100607,
+      "moneyInvolvement": "Stader offers the most convenient & safest way to maximize your returns on staking.",
+      "sources": [
+        "https://api.llama.fi/protocols",
+        "https://defillama.com/protocol/stader"
+      ],
+      "ethereumDirectoryHostMatch": false,
+      "reviewStatus": "candidate-not-trusted",
+      "frontendUrlReview": "required",
+      "ensAttestation": null
+    }
+  ]
+}

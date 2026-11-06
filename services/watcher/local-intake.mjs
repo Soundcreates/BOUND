@@ -14,6 +14,7 @@ import { openArkivArchive } from '../../integrations/arkiv/archive.js';
 import { createArkivSigner } from '../../integrations/arkiv/signer.js';
 import { importPrivateKey, importPublicKey, keyId as reportKeyId, openReport } from '../../integrations/report-crypto/index.mjs';
 import { createRpc, rebuildJournal, rebuildRegistry, waitForIdleWriter } from './rebuild-from-arkiv.mjs';
+import { localArkivConfig } from './local-arkiv-config.mjs';
 
 // Run from the repo root with: node --env-file=.env services/watcher/local-intake.mjs
 // or in the container (see Dockerfile). Accepted observations are journaled, written
@@ -53,6 +54,7 @@ const FLUSH_RETRY_MS = 30000;
 const RETENTION_MS = 8 * 24 * 3600000;
 const WINDOW_MS = 3600000;
 const CHAIN_ID = Number(process.env.BOUND_LOCAL_INTAKE_CHAIN_ID ?? 11155111);
+const normalScopes = parseNormalScopes(process.env.BOUND_LOCAL_INTAKE_NORMAL_SCOPES ?? '', CHAIN_ID);
 const corroborationK = Number(process.env.BOUND_LOCAL_INTAKE_K ?? 3);
 if (!Number.isSafeInteger(corroborationK) || corroborationK < 2) throw new Error('BOUND_LOCAL_INTAKE_K must be an integer of 2 or more');
 
@@ -70,8 +72,9 @@ const declaredScopes = (process.env.BOUND_LOCAL_INTAKE_SCOPES ?? '').split(',').
 });
 
 const arkivOn = process.env.BOUND_LOCAL_INTAKE_ARKIV !== 'off';
-const arkivUrl = process.env.BOUND_ARKIV_RPC_URL;
-const arkivOwner = process.env.BOUND_ARKIV_OWNER?.toLowerCase();
+const arkivConfig = localArkivConfig(process.env);
+const arkivUrl = arkivConfig.url;
+const arkivOwner = arkivConfig.owner;
 const arkivAccessKey = process.env.ARKIV_ACCESS_KEY || undefined;
 // Reads only. The rebuild runs even with writes off (BOUND_LOCAL_INTAKE_ARKIV=off), as a dry run.
 const arkivRpc = arkivUrl ? createRpc({ url: arkivUrl, accessKey: arkivAccessKey }) : null;
@@ -84,11 +87,11 @@ async function openArchive() {
   const url = arkivUrl;
   const owner = arkivOwner;
   const target = (process.env.BOUND_ARKIV_SYSTEM_ADDRESS ?? '0x4400000000000000000000000000000000000044').toLowerCase();
-  const chainId = Number(process.env.BOUND_ARKIV_CHAIN_ID);
-  const privateKey = process.env.BOUND_ARKIV_PRIVATE_KEY;
+  const chainId = arkivConfig.chainId;
+  const privateKey = arkivConfig.privateKey;
   const accessKey = arkivAccessKey;
-  if (!url || !/^0x[0-9a-f]{40}$/.test(owner ?? '') || !Number.isSafeInteger(chainId) || !/^(?:0x)?[0-9a-fA-F]{64}$/.test(privateKey ?? '')) {
-    throw new Error('Arkiv writer not configured: set BOUND_ARKIV_RPC_URL, BOUND_ARKIV_OWNER, BOUND_ARKIV_CHAIN_ID and BOUND_ARKIV_PRIVATE_KEY (or BOUND_LOCAL_INTAKE_ARKIV=off)');
+  if (!url || !/^0x[0-9a-f]{40}$/.test(owner ?? '') || !Number.isSafeInteger(chainId) || chainId < 1 || !/^(?:0x)?[0-9a-fA-F]{64}$/.test(privateKey ?? '')) {
+    throw new Error('Arkiv writer not configured: set BOUND_ARKIV_RPC_URL, BOUND_ARKIV_OWNER, BOUND_ARKIV_CHAIN_ID and BOUND_ARKIV_PRIVATE_KEY, or their ARKIV_RPC_URL, ARKIV_TEST_WRITER_ADDRESS, ARKIV_CHAIN_ID and ARKIV_TEST_WRITER_PRIVATE_KEY fallbacks (or BOUND_LOCAL_INTAKE_ARKIV=off)');
   }
   const wallet = new Wallet(privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`);
   if (wallet.address.toLowerCase() !== owner) throw new Error('Arkiv writer key/address mismatch: watcher-specific BOUND_ARKIV_* values override ARKIV_TEST_WRITER_*; configure a matching pair');

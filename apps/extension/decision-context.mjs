@@ -67,7 +67,7 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
 
   const siteEntry = snapshotEntry(verified.snapshot, site, chain);
   if (!siteEntry && typeof adapters.readUncuratedViaAnonRpc !== "function") {
-    return { ...emptyContext("watcher_baseline_unavailable"), site, chain, snapshotAvailable: true, frontendCommunity: await frontendRead };
+    return { ...emptyContext("watcher_baseline_unavailable"), site, chain, snapshotAvailable: true, siteMatched: false, frontendCommunity: await frontendRead };
   }
   const baselineRead = siteEntry
     ? typeof adapters.readWatcherBundle === "function"
@@ -161,6 +161,7 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
     site,
     chain,
     snapshotAvailable: true,
+    siteMatched: Boolean(siteEntry),
     watcherBaselineAvailable: baselinePresent,
     incidentStatus: usable ? incidentStatus : "unknown",
     ensLookup,

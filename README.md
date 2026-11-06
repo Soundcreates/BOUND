@@ -127,3 +127,7 @@ BOUND is licensed under the [MIT License](LICENSE). Third-party components may h
 - Browser end-to-end testing, external integration verification, and required security metric reports are still in progress.
 
 For implementation details, see the [implementation plan](Docs/plan.md), [Arkiv integration](integrations/arkiv/README.md), [contract feasibility evidence](packages/contracts/feasibility.md), and [local hijack demo](demo/hijack-server/README.md).
+
+## Financial-site registry
+
+The [50-site candidate registry](fixtures/financial-registry/SITES.md) and [capture/ENS publication plan](fixtures/financial-registry/README.md) provide sourced financial-site discovery and public JavaScript hashes. Candidates are unreviewed and do not automatically enter BOUND's trusted snapshot.

@@ -87,6 +87,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .check-mark { display: inline-grid; flex: 0 0 18px; width: 18px; height: 18px; place-items: center; border-radius: 50%; font: 700 13px/1 system-ui, sans-serif; }
 .check-pass { color: #fff; background: #166534; }
 .check-fail { color: #fff; background: #b42318; }
+.check-unknown { color: #fff; background: #62666d; }
 .connection-checks li:nth-child(1) .check-mark { animation: check-appear .25s ease-out 2.1s both; }
 .connection-checks li:nth-child(2) .check-mark { animation: check-appear .25s ease-out 2.45s both; }
 .connection-checks li:nth-child(3) .check-mark { animation: check-appear .25s ease-out 2.8s both; }

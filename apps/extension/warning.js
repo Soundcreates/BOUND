@@ -1,4 +1,5 @@
 import { frontendIntegrityText } from "./warning-integrity.mjs";
+import { warningChecks } from "./warning-checks.mjs";
 const id = new URLSearchParams(location.search).get("request");
 const main = document.querySelector("main");
 const typed = document.querySelector("#confirmation");
@@ -15,7 +16,11 @@ async function awaitDetails() {
   }
   document.querySelector("#report-domain").textContent = data.topOrigin || "unknown site";
   document.querySelector("#request-time").textContent = new Date().toLocaleString();
-  if (data.connectionScore) renderConnectionChecks(data.connectionScore);
+  renderConnectionChecks(data);
+  if (data.kind === "connection") {
+    continueButton.textContent = "Continue to wallet";
+    document.querySelector("#wallet-next-step").hidden = false;
+  }
   document.querySelector("#top").textContent = data.topOrigin;
   document.querySelector("#frame").textContent = data.frameOrigin;
   document.querySelector("#method").textContent = data.method;
@@ -94,31 +99,25 @@ async function awaitDetails() {
   return data;
 }
 
-function renderConnectionChecks(score) {
-  const labels = [
-    ["origin", "HTTPS origin"],
-    ["snapshot", "ENS/Arkiv snapshot"],
-    ["domain", "Domain and port match"],
-    ["arkiv", "Arkiv watcher lookup"],
-    ["watcher", "Watcher status"],
-    ["wallet", "Wallet chain/account available"]
-  ];
-  const scopes = score.scopes || [];
+function renderConnectionChecks(data) {
+  const checks = warningChecks(data);
   const list = document.querySelector("#connection-checks");
-  for (const [id, label] of labels) {
-    const passed = scopes.length > 0 && scopes.every(scope => scope.checks?.find(check => check.id === id)?.outcome === "passed");
+  list.replaceChildren();
+  for (const {label, outcome} of checks) {
+    const passed = outcome === "passed";
+    const unavailable = outcome === "unavailable";
     const item = document.createElement("li");
     const mark = document.createElement("span");
-    mark.className = passed ? "check-mark check-pass" : "check-mark check-fail";
-    mark.setAttribute("aria-label", passed ? "Passed" : "Failed or unavailable");
-    mark.textContent = passed ? "✓" : "×";
+    mark.className = passed ? "check-mark check-pass" : unavailable ? "check-mark check-unknown" : "check-mark check-fail";
+    mark.setAttribute("aria-label", passed ? "Passed" : unavailable ? "Not checked or unavailable" : "Failed");
+    mark.textContent = passed ? "✓" : unavailable ? "—" : "×";
     const text = document.createElement("span");
-    text.textContent = label;
+    text.textContent = label + (unavailable ? " · unavailable" : "");
     item.append(mark, text);
     list.append(item);
   }
   const passed = list.querySelectorAll(".check-pass").length;
-  const total = labels.length;
+  const total = checks.length;
   const percent = Math.round((passed / total) * 100);
   const pie = document.querySelector("#pie-chart");
   pie.style.setProperty("--pass-share", `${percent}%`);

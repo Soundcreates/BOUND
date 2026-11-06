@@ -1,0 +1,3012 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-06T22:50:16.854452+00:00",
+  "sites": [
+    {
+      "site": "lido.fi",
+      "requestedUrl": "https://lido.fi/",
+      "capturedAt": "2026-11-06T22:48:33.613034+00:00",
+      "status": "unavailable",
+      "trust": "unreviewed-observation",
+      "scripts": [],
+      "error": "Response exceeds byte limit"
+    },
+    {
+      "site": "layerzero.network",
+      "requestedUrl": "https://layerzero.network/",
+      "capturedAt": "2026-11-06T22:48:33.613228+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/3ijonmckbdal4.js",
+          "path": "/_next/static/immutable/chunks/3ijonmckbdal4.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/3ijonmckbdal4.js",
+          "bytes": 26794,
+          "hash": "sha256-BiIrPWCpCP1btPxiX7WHXssDtEBtu3eWWLSjPRV+YDw="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/2uesvw59kwbdi.js",
+          "path": "/_next/static/immutable/chunks/2uesvw59kwbdi.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/2uesvw59kwbdi.js",
+          "bytes": 228671,
+          "hash": "sha256-GOxg15FGLqLEzBkCc2Q9QxTmAHR5BGm8NXTVZGs5d+Y="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/1evc8jzkdn23n.js",
+          "path": "/_next/static/immutable/chunks/1evc8jzkdn23n.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/1evc8jzkdn23n.js",
+          "bytes": 136091,
+          "hash": "sha256-yXzPAJb5UErx8Kf0lHdSU+NiWq6DHaUH6M2AKmeDpEs="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/0rpna-qmrbkhw.js",
+          "path": "/_next/static/immutable/chunks/0rpna-qmrbkhw.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/0rpna-qmrbkhw.js",
+          "bytes": 27817,
+          "hash": "sha256-V1PPyXAz+Uv3OfV0EpCkaOU4TSE8bKhFsXIwHlpjrkg="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/turbopack-1cvbnb3nlabgn.js",
+          "path": "/_next/static/immutable/chunks/turbopack-1cvbnb3nlabgn.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/turbopack-1cvbnb3nlabgn.js",
+          "bytes": 10030,
+          "hash": "sha256-i7tYy/1GM8HYKMa8N7wyq8dooUnAGx38T1Ex/YEnRVE="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/1hmik2tqxgha_.js",
+          "path": "/_next/static/immutable/chunks/1hmik2tqxgha_.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/1hmik2tqxgha_.js",
+          "bytes": 14090,
+          "hash": "sha256-pUo4BpT8SuqDYTHmMYguTxv1GIlv5oWHYdXeYAvk9yw="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/1ytuunwb8voz6.js",
+          "path": "/_next/static/immutable/chunks/1ytuunwb8voz6.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/1ytuunwb8voz6.js",
+          "bytes": 40326,
+          "hash": "sha256-fpiIxG6HiHZp3ZnXg+UIGHh5gMfW+Ie+Ne4JcKVl3xM="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/1blu-57zcn9ky.js",
+          "path": "/_next/static/immutable/chunks/1blu-57zcn9ky.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/1blu-57zcn9ky.js",
+          "bytes": 20162,
+          "hash": "sha256-KX6No3J3EAzHd0jBQ8Yq5F1uMf3o4PFxJnrEPNwPHmw="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/2gi6l9xd51qs9.js",
+          "path": "/_next/static/immutable/chunks/2gi6l9xd51qs9.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/2gi6l9xd51qs9.js",
+          "bytes": 7294,
+          "hash": "sha256-w0IZ5ifH/xQ7jcO6NN5mbOBB1rVO1738X6rQFsayZtk="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/3vcwnmmnohw9-.js",
+          "path": "/_next/static/immutable/chunks/3vcwnmmnohw9-.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/3vcwnmmnohw9-.js",
+          "bytes": 69291,
+          "hash": "sha256-y2sC1HggPn6hQmR8zIluuFb2jKR1ryQ08X2PoIcArGo="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/21l8i1de76qll.js",
+          "path": "/_next/static/immutable/chunks/21l8i1de76qll.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/21l8i1de76qll.js",
+          "bytes": 25580,
+          "hash": "sha256-vW3XDJbGYTtDYP1QQtOhVrmyg0FNWRxl/OMouCi80Ow="
+        },
+        {
+          "url": "https://layerzero.network/_next/static/immutable/chunks/227dfk7hm5e20.js",
+          "path": "/_next/static/immutable/chunks/227dfk7hm5e20.js",
+          "status": "observed",
+          "servedUrl": "https://layerzero.network/_next/static/immutable/chunks/227dfk7hm5e20.js",
+          "bytes": 250040,
+          "hash": "sha256-p31t7H/0GY5XKPmVrDgSdEVTy2A2COy1p/ZTeTwaEtE="
+        }
+      ],
+      "finalUrl": "https://layerzero.network/",
+      "finalSite": "layerzero.network",
+      "htmlSha256": "b1b5c6cc440800d82be3e0c496b7e296078820947a92d324c9978659a63e641e",
+      "inlineScriptsExcluded": 34,
+      "declaredExternalScripts": 15,
+      "overLimitScripts": 3,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "aave.com",
+      "requestedUrl": "https://aave.com",
+      "capturedAt": "2026-11-06T22:48:33.613301+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://aave.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "bytes": 112594,
+          "hash": "sha256-CXPB1kyIrcjjyVBBDLWLKI9yEY1ZZbeASUON648vloM="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/webpack-09758fbdac01add7.js",
+          "path": "/_next/static/chunks/webpack-09758fbdac01add7.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/webpack-09758fbdac01add7.js",
+          "bytes": 4063,
+          "hash": "sha256-fek4ywbcuJFzp2UIAAPGMPaYPjwsupZkfZGnoxGfQVE="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/framework-25503c7660679971.js",
+          "path": "/_next/static/chunks/framework-25503c7660679971.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/framework-25503c7660679971.js",
+          "bytes": 189786,
+          "hash": "sha256-FXO1K/HWpquge3aYagGkHyBHrjwSlVOt36UzxisQChU="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/main-1fccdd84e4427538.js",
+          "path": "/_next/static/chunks/main-1fccdd84e4427538.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/main-1fccdd84e4427538.js",
+          "bytes": 137889,
+          "hash": "sha256-FmuD9pB6avAX2Ce+NW1DHINjxtFylg2fNA6dU+qRubc="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/pages/_app-d1eb8b1e4a641fb4.js",
+          "path": "/_next/static/chunks/pages/_app-d1eb8b1e4a641fb4.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/pages/_app-d1eb8b1e4a641fb4.js",
+          "bytes": 1183099,
+          "hash": "sha256-i8jYx4SelxFOLa3eYbMqaUGD7mS75AmC88KVEABx8rY="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/7862-1cdd1b71b1d62c09.js",
+          "path": "/_next/static/chunks/7862-1cdd1b71b1d62c09.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/7862-1cdd1b71b1d62c09.js",
+          "bytes": 9860,
+          "hash": "sha256-TD1Ss6cCQ8RTXrKY4aCWXkOWD2ywA3x2JKpzgcFtm9g="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/7833-a7a027e33841bf3c.js",
+          "path": "/_next/static/chunks/7833-a7a027e33841bf3c.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/7833-a7a027e33841bf3c.js",
+          "bytes": 18851,
+          "hash": "sha256-R/wKaA+b0U1Wu/Hgyi4krwxCfH1E2AytW4rwUmP4V5Y="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/1025-09d953283dc2deea.js",
+          "path": "/_next/static/chunks/1025-09d953283dc2deea.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/1025-09d953283dc2deea.js",
+          "bytes": 21465,
+          "hash": "sha256-xbbtt64dYIm34nV2Cmp+TteOPbAz5jlwSyeBTYfg3j0="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/3067-76af5b47afb6d923.js",
+          "path": "/_next/static/chunks/3067-76af5b47afb6d923.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/3067-76af5b47afb6d923.js",
+          "bytes": 56521,
+          "hash": "sha256-VVwY2z0uL1lJiu58+7nTMFc0scTvsGTL3mgXoUx/T7I="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/2080-c84bdec49df572f3.js",
+          "path": "/_next/static/chunks/2080-c84bdec49df572f3.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/2080-c84bdec49df572f3.js",
+          "bytes": 56213,
+          "hash": "sha256-3FfOc+x+pUFwpyZzjt1GKUPWAY1mGMlh+2lcaRWZ5DA="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/3770-4d012e67ac4a3c56.js",
+          "path": "/_next/static/chunks/3770-4d012e67ac4a3c56.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/3770-4d012e67ac4a3c56.js",
+          "bytes": 7957,
+          "hash": "sha256-CUEGQs1oXNP41smKrsN7ZE1ScRbszf72t5eXh+YUtBU="
+        },
+        {
+          "url": "https://aave.com/_next/static/chunks/6991-72f531684d568af8.js",
+          "path": "/_next/static/chunks/6991-72f531684d568af8.js",
+          "status": "observed",
+          "servedUrl": "https://aave.com/_next/static/chunks/6991-72f531684d568af8.js",
+          "bytes": 27457,
+          "hash": "sha256-Q9VL1s9KWx0caiOm4l7Iwp9GezFFH3aIVqBSiK8hMZg="
+        }
+      ],
+      "finalUrl": "https://aave.com",
+      "finalSite": "aave.com",
+      "htmlSha256": "629ab1a5d207cf8371a594c8b0b5040f51b2f928470ca385c566c309f1baef16",
+      "inlineScriptsExcluded": 4,
+      "declaredExternalScripts": 16,
+      "overLimitScripts": 4,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "ssv.network",
+      "requestedUrl": "https://ssv.network/",
+      "capturedAt": "2026-11-06T22:48:36.351909+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://events.framer.com/script?v=2",
+          "path": "/script",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://framerusercontent.com/sites/6fnSixfdCC5QymR0uGY113/script_main.BuhkEhNF.mjs",
+          "path": "/sites/6fnSixfdCC5QymR0uGY113/script_main.BuhkEhNF.mjs",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://ssv.network/",
+      "finalSite": "ssv.network",
+      "htmlSha256": "c90e346272964033b62f9b688f92f6fb1a9bdaa17c2d0c3d90f919369e330d84",
+      "inlineScriptsExcluded": 8,
+      "declaredExternalScripts": 2,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.morpho.org",
+      "requestedUrl": "https://app.morpho.org",
+      "capturedAt": "2026-11-06T22:48:37.417105+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/1zx381wwnmp61.js",
+          "path": "/_next/static/immutable/chunks/1zx381wwnmp61.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/1zx381wwnmp61.js",
+          "bytes": 27527,
+          "hash": "sha256-pxxsYo1tiN+q6XvCrC/TmPEyN9N9Pm7CITw8WOZz7XI="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/3-4o3tiey71l4.js",
+          "path": "/_next/static/immutable/chunks/3-4o3tiey71l4.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/3-4o3tiey71l4.js",
+          "bytes": 37674,
+          "hash": "sha256-lfUUjHZLcaDSzbp5etFfPwnuvnNQ2+P7/Lz8pqzU2jw="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/3da7n1zq9hnsy.js",
+          "path": "/_next/static/immutable/chunks/3da7n1zq9hnsy.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/3da7n1zq9hnsy.js",
+          "bytes": 30054,
+          "hash": "sha256-oDimXSEkp4WmDAQ7QUoiI92h5qZbyUtn7R7EsHyNl7g="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/3j41fmh0b1l7-.js",
+          "path": "/_next/static/immutable/chunks/3j41fmh0b1l7-.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/3j41fmh0b1l7-.js",
+          "bytes": 28418,
+          "hash": "sha256-1PWGqgxFpjrz15LkR/G7Rnb2FMEdxKQpFGRa8oeDO/c="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/1znzj_xm97kzy.js",
+          "path": "/_next/static/immutable/chunks/1znzj_xm97kzy.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/1znzj_xm97kzy.js",
+          "bytes": 382107,
+          "hash": "sha256-JUJXliTe1Jv6wvxA6gWk7DmGvwPkwgz/704znNL30oE="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/14iet8elibdl2.js",
+          "path": "/_next/static/immutable/chunks/14iet8elibdl2.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/14iet8elibdl2.js",
+          "bytes": 122089,
+          "hash": "sha256-WPXNC/metwv7iN678RJ3oPZ2GZyTTS7/CFQuCgyEKHY="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/0l9k90kvp3enn.js",
+          "path": "/_next/static/immutable/chunks/0l9k90kvp3enn.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/0l9k90kvp3enn.js",
+          "bytes": 199695,
+          "hash": "sha256-OhviJxsSpeyoaSv6pGwM3uviy3H348isHy1mRZjipO4="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/0jkwmujwceu3v.js",
+          "path": "/_next/static/immutable/chunks/0jkwmujwceu3v.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/0jkwmujwceu3v.js",
+          "bytes": 157172,
+          "hash": "sha256-nDjVk+DigEF7K1e4Q1ExtFCISSDUmAS+ISIhT2dSqIQ="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/11613etjonies.js",
+          "path": "/_next/static/immutable/chunks/11613etjonies.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/11613etjonies.js",
+          "bytes": 621862,
+          "hash": "sha256-9C95HaZFfyENlsFmaxsHf+izl+A4MG1lolu+kdklsjs="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/3q8_h8yeh3sjx.js",
+          "path": "/_next/static/immutable/chunks/3q8_h8yeh3sjx.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/3q8_h8yeh3sjx.js",
+          "bytes": 42098,
+          "hash": "sha256-3h2V2u59P/0nB9mga/da6bY9CpmmmS35HizXXCHzu0A="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/turbopack-2ihhr7iq83pua.js",
+          "path": "/_next/static/immutable/chunks/turbopack-2ihhr7iq83pua.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/turbopack-2ihhr7iq83pua.js",
+          "bytes": 11298,
+          "hash": "sha256-TSMM9G8f+VBYzHeOqCma+5IO6TT4JPJPtoZE0q2eR4I="
+        },
+        {
+          "url": "https://app.morpho.org/_next/static/immutable/chunks/33tjy_7_rjeea.js",
+          "path": "/_next/static/immutable/chunks/33tjy_7_rjeea.js",
+          "status": "observed",
+          "servedUrl": "https://app.morpho.org/_next/static/immutable/chunks/33tjy_7_rjeea.js",
+          "bytes": 23182,
+          "hash": "sha256-agwCafRd8cKJhpliKa71IP5Km69Pd/9Ts2NBbH8mQek="
+        }
+      ],
+      "finalUrl": "https://app.morpho.org/vaults",
+      "finalSite": "app.morpho.org",
+      "htmlSha256": "d81b238bed23bf3edc80d885333a28ff0b7fcd79c104109e227ed03cf935408e",
+      "inlineScriptsExcluded": 8,
+      "declaredExternalScripts": 59,
+      "overLimitScripts": 47,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.binance.com",
+      "requestedUrl": "https://www.binance.com/en/wbeth",
+      "capturedAt": "2026-11-06T22:48:38.771170+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [],
+      "finalUrl": "https://www.binance.com/en/wbeth",
+      "finalSite": "www.binance.com",
+      "htmlSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inlineScriptsExcluded": 0,
+      "declaredExternalScripts": 0,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.hyperliquid.xyz",
+      "requestedUrl": "https://app.hyperliquid.xyz",
+      "capturedAt": "2026-11-06T22:48:39.482099+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.hyperliquid.xyz/charting_library_v28.5/charting_library/charting_library.js?bust=v8",
+          "path": "/charting_library_v28.5/charting_library/charting_library.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.hyperliquid.xyz/assets/index-A2X9GMX7.js",
+          "path": "/assets/index-A2X9GMX7.js",
+          "status": "observed",
+          "servedUrl": "https://app.hyperliquid.xyz/assets/index-A2X9GMX7.js",
+          "bytes": 1287741,
+          "hash": "sha256-WCS9hkFcXslImQA0rrWRSeJNSj5LU06PxjZbFoNbWCk="
+        },
+        {
+          "url": "https://hyperliquid.statuspage.io/embed/script.js",
+          "path": "/embed/script.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://app.hyperliquid.xyz",
+      "finalSite": "app.hyperliquid.xyz",
+      "htmlSha256": "f4c213f0b33fdc7764accdcb208abaeb05f2e2eb146436ea1e6126149fe85d68",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 3,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.eigencloud.xyz",
+      "requestedUrl": "https://www.eigencloud.xyz",
+      "capturedAt": "2026-11-06T22:48:40.423796+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-SDWC2PYQX2",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://www.eigencloud.xyz/_nuxt/BB0OHM6A.js",
+          "path": "/_nuxt/BB0OHM6A.js",
+          "status": "observed",
+          "servedUrl": "https://www.eigencloud.xyz/_nuxt/BB0OHM6A.js",
+          "bytes": 1119685,
+          "hash": "sha256-AgB5EPxlErBLDB6oWa36bxcKCeiJUezMT8u+fN8hXqY="
+        }
+      ],
+      "finalUrl": "https://www.eigencloud.xyz",
+      "finalSite": "www.eigencloud.xyz",
+      "htmlSha256": "08197e59c066e3754a6c9b9767c04ae1a43d9220a081fd1e121dac760a754eca",
+      "inlineScriptsExcluded": 5,
+      "declaredExternalScripts": 2,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "spark.finance",
+      "requestedUrl": "https://spark.finance/",
+      "capturedAt": "2026-11-06T22:48:47.664832+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://spark.finance/_next/static/chunks/polyfills-78c92fac7aa8fdd8.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/polyfills-78c92fac7aa8fdd8.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/webpack-d0f41653a720297d.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/webpack-d0f41653a720297d.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/framework-4b9d806d3e7289ce.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/framework-4b9d806d3e7289ce.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/main-8a2106344e02f81d.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/main-8a2106344e02f81d.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/pages/_app-ca591453003262bb.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/pages/_app-ca591453003262bb.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/193-d7af9c28966bd51b.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/193-d7af9c28966bd51b.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/633-22ea8de6a5bac723.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/633-22ea8de6a5bac723.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/357-f35c03eb4406fae2.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/357-f35c03eb4406fae2.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/498-df536249a013b495.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/498-df536249a013b495.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/135-af4e6d69859d6c06.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/135-af4e6d69859d6c06.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/chunks/pages/index-f6edbbecf32dff64.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/chunks/pages/index-f6edbbecf32dff64.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://spark.finance/_next/static/vvJYISZrOAs2oHPfSfeJw/_buildManifest.js?dpl=dpl_D6o4F1LGXUrNDzQBHNoc65PGgXV8",
+          "path": "/_next/static/vvJYISZrOAs2oHPfSfeJw/_buildManifest.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        }
+      ],
+      "finalUrl": "https://spark.finance/",
+      "finalSite": "spark.finance",
+      "htmlSha256": "1d3e5c1027eef44df4c3eb419860a6623f0e553ba05016eff6eb3ce714273368",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 13,
+      "overLimitScripts": 1,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.ether.fi",
+      "requestedUrl": "https://www.ether.fi",
+      "capturedAt": "2026-11-06T22:48:49.560526+00:00",
+      "status": "unavailable",
+      "trust": "unreviewed-observation",
+      "scripts": [],
+      "error": "HTTP Error 429: Too Many Requests"
+    },
+    {
+      "site": "app.sky.money",
+      "requestedUrl": "https://app.sky.money/",
+      "capturedAt": "2026-11-06T22:48:51.848882+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.sky.money/assets/index-B2w_FuB6.js",
+          "path": "/assets/index-B2w_FuB6.js",
+          "status": "observed",
+          "servedUrl": "https://app.sky.money/assets/index-B2w_FuB6.js",
+          "bytes": 138630,
+          "hash": "sha256-EAlhvV5v5RyZik5Owk8NsIWvx86XTyc9O2EqGYRyNSA="
+        }
+      ],
+      "finalUrl": "https://app.sky.money/",
+      "finalSite": "app.sky.money",
+      "htmlSha256": "1b3b8a3de9b39c951559b7eed3a8b56a5d17bc08135094f8911fe652b8d5367c",
+      "inlineScriptsExcluded": 2,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "usdt0.to",
+      "requestedUrl": "https://usdt0.to",
+      "capturedAt": "2026-11-06T22:48:54.059007+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://usdt0.to/_next/static/chunks/7e126330-558251b28c3f8afc.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/7e126330-558251b28c3f8afc.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/308-74299357c547f90a.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/308-74299357c547f90a.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/main-app-33b0ac577dfb0322.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/main-app-33b0ac577dfb0322.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/4605-c5cb90ad24a63a8a.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/4605-c5cb90ad24a63a8a.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/3481-443c90c1ed5c2875.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/3481-443c90c1ed5c2875.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/5995-8411591278db4848.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/5995-8411591278db4848.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/2253-a8eda581066ec958.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/2253-a8eda581066ec958.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/6283-521ba782a2cd807b.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/6283-521ba782a2cd807b.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/8313-75c666387f2f8dc3.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/8313-75c666387f2f8dc3.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/6954-f9ec29dee16b10d8.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/6954-f9ec29dee16b10d8.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/app/page-392051be7272cdb1.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/app/page-392051be7272cdb1.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://usdt0.to/_next/static/chunks/app/global-error-5da07e888c964fb3.js?dpl=dpl_6smB2X4TJYFJYSVwkLdENiHooAv9",
+          "path": "/_next/static/chunks/app/global-error-5da07e888c964fb3.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        }
+      ],
+      "finalUrl": "https://usdt0.to",
+      "finalSite": "usdt0.to",
+      "htmlSha256": "97e1ba4bf1ce3ab90f5bc67e3dd48c2312001a0cf4e240d54c704f43ac52fd3a",
+      "inlineScriptsExcluded": 26,
+      "declaredExternalScripts": 21,
+      "overLimitScripts": 9,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.maple.finance",
+      "requestedUrl": "https://www.maple.finance",
+      "capturedAt": "2026-11-06T22:48:56.663503+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://maple.finance/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js",
+          "path": "/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js",
+          "status": "observed",
+          "servedUrl": "https://maple.finance/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js",
+          "bytes": 1239,
+          "hash": "sha256-JZVJb+SN9vz5sbxXwpp0TBIetN0RVmRmvBPS5S5rvMg="
+        },
+        {
+          "url": "https://maple.finance/_astro/Footer.astro_astro_type_script_index_0_lang.SjCT072S.js",
+          "path": "/_astro/Footer.astro_astro_type_script_index_0_lang.SjCT072S.js",
+          "status": "observed",
+          "servedUrl": "https://maple.finance/_astro/Footer.astro_astro_type_script_index_0_lang.SjCT072S.js",
+          "bytes": 200,
+          "hash": "sha256-H5w52BdnxiILNlSUHw1wNCXn8Ansy1gtnRXk9fImUPs="
+        },
+        {
+          "url": "https://maple.finance/_astro/BaseLayout.astro_astro_type_script_index_0_lang.2iUn0cDf.js",
+          "path": "/_astro/BaseLayout.astro_astro_type_script_index_0_lang.2iUn0cDf.js",
+          "status": "observed",
+          "servedUrl": "https://maple.finance/_astro/BaseLayout.astro_astro_type_script_index_0_lang.2iUn0cDf.js",
+          "bytes": 202,
+          "hash": "sha256-KkVwD7TabQXOl0tJ3wnvvPNvW6r/HbuIEweZvGOzk2c="
+        }
+      ],
+      "finalUrl": "https://maple.finance/",
+      "finalSite": "maple.finance",
+      "htmlSha256": "4dc2790af3e6106378498cbf4fbce16354c9521123271ad580d54d66840f87dc",
+      "inlineScriptsExcluded": 5,
+      "declaredExternalScripts": 3,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "chain.link",
+      "requestedUrl": "https://chain.link/cross-chain",
+      "capturedAt": "2026-11-06T22:48:57.076102+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://use.typekit.net/bxm3pak.js",
+          "path": "/bxm3pak.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=5f6b7190899f41fb70882d08",
+          "path": "/js/jquery-3.5.1.min.dc5e7f18c8.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/5f6b7190899f41fb70882d08/js/clstaging.66df3849.2b0a84de39eb1509.js",
+          "path": "/5f6b7190899f41fb70882d08/js/clstaging.66df3849.2b0a84de39eb1509.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/gsap.min.js",
+          "path": "/gsap/3.15.0/gsap.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/ScrollTrigger.min.js",
+          "path": "/gsap/3.15.0/ScrollTrigger.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/SplitText.min.js",
+          "path": "/gsap/3.15.0/SplitText.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/ScrambleTextPlugin.min.js",
+          "path": "/gsap/3.15.0/ScrambleTextPlugin.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js",
+          "path": "/npm/swiper@11/swiper-bundle.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://hubspotv2.use1-marketplace-1p-apps-prod-red.if.webflow.services/static/disable-hubspot-chatbot.js",
+          "path": "/static/disable-hubspot-chatbot.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://js.hs-scripts.com/20755222.js",
+          "path": "/20755222.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://hubspotonwebflow.com/assets/js/form-124.js",
+          "path": "/assets/js/form-124.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://chain.link/cross-chain",
+      "finalSite": "chain.link",
+      "htmlSha256": "4a8ed497f27ef2183a406215aa77261604309e0d320d74b5e4f6616bde3ad6dc",
+      "inlineScriptsExcluded": 21,
+      "declaredExternalScripts": 11,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.uniswap.org",
+      "requestedUrl": "https://app.uniswap.org/",
+      "capturedAt": "2026-11-06T22:49:01.038697+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
+          "path": "/turnstile/v0/api.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.app.uniswap.org/assets/index-WWoIc4FZ.js",
+          "path": "/assets/index-WWoIc4FZ.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://app.uniswap.org/",
+      "finalSite": "app.uniswap.org",
+      "htmlSha256": "88391fe218bad7d59aa4bc5ae752b61e1e297bf3822724b50ae6f423467c98a4",
+      "inlineScriptsExcluded": 0,
+      "declaredExternalScripts": 2,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "pancakeswap.finance",
+      "requestedUrl": "https://pancakeswap.finance/",
+      "capturedAt": "2026-11-06T22:49:02.850722+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/0c0hxoamwjsbw.js",
+          "path": "/_next/static/immutable/chunks/0c0hxoamwjsbw.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/0c0hxoamwjsbw.js",
+          "bytes": 112594,
+          "hash": "sha256-CXPB1kyIrcjjyVBBDLWLKI9yEY1ZZbeASUON648vloM="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/0eaoa059q3f08.js",
+          "path": "/_next/static/immutable/chunks/0eaoa059q3f08.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/0eaoa059q3f08.js",
+          "bytes": 311584,
+          "hash": "sha256-hjiRWRnO1B0mwICT7l9v6pSLAA17aoRSYWX/04UcEVs="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/1c9-skvrlsf0x.js",
+          "path": "/_next/static/immutable/chunks/1c9-skvrlsf0x.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/1c9-skvrlsf0x.js",
+          "bytes": 190562,
+          "hash": "sha256-Ee7voxCJe3g/Ejawe7zcBSV9CV7C3jjPAD8x6N7s7J8="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/1memcqd3841jk.js",
+          "path": "/_next/static/immutable/chunks/1memcqd3841jk.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/1memcqd3841jk.js",
+          "bytes": 367279,
+          "hash": "sha256-m/oMDy4NXigFlaPBmP2vZdrULgbv1NKwBVBWe3DOhUc="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/1_tnvujj14rv6.js",
+          "path": "/_next/static/immutable/chunks/1_tnvujj14rv6.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/1_tnvujj14rv6.js",
+          "bytes": 454931,
+          "hash": "sha256-jZAw/hnypE6buc3+06pkkGsiSvDNBmICS3Dw34iY1Do="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/1tn92q2mwdzi5.js",
+          "path": "/_next/static/immutable/chunks/1tn92q2mwdzi5.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/1tn92q2mwdzi5.js",
+          "bytes": 313940,
+          "hash": "sha256-P244TdaHFTg/DjYm0Eq/NYExlUgHPqtIXyaXzuv3e5g="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/2406cm_vtj24j.js",
+          "path": "/_next/static/immutable/chunks/2406cm_vtj24j.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/2406cm_vtj24j.js",
+          "bytes": 323490,
+          "hash": "sha256-FBiD1pBEnK30pe9RZ71QESCAm4N7e5Ra6pfpG9chEbQ="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/37uxjy09j1p9_.js",
+          "path": "/_next/static/immutable/chunks/37uxjy09j1p9_.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/37uxjy09j1p9_.js",
+          "bytes": 659483,
+          "hash": "sha256-spj8ohH+0q9HRrhipSYFAU8geVQtwDyVClEo5b6PwVs="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/1mtj82_xh0-jl.js",
+          "path": "/_next/static/immutable/chunks/1mtj82_xh0-jl.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/1mtj82_xh0-jl.js",
+          "bytes": 471308,
+          "hash": "sha256-X8ZuvedP99p2V1EPj/Vlz6jn1a3qS9QN6DEhxzR90vE="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/1pn4mnc1c0dvj.js",
+          "path": "/_next/static/immutable/chunks/1pn4mnc1c0dvj.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/1pn4mnc1c0dvj.js",
+          "bytes": 319968,
+          "hash": "sha256-KRkvBCIPfK+x8tyyd1IaxkxsaC28j4/YyaGMx4vl/N4="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/0oml9_xsmcsh3.js",
+          "path": "/_next/static/immutable/chunks/0oml9_xsmcsh3.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/0oml9_xsmcsh3.js",
+          "bytes": 415427,
+          "hash": "sha256-pKei7OxzAM4+y8JXPpwjsKt4swWQs6Cqh9kFVwrW/Jw="
+        },
+        {
+          "url": "https://pancakeswap.finance/_next/static/immutable/chunks/2253o3x7hdlwq.js",
+          "path": "/_next/static/immutable/chunks/2253o3x7hdlwq.js",
+          "status": "observed",
+          "servedUrl": "https://pancakeswap.finance/_next/static/immutable/chunks/2253o3x7hdlwq.js",
+          "bytes": 704183,
+          "hash": "sha256-jOxtnQoI/cgEXZ4QbV4AMMaDnFrZMr8s50ugWoId7wA="
+        }
+      ],
+      "finalUrl": "https://pancakeswap.finance/",
+      "finalSite": "pancakeswap.finance",
+      "htmlSha256": "5dfa91df652841f7c0e144f900537cdfb0049ca62506d3f338764ec693c97e23",
+      "inlineScriptsExcluded": 3,
+      "declaredExternalScripts": 19,
+      "overLimitScripts": 7,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "portalbridge.com",
+      "requestedUrl": "https://portalbridge.com",
+      "capturedAt": "2026-11-06T22:49:03.079195+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/3452wq9zwgtrp.js",
+          "path": "/_next/static/chunks/3452wq9zwgtrp.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/3452wq9zwgtrp.js",
+          "bytes": 34577,
+          "hash": "sha256-aqCHUV3H7FB8upM+usm0TtG+GyN1xOTbrG7+jnRgUVk="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/3g1ep7les2vog.js",
+          "path": "/_next/static/chunks/3g1ep7les2vog.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/3g1ep7les2vog.js",
+          "bytes": 171647,
+          "hash": "sha256-O1PW6PQpzq3/oLSTAxKGJdayyXYOrikHtJ0Sz/bjqbY="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/0l0unph8qg9if.js",
+          "path": "/_next/static/chunks/0l0unph8qg9if.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/0l0unph8qg9if.js",
+          "bytes": 554627,
+          "hash": "sha256-G/JfvOWDgWqUAde7Huovs97cUeoYbYaDe7x4z8mEO5s="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/3v0gh31bev9dr.js",
+          "path": "/_next/static/chunks/3v0gh31bev9dr.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/3v0gh31bev9dr.js",
+          "bytes": 46891,
+          "hash": "sha256-85AIucFVfZ2HIuT5MgJk2eKBGHJlGNmPQc05ovoZ3gc="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/turbopack-2z8f40pqe_b4d.js",
+          "path": "/_next/static/chunks/turbopack-2z8f40pqe_b4d.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/turbopack-2z8f40pqe_b4d.js",
+          "bytes": 9729,
+          "hash": "sha256-QNiClmbZWC9IKBH0xG7v9S+TwwxNsL+sG66xXaouDnw="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/238h9k0p3w4n3.js",
+          "path": "/_next/static/chunks/238h9k0p3w4n3.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/238h9k0p3w4n3.js",
+          "bytes": 13949,
+          "hash": "sha256-yexOV6ITfpHGdFvLqQIV5XJmUWmWdPahPnukz8Gp3m8="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/2qr7ituu39m5b.js",
+          "path": "/_next/static/chunks/2qr7ituu39m5b.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/2qr7ituu39m5b.js",
+          "bytes": 4066,
+          "hash": "sha256-DWKIflqecU1Rmnmt7/MypldeUHp02fFIlqIma2TOsFU="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/34xzkcboh7-9y.js",
+          "path": "/_next/static/chunks/34xzkcboh7-9y.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/34xzkcboh7-9y.js",
+          "bytes": 32256,
+          "hash": "sha256-icQigBnhpD/2zohuBE1il2xaVSKATAby1xoLa24p8ZM="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/1hwn1fa7_wbc0.js",
+          "path": "/_next/static/chunks/1hwn1fa7_wbc0.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/1hwn1fa7_wbc0.js",
+          "bytes": 35385,
+          "hash": "sha256-BZ/kYtZBKbTDh9dEZ967FxJJJqiuzhquQPuZ903Cp8I="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/11z9431t35hpo.js",
+          "path": "/_next/static/chunks/11z9431t35hpo.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/11z9431t35hpo.js",
+          "bytes": 103438,
+          "hash": "sha256-0HS2jX+5xpn98wWc+B3vmNy/gsdNVRbs1Zh1gAncIiA="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/06mun--ws7l3d.js",
+          "path": "/_next/static/chunks/06mun--ws7l3d.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/06mun--ws7l3d.js",
+          "bytes": 38787,
+          "hash": "sha256-dcMAQAwkVVMm65LD688LYX8Pzv+tGq5jaGHHVOT5YJs="
+        },
+        {
+          "url": "https://portalbridge.com/_next/static/chunks/2p945jxcz_bn7.js",
+          "path": "/_next/static/chunks/2p945jxcz_bn7.js",
+          "status": "observed",
+          "servedUrl": "https://portalbridge.com/_next/static/chunks/2p945jxcz_bn7.js",
+          "bytes": 24711,
+          "hash": "sha256-P2ikatsvbab2CcvLfd+3KFmmTf/ELbZFL4iYw1WN4QE="
+        }
+      ],
+      "finalUrl": "https://portalbridge.com",
+      "finalSite": "portalbridge.com",
+      "htmlSha256": "0097aa61e0d5d474cd4b8f78005359404a6f07b1b37847a79c70bde368814a16",
+      "inlineScriptsExcluded": 4,
+      "declaredExternalScripts": 51,
+      "overLimitScripts": 39,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.compound.xyz",
+      "requestedUrl": "https://www.compound.xyz/",
+      "capturedAt": "2026-11-06T22:49:03.567820+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-QZZNB6C0B1",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://events.framer.com/script?v=2",
+          "path": "/script",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://framerusercontent.com/sites/M4q615clxlVY6giZDEVIL/script_main.D3a9XBRT.mjs",
+          "path": "/sites/M4q615clxlVY6giZDEVIL/script_main.D3a9XBRT.mjs",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://www.compound.xyz/",
+      "finalSite": "www.compound.xyz",
+      "htmlSha256": "cb30d0c18968baad2e315825c0053187373ec5253ad3095d57a2cdc7e3c6e1fa",
+      "inlineScriptsExcluded": 12,
+      "declaredExternalScripts": 4,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "obol.org",
+      "requestedUrl": "https://obol.org/",
+      "capturedAt": "2026-11-06T22:49:12.637374+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-6LWZMTY24D",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://events.framer.com/script?v=2",
+          "path": "/script",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://framerusercontent.com/sites/5xNTkHVvPBO2G8uSltWbbT/script_main.B4-t5WDM.mjs",
+          "path": "/sites/5xNTkHVvPBO2G8uSltWbbT/script_main.B4-t5WDM.mjs",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://obol.org/",
+      "finalSite": "obol.org",
+      "htmlSha256": "a2c836ed411f4c6e9eff5131d6bd4017a99bccfa85ea87fd44ed97bac2e3f230",
+      "inlineScriptsExcluded": 6,
+      "declaredExternalScripts": 3,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "usdd.io",
+      "requestedUrl": "https://usdd.io/",
+      "capturedAt": "2026-11-06T22:49:16.741244+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://prod-home-cdn-new.usdd.io/static/js/index-CwHjw7Yd.js",
+          "path": "/static/js/index-CwHjw7Yd.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-SH993QTJ1E",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://prod-app-cdn-new.usdd.io/cdn/echarts.min_6.1.0.js",
+          "path": "/cdn/echarts.min_6.1.0.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://prod-app-cdn-new.usdd.io/cdn/react.production.min_18.js",
+          "path": "/cdn/react.production.min_18.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://prod-app-cdn-new.usdd.io/cdn/react-dom.production.min_18.js",
+          "path": "/cdn/react-dom.production.min_18.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://prod-app-cdn-new.usdd.io/cdn/dayjs.min_1.11.10.js",
+          "path": "/cdn/dayjs.min_1.11.10.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://prod-app-cdn-new.usdd.io/cdn/antd.min_5.21.6.js",
+          "path": "/cdn/antd.min_5.21.6.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://usdd.io/",
+      "finalSite": "usdd.io",
+      "htmlSha256": "9897296fcef7bd36ab7b37164ea2d9afab0962b1894507efd4820a09676b8369",
+      "inlineScriptsExcluded": 2,
+      "declaredExternalScripts": 7,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "rocketpool.net",
+      "requestedUrl": "https://rocketpool.net",
+      "capturedAt": "2026-11-06T22:49:18.325879+00:00",
+      "status": "unavailable",
+      "trust": "unreviewed-observation",
+      "scripts": [],
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "site": "curve.finance",
+      "requestedUrl": "https://curve.finance",
+      "capturedAt": "2026-11-06T22:49:18.346505+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.curve.finance/assets/index-C4HUBmia.js",
+          "path": "/assets/index-C4HUBmia.js",
+          "status": "observed",
+          "servedUrl": "https://www.curve.finance/assets/index-C4HUBmia.js",
+          "bytes": 30600,
+          "hash": "sha256-bhu2q1ohZfGJsZVzLunKAB0JJtHs9AEWsut6SZM6ocs="
+        }
+      ],
+      "finalUrl": "https://www.curve.finance/",
+      "finalSite": "www.curve.finance",
+      "htmlSha256": "eca4f0da4abb35b24dae85383d834d6e72a5a106751a50bdf72f8e0bf721aaa4",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.venus.io",
+      "requestedUrl": "https://app.venus.io/#/core-pool",
+      "capturedAt": "2026-11-06T22:49:19.182087+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://venus.io/assets/index-DwWuYQk3.js",
+          "path": "/assets/index-DwWuYQk3.js",
+          "status": "observed",
+          "servedUrl": "https://venus.io/assets/index-DwWuYQk3.js",
+          "bytes": 1451727,
+          "hash": "sha256-rEI4ijWh5Uuf/wK3uQ11WocxHkQ6wjzMvn7TJ8xdLTg="
+        }
+      ],
+      "finalUrl": "https://venus.io/",
+      "finalSite": "venus.io",
+      "htmlSha256": "4678c17220d81e9365e49e0b3c9cef6f01317b4a010acd9c6c8e75a3ab4ab65e",
+      "inlineScriptsExcluded": 0,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "pendle.finance",
+      "requestedUrl": "https://pendle.finance/",
+      "capturedAt": "2026-11-06T22:49:20.150234+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.pendle.finance/_nuxt/C0OFwD1h.js",
+          "path": "/_nuxt/C0OFwD1h.js",
+          "status": "observed",
+          "servedUrl": "https://www.pendle.finance/_nuxt/C0OFwD1h.js",
+          "bytes": 500990,
+          "hash": "sha256-fCD/Gcx5RwJi8izSFbVhcZ+WFOGxFKBFnHZGLd9GgUs="
+        }
+      ],
+      "finalUrl": "https://www.pendle.finance/",
+      "finalSite": "www.pendle.finance",
+      "htmlSha256": "fb912a72b9e704bc883ae9da7638fbfc3818ac258f91bf4ae19e8a81e755230e",
+      "inlineScriptsExcluded": 6,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "hyperunit.xyz",
+      "requestedUrl": "https://hyperunit.xyz/deposit",
+      "capturedAt": "2026-11-06T22:49:22.315547+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/372cjgx0dbbph.js",
+          "path": "/_next/static/chunks/372cjgx0dbbph.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/372cjgx0dbbph.js",
+          "bytes": 154862,
+          "hash": "sha256-JjkIro7UUaYiLlKFq+AYlTvnx6LsehX9FCrCNRn2zBU="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/2todyfph2p8_v.js",
+          "path": "/_next/static/chunks/2todyfph2p8_v.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/2todyfph2p8_v.js",
+          "bytes": 227958,
+          "hash": "sha256-sk/qJdriDTr89xJkt5Z+K9qRuwo+KtnLw4h6DyCz0Gc="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/turbopack-1x0q19bw1v_ix.js",
+          "path": "/_next/static/chunks/turbopack-1x0q19bw1v_ix.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/turbopack-1x0q19bw1v_ix.js",
+          "bytes": 9688,
+          "hash": "sha256-RIFy3GUzu89Pqa1SF/r8hOYT4vuw+j8mcSbwcu3OstI="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/0asf_22m9vagd.js",
+          "path": "/_next/static/chunks/0asf_22m9vagd.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/0asf_22m9vagd.js",
+          "bytes": 25303,
+          "hash": "sha256-zftZGIPYNd5PuUu7XDm3B8U2GosfvYb3kL1+Qm/hgcw="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/278q-0zinlzac.js",
+          "path": "/_next/static/chunks/278q-0zinlzac.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/278q-0zinlzac.js",
+          "bytes": 290145,
+          "hash": "sha256-8IcRTajvcpihGuNjBqMy9hR1ZRnnOX6IjRXYB6Q+tHs="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/2k5y-81057fp-.js",
+          "path": "/_next/static/chunks/2k5y-81057fp-.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/2k5y-81057fp-.js",
+          "bytes": 104629,
+          "hash": "sha256-dA66s2s0T6emhQ8zqy6FcFmJqSFuU+A4XG+UvktD2Hs="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/2c32l7mbf0mud.js",
+          "path": "/_next/static/chunks/2c32l7mbf0mud.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/2c32l7mbf0mud.js",
+          "bytes": 1601,
+          "hash": "sha256-dC1tu5VhGXtrTXKzZROb2GUWHqSshfJ5Dwo3eANvBXI="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/2bixduluuc7jj.js",
+          "path": "/_next/static/chunks/2bixduluuc7jj.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/2bixduluuc7jj.js",
+          "bytes": 338,
+          "hash": "sha256-TpHLIQ/5xIgG1Kg48qnpP5yO9/eVh5MV1tGODVtfjGU="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/1t0nrxl2lpkiv.js",
+          "path": "/_next/static/chunks/1t0nrxl2lpkiv.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/1t0nrxl2lpkiv.js",
+          "bytes": 23685,
+          "hash": "sha256-MNIzWoSodCes/tVHadCSh30vxHVoRSheZHkgS04U4uw="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/3p44ugqv0b0a9.js",
+          "path": "/_next/static/chunks/3p44ugqv0b0a9.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/3p44ugqv0b0a9.js",
+          "bytes": 69735,
+          "hash": "sha256-xFYS8k7S7jBUiQWBrnXajHtfXgupCWIMsa3hXyyCkjM="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/0cz1d0mv5g_q7.js",
+          "path": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/0cz1d0mv5g_q7.js",
+          "bytes": 112594,
+          "hash": "sha256-CXPB1kyIrcjjyVBBDLWLKI9yEY1ZZbeASUON648vloM="
+        },
+        {
+          "url": "https://hyperunit.xyz/_next/static/chunks/01t37a2amuf5l.js",
+          "path": "/_next/static/chunks/01t37a2amuf5l.js",
+          "status": "observed",
+          "servedUrl": "https://hyperunit.xyz/_next/static/chunks/01t37a2amuf5l.js",
+          "bytes": 45765,
+          "hash": "sha256-RmJBR7h5DaJiuZ+mTlWhz0lSc/gifrc8UXnudWxeDfk="
+        }
+      ],
+      "finalUrl": "https://hyperunit.xyz/",
+      "finalSite": "hyperunit.xyz",
+      "htmlSha256": "96380ae399671fa7312a1ae46c4fa0feadff4f09441d925237e7d5d894e59795",
+      "inlineScriptsExcluded": 5,
+      "declaredExternalScripts": 12,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "lista.org",
+      "requestedUrl": "https://lista.org/lending",
+      "capturedAt": "2026-11-06T22:49:23.123478+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://static.lista.org/lista-static/assets/polyfills-CcWNzSet.js",
+          "path": "/lista-static/assets/polyfills-CcWNzSet.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://static.lista.org/lista-static/assets/index-D1SvyOyd.js",
+          "path": "/lista-static/assets/index-D1SvyOyd.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://lista.org/lending",
+      "finalSite": "lista.org",
+      "htmlSha256": "299fb52bd468c0d713f13f83aa1495eaf32cd0ef40e6a189911c838138b1b210",
+      "inlineScriptsExcluded": 0,
+      "declaredExternalScripts": 2,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "stakewise.io",
+      "requestedUrl": "https://stakewise.io/",
+      "capturedAt": "2026-11-06T22:49:23.241209+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://stakewise.io/_next/static/chunks/471-231016913321af9d.js",
+          "path": "/_next/static/chunks/471-231016913321af9d.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/471-231016913321af9d.js",
+          "bytes": 713174,
+          "hash": "sha256-8cJFg1aop8EPGCpfkDNKJhondW0uD+J/qKxPk/wJh6s="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/main-app-c96399f3bd726121.js",
+          "path": "/_next/static/chunks/main-app-c96399f3bd726121.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/main-app-c96399f3bd726121.js",
+          "bytes": 5142,
+          "hash": "sha256-tlfokfruSt14ypiKgcTMyKW7wFC4C1dO/+2sLAfejv8="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/sw-components-f2be51f5b482115c.js",
+          "path": "/_next/static/chunks/sw-components-f2be51f5b482115c.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/sw-components-f2be51f5b482115c.js",
+          "bytes": 81515,
+          "hash": "sha256-TMYiUx/VrrkYXgbII3Q9sfMHB+kmY/eHB8pzau4L2vc="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/local-components-f248bd24242733ab.js",
+          "path": "/_next/static/chunks/local-components-f248bd24242733ab.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/local-components-f248bd24242733ab.js",
+          "bytes": 10072,
+          "hash": "sha256-ST6mUSnUlNP9VRbu81MVGZy/vzyiLUOlyFAwWcMukuQ="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/sdk-c1ef8bf20483dbd9.js",
+          "path": "/_next/static/chunks/sdk-c1ef8bf20483dbd9.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/sdk-c1ef8bf20483dbd9.js",
+          "bytes": 136268,
+          "hash": "sha256-BA1qDVrQ9Fda/NlsPX8qY4zr1cVl0QBiYGbK+JMjykM="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/sw-utils-b879d94c7ad1e9d2.js",
+          "path": "/_next/static/chunks/sw-utils-b879d94c7ad1e9d2.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/sw-utils-b879d94c7ad1e9d2.js",
+          "bytes": 50260,
+          "hash": "sha256-jbuqWyj6rpALdUgPkPjBfnlXp6JhopZwFeMJtOZ76ro="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/local-helpers-2dbbf0a442c18683.js",
+          "path": "/_next/static/chunks/local-helpers-2dbbf0a442c18683.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/local-helpers-2dbbf0a442c18683.js",
+          "bytes": 13222,
+          "hash": "sha256-vR4xujxrmok3q97nLV3ImYxZxFbJqmsWlYVX6RAql0E="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/local-hooks-3ab14deb9dc468c5.js",
+          "path": "/_next/static/chunks/local-hooks-3ab14deb9dc468c5.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/local-hooks-3ab14deb9dc468c5.js",
+          "bytes": 3254,
+          "hash": "sha256-vpjURJcXmuYTe0Ajzq7+0cqgA2JbpOISS0j+lhve0Vk="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/558-759f5431609e36ee.js",
+          "path": "/_next/static/chunks/558-759f5431609e36ee.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/558-759f5431609e36ee.js",
+          "bytes": 506556,
+          "hash": "sha256-+wcWPcNZ++ujI6fHwQzYazw7TGKTQEerB5wJ0g3A2PI="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/app/page-cd38228c7d89e66d.js",
+          "path": "/_next/static/chunks/app/page-cd38228c7d89e66d.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/app/page-cd38228c7d89e66d.js",
+          "bytes": 49045,
+          "hash": "sha256-7hw3i8m9/o+Iw/RN3B+UOn0vEp318RAIXtqu4G9BWIU="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/app/global-error-6af381fdce13e891.js",
+          "path": "/_next/static/chunks/app/global-error-6af381fdce13e891.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/app/global-error-6af381fdce13e891.js",
+          "bytes": 2206,
+          "hash": "sha256-F2pmBIf8T726ORIJuqjI/lIZ2yaUeWnCvwutL2hSpYw="
+        },
+        {
+          "url": "https://stakewise.io/_next/static/chunks/538-e56b71813c571012.js",
+          "path": "/_next/static/chunks/538-e56b71813c571012.js",
+          "status": "observed",
+          "servedUrl": "https://stakewise.io/_next/static/chunks/538-e56b71813c571012.js",
+          "bytes": 288747,
+          "hash": "sha256-y8UCiWnW072EJ+3OLTrXTJ51sHq4a7RbtNyaUPj1BLc="
+        }
+      ],
+      "finalUrl": "https://stakewise.io/",
+      "finalSite": "stakewise.io",
+      "htmlSha256": "5931ceb9834ca4ecdac464d394c39edca1b1cdc70217b5c2300e213bafe6ec1d",
+      "inlineScriptsExcluded": 14,
+      "declaredExternalScripts": 18,
+      "overLimitScripts": 6,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "kelpdao.xyz",
+      "requestedUrl": "https://kelpdao.xyz/restake/?utm_source=0x798fF1e6D7AFd28c333eE6eBe03125d30ec6eF10",
+      "capturedAt": "2026-11-06T22:49:24.073316+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-B0SCCEBFR8",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+          "path": "/kelp/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+          "bytes": 91460,
+          "hash": "sha256-AiXrA00CSgO9yQ6mx59WGTZi58Pu6QlpYpiCDlF8u4M="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/webpack-42cdd95247a6d2c2.js",
+          "path": "/kelp/_next/static/chunks/webpack-42cdd95247a6d2c2.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/webpack-42cdd95247a6d2c2.js",
+          "bytes": 6717,
+          "hash": "sha256-AqqKtJOUKX7asYXkn6rly/lEUJDUP3AdfB5cDIhzC2o="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/framework-d0e473f04ea43a56.js",
+          "path": "/kelp/_next/static/chunks/framework-d0e473f04ea43a56.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/framework-d0e473f04ea43a56.js",
+          "bytes": 140638,
+          "hash": "sha256-Jes46PdkVVucQFD94erGfYT159hZALApVvD6kPxRRPI="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/main-ecfce3d7169e4fff.js",
+          "path": "/kelp/_next/static/chunks/main-ecfce3d7169e4fff.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/main-ecfce3d7169e4fff.js",
+          "bytes": 109710,
+          "hash": "sha256-O+NYbBJhfQruvZuEHKG5xVppxxp2A92G1QS+Z/2eO5o="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/pages/_app-e9e943a2afdef35e.js",
+          "path": "/kelp/_next/static/chunks/pages/_app-e9e943a2afdef35e.js",
+          "status": "unavailable",
+          "reason": "Response exceeds byte limit"
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/75fc9c18-aed841209b00d2e1.js",
+          "path": "/kelp/_next/static/chunks/75fc9c18-aed841209b00d2e1.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/75fc9c18-aed841209b00d2e1.js",
+          "bytes": 59364,
+          "hash": "sha256-FsmsCe9SC6bLleZltffI/hbgBnbT1lh6ua/7bepZoRQ="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/7713-335b7fe544a98df3.js",
+          "path": "/kelp/_next/static/chunks/7713-335b7fe544a98df3.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/7713-335b7fe544a98df3.js",
+          "bytes": 32443,
+          "hash": "sha256-fQB8WaCGZaHB148piOqsZKqswr0u4OQ4BRmAomOcxG4="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/8254-33ace48baf22c971.js",
+          "path": "/kelp/_next/static/chunks/8254-33ace48baf22c971.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/8254-33ace48baf22c971.js",
+          "bytes": 67891,
+          "hash": "sha256-apiBphNlG61hL7wGqRD0+tjTUQnSBT/tCtULIjTZ2Iw="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/7887-9257ba47bffac6b2.js",
+          "path": "/kelp/_next/static/chunks/7887-9257ba47bffac6b2.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/7887-9257ba47bffac6b2.js",
+          "bytes": 26037,
+          "hash": "sha256-LjBcAzifxTyo3AhcyyAXsGoFvc0dh9wau4+aLRV5np4="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/chunks/pages/restake-5abfc7cc5f0c3470.js",
+          "path": "/kelp/_next/static/chunks/pages/restake-5abfc7cc5f0c3470.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/chunks/pages/restake-5abfc7cc5f0c3470.js",
+          "bytes": 55380,
+          "hash": "sha256-xlX8dr6JPLzpBPgBn29HsKtW+kz15ylvHLqwPFRBV3E="
+        },
+        {
+          "url": "https://kerneldao.com:443/kelp/_next/static/Cw1_qW9MHzDpCD445JmGf/_buildManifest.js",
+          "path": "/kelp/_next/static/Cw1_qW9MHzDpCD445JmGf/_buildManifest.js",
+          "status": "observed",
+          "servedUrl": "https://kerneldao.com:443/kelp/_next/static/Cw1_qW9MHzDpCD445JmGf/_buildManifest.js",
+          "bytes": 2708,
+          "hash": "sha256-YUJf6d/1O10/tjqiiITV+WCQyP/7r8/O8pZ5Xt5a0Mc="
+        }
+      ],
+      "finalUrl": "https://kerneldao.com:443/kelp/restake/?utm_source=0x798fF1e6D7AFd28c333eE6eBe03125d30ec6eF10",
+      "finalSite": "kerneldao.com:443",
+      "htmlSha256": "4e065d8f4d739735da0ecd35c25e433c72f83472ada340e8b924e68572e786d6",
+      "inlineScriptsExcluded": 5,
+      "declaredExternalScripts": 13,
+      "overLimitScripts": 1,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.fluid.io",
+      "requestedUrl": "https://www.fluid.io/",
+      "capturedAt": "2026-11-06T22:49:32.412316+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-3FHN30JZZ9",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://fluid.io/assets/index-BCOtkc9V.js",
+          "path": "/assets/index-BCOtkc9V.js",
+          "status": "observed",
+          "servedUrl": "https://fluid.io/assets/index-BCOtkc9V.js",
+          "bytes": 389999,
+          "hash": "sha256-6SmXf5+FwaiCJ96vqKRJ3o3QAObqxh2XhQLEsdrGshw="
+        }
+      ],
+      "finalUrl": "https://fluid.io/",
+      "finalSite": "fluid.io",
+      "htmlSha256": "635b64a5acc33997aa39f20989614574a688229b04289b24c260eea4faf64e65",
+      "inlineScriptsExcluded": 6,
+      "declaredExternalScripts": 2,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "liquidcollective.io",
+      "requestedUrl": "https://liquidcollective.io",
+      "capturedAt": "2026-11-06T22:49:34.605207+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-XESMBZ87WR",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://www.googletagmanager.com/ns.html?id=GTM-KKXW6G6R",
+          "path": "/ns.html",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://liquidcollective.io/js/jquery-3.6.0.min.js",
+          "path": "/js/jquery-3.6.0.min.js",
+          "status": "observed",
+          "servedUrl": "https://liquidcollective.io/js/jquery-3.6.0.min.js",
+          "bytes": 89501,
+          "hash": "sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+        },
+        {
+          "url": "https://liquidcollective.io/js/isotope.pkgd.js",
+          "path": "/js/isotope.pkgd.js",
+          "status": "observed",
+          "servedUrl": "https://liquidcollective.io/js/isotope.pkgd.js",
+          "bytes": 91398,
+          "hash": "sha256-aZcT9p29I4e3w7VyBLzcPYbTrDUHGKetZaUpPg0sU+s="
+        },
+        {
+          "url": "https://liquidcollective.io/js/umd_popper.min.js",
+          "path": "/js/umd_popper.min.js",
+          "status": "observed",
+          "servedUrl": "https://liquidcollective.io/js/umd_popper.min.js",
+          "bytes": 20083,
+          "hash": "sha256-SgCxkjQZdrt2puqn62YUu9hknpCBGBEAy9uhQ9PPZaI="
+        },
+        {
+          "url": "https://liquidcollective.io/js/umd.min.js",
+          "path": "/js/umd.min.js",
+          "status": "observed",
+          "servedUrl": "https://liquidcollective.io/js/umd.min.js",
+          "bytes": 25717,
+          "hash": "sha256-Pw/nDrJszyj2iHoZLinTjdfvfC8HmnMwStQt3HvtN94="
+        },
+        {
+          "url": "https://unpkg.com/swiper/swiper-bundle.min.js",
+          "path": "/swiper/swiper-bundle.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://sibforms.com/forms/end-form/build/main.js",
+          "path": "/forms/end-form/build/main.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://liquidcollective.io",
+      "finalSite": "liquidcollective.io",
+      "htmlSha256": "8ee55d0c336aa40b117b18534f1763215f80806dbd435222671d63fe9fa501cc",
+      "inlineScriptsExcluded": 9,
+      "declaredExternalScripts": 8,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.asterdex.com",
+      "requestedUrl": "https://www.asterdex.com",
+      "capturedAt": "2026-11-06T22:49:34.866134+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://static2.asterdexfx.com/assets/index-DfNHtt-o.js",
+          "path": "/assets/index-DfNHtt-o.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://www.asterdex.com/en",
+      "finalSite": "www.asterdex.com",
+      "htmlSha256": "c5e5d32fdb289211df175d8a43bc9b444e9dde8b700f9f765c9898262d3a5c33",
+      "inlineScriptsExcluded": 2,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.lighter.xyz",
+      "requestedUrl": "https://app.lighter.xyz",
+      "capturedAt": "2026-11-06T22:49:37.259605+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.lighter.xyz/assets/index-C_lCSgUZ.js",
+          "path": "/assets/index-C_lCSgUZ.js",
+          "status": "observed",
+          "servedUrl": "https://app.lighter.xyz/assets/index-C_lCSgUZ.js",
+          "bytes": 864253,
+          "hash": "sha256-i2IDYnaOk55zMrEuPqTm8lzVorbt+qot8bflaBEQUk0="
+        }
+      ],
+      "finalUrl": "https://app.lighter.xyz",
+      "finalSite": "app.lighter.xyz",
+      "htmlSha256": "b5cea9503ca50b0c76afa8b589f778459cb48dd389d5a77efbc92d5e40843de2",
+      "inlineScriptsExcluded": 3,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.methprotocol.xyz",
+      "requestedUrl": "https://www.methprotocol.xyz/",
+      "capturedAt": "2026-11-06T22:49:37.974820+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/5d24768b1e581575.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/5d24768b1e581575.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/78270a372a63720b.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/78270a372a63720b.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/015112753549e0f7.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/015112753549e0f7.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/turbopack-1d36ea590ec6fb26.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/turbopack-1d36ea590ec6fb26.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/50a9a5bb720e1ee4.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/50a9a5bb720e1ee4.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/2179a51d2aa0527f.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/2179a51d2aa0527f.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/e33fe650cffdc2db.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/e33fe650cffdc2db.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/441ae436619169f9.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/441ae436619169f9.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/89bc7afe2c734bd3.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/89bc7afe2c734bd3.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/39718e6b01555305.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/39718e6b01555305.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/57140c1b939d90e1.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/57140c1b939d90e1.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://www.methprotocol.xyz/_next/static/chunks/26ef90aa4f48c34d.js?dpl=dpl_BZLh4yxBRZ5nCQq766c8GaiMUTti",
+          "path": "/_next/static/chunks/26ef90aa4f48c34d.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        }
+      ],
+      "finalUrl": "https://www.methprotocol.xyz/",
+      "finalSite": "www.methprotocol.xyz",
+      "htmlSha256": "fbd9deea7f0d35db60954216b0afef621e641854074ac3e001dfd3dd6d51f6b0",
+      "inlineScriptsExcluded": 8,
+      "declaredExternalScripts": 17,
+      "overLimitScripts": 5,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.convexfinance.com",
+      "requestedUrl": "https://www.convexfinance.com/",
+      "capturedAt": "2026-11-06T22:49:38.426353+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/80c15090-88b8fa035c46689a.js",
+          "path": "/_next/static/chunks/80c15090-88b8fa035c46689a.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/80c15090-88b8fa035c46689a.js",
+          "bytes": 203727,
+          "hash": "sha256-tpQ+MgxAE1zBLunjrrOmaD1WkdBW0ixHhtL2CdayaMo="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/4108-68681317722e7d65.js",
+          "path": "/_next/static/chunks/4108-68681317722e7d65.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/4108-68681317722e7d65.js",
+          "bytes": 243186,
+          "hash": "sha256-66LkKXLvvTSPvlp2WxZX1qoEXu8ghzzARKVvHKRhsJo="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/main-app-f0972ec6dfb17149.js",
+          "path": "/_next/static/chunks/main-app-f0972ec6dfb17149.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/main-app-f0972ec6dfb17149.js",
+          "bytes": 951,
+          "hash": "sha256-MSKDTE0Q+S67wVYZwnBPy7Q9m/oYPBOeLmQCz2T5Nbc="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/2961-504a212fe61a3ae9.js",
+          "path": "/_next/static/chunks/2961-504a212fe61a3ae9.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/2961-504a212fe61a3ae9.js",
+          "bytes": 602691,
+          "hash": "sha256-gRRiq5M3i1qjs8dIcqM9G4DwGN4VZIU51ScdOblMfx8="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/5616-a1e08e9831a20295.js",
+          "path": "/_next/static/chunks/5616-a1e08e9831a20295.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/5616-a1e08e9831a20295.js",
+          "bytes": 78133,
+          "hash": "sha256-LoDE86XqhQk1JJ03a0LlCy6tdNvOnXeZUlZL8yo6o9o="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/3169-f9782dfd1d06ff57.js",
+          "path": "/_next/static/chunks/3169-f9782dfd1d06ff57.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/3169-f9782dfd1d06ff57.js",
+          "bytes": 5470,
+          "hash": "sha256-nsfGOY7o3a5W9M19NphBPwKkH6jIfN9YKEXUapOEb04="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/2159-8c8721037de79d84.js",
+          "path": "/_next/static/chunks/2159-8c8721037de79d84.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/2159-8c8721037de79d84.js",
+          "bytes": 232059,
+          "hash": "sha256-Htdam2wbxfK3xuubykrztY3Qf2Fg/8ARutIP3Jm8YvA="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/8482-0087738c8ff043d0.js",
+          "path": "/_next/static/chunks/8482-0087738c8ff043d0.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/8482-0087738c8ff043d0.js",
+          "bytes": 15956,
+          "hash": "sha256-kvnbbIiF1luOqk62QCQxP2V9l1s5zFcWtKmRTQKGbpI="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/7119-b49a73bb250b8deb.js",
+          "path": "/_next/static/chunks/7119-b49a73bb250b8deb.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/7119-b49a73bb250b8deb.js",
+          "bytes": 12316,
+          "hash": "sha256-zf4OY+Q7ITCFLxkC1+4oHqpfrzTqbOdE1JWeBbruQ94="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/864-a3471b66f29c562a.js",
+          "path": "/_next/static/chunks/864-a3471b66f29c562a.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/864-a3471b66f29c562a.js",
+          "bytes": 29689,
+          "hash": "sha256-27WWs2pIaAZhE3AYokWRg705aAyU48bW+GWMtU2ooH0="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/7770-9b8eaeb8b007524f.js",
+          "path": "/_next/static/chunks/7770-9b8eaeb8b007524f.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/7770-9b8eaeb8b007524f.js",
+          "bytes": 7592,
+          "hash": "sha256-go6EAx2I86pDE5Bb98WxiFDm9sgJmuED9iNLs3SNG2Q="
+        },
+        {
+          "url": "https://www.convexfinance.com/_next/static/chunks/6265-b930e27e3c33b43a.js",
+          "path": "/_next/static/chunks/6265-b930e27e3c33b43a.js",
+          "status": "observed",
+          "servedUrl": "https://www.convexfinance.com/_next/static/chunks/6265-b930e27e3c33b43a.js",
+          "bytes": 25067,
+          "hash": "sha256-axV4cAl3WH5dAdIXjdTOJzd1pCqb4rzmmj5BL036BwI="
+        }
+      ],
+      "finalUrl": "https://www.convexfinance.com/",
+      "finalSite": "www.convexfinance.com",
+      "htmlSha256": "8cbf47e227276c0ab07048bf72a6e5d1c93d9f90d408d381c882fc685bae2db8",
+      "inlineScriptsExcluded": 2,
+      "declaredExternalScripts": 27,
+      "overLimitScripts": 15,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.re.xyz",
+      "requestedUrl": "https://app.re.xyz",
+      "capturedAt": "2026-11-06T22:49:39.312821+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/1y_mdycbs5x0t.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/1y_mdycbs5x0t.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/0b13j0d39g39m.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/0b13j0d39g39m.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/20wkk1z5w35g9.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/20wkk1z5w35g9.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/2eja1g-aoehas.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/2eja1g-aoehas.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/0nliixrbv1bh3.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/0nliixrbv1bh3.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/3icg51c9qqsmu.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/3icg51c9qqsmu.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/turbopack-2hbnk3j3-c8xd.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/turbopack-2hbnk3j3-c8xd.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/0n1azfdph58xz.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/0n1azfdph58xz.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/3s718zxu6gbcc.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/3s718zxu6gbcc.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/0_ropv5biwpu6.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/0_ropv5biwpu6.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/0v_d_953a06qw.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/0v_d_953a06qw.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://app.re.xyz/_next/static/chunks/0n4__kixd392t.js?dpl=dpl_GAZ8cPsJCckE7eC6DGhCdBbSeHDg",
+          "path": "/_next/static/chunks/0n4__kixd392t.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        }
+      ],
+      "finalUrl": "https://app.re.xyz",
+      "finalSite": "app.re.xyz",
+      "htmlSha256": "4a11bf7138a04184de4ab4b03520d94f14482a4300b33d6fda48c955e8d3f6b3",
+      "inlineScriptsExcluded": 51,
+      "declaredExternalScripts": 48,
+      "overLimitScripts": 36,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.solv.finance",
+      "requestedUrl": "https://app.solv.finance/solvbtc",
+      "capturedAt": "2026-11-06T22:49:40.564488+00:00",
+      "status": "unavailable",
+      "trust": "unreviewed-observation",
+      "scripts": [],
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "site": "www.coinbase.com",
+      "requestedUrl": "https://www.coinbase.com/price/coinbase-wrapped-staked-eth",
+      "capturedAt": "2026-11-06T22:49:41.663928+00:00",
+      "status": "unavailable",
+      "trust": "unreviewed-observation",
+      "scripts": [],
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "site": "usdtb.money",
+      "requestedUrl": "https://usdtb.money",
+      "capturedAt": "2026-11-06T22:49:41.797616+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://usdtb.money/_next/static/chunks/5150-b32fd2df6efed983.js",
+          "path": "/_next/static/chunks/5150-b32fd2df6efed983.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/5150-b32fd2df6efed983.js",
+          "bytes": 7786,
+          "hash": "sha256-DyvPZlNfuGTCQAx4XoiPwjjg9l+Ge+aKQm+z1ZMO9Pw="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/8532-cdd071e1a0cffb9b.js",
+          "path": "/_next/static/chunks/8532-cdd071e1a0cffb9b.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/8532-cdd071e1a0cffb9b.js",
+          "bytes": 33749,
+          "hash": "sha256-da9FQD8WDrBTnqSTqy5QrM63t8AwCrBz0GbbYprzmYE="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/5804-47409ed5debc5d10.js",
+          "path": "/_next/static/chunks/5804-47409ed5debc5d10.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/5804-47409ed5debc5d10.js",
+          "bytes": 12478,
+          "hash": "sha256-kF+NCjJs3O+SyqAB6q6lg/ohYTkiMltnwuEEj04KY7U="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/7510-a725b270b549ecef.js",
+          "path": "/_next/static/chunks/7510-a725b270b549ecef.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/7510-a725b270b549ecef.js",
+          "bytes": 58117,
+          "hash": "sha256-EMTbKVbhvSS5TG2XCzGp1deYAE+MGCKCF6PeTPYFYzI="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/3789-342f0a1a1796c3f2.js",
+          "path": "/_next/static/chunks/3789-342f0a1a1796c3f2.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/3789-342f0a1a1796c3f2.js",
+          "bytes": 43576,
+          "hash": "sha256-LD7kLGrq/+mOIl+fOKpUAbpYyVcslLrm1zhp++daBCI="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/9283-97174ff7c30d0b4f.js",
+          "path": "/_next/static/chunks/9283-97174ff7c30d0b4f.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/9283-97174ff7c30d0b4f.js",
+          "bytes": 173075,
+          "hash": "sha256-q9/Q4sleMtxbpk3mtI2Sxtm3hJ5sNOCvAgttrCIg3Yc="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/7942-4c66c1709416fc0a.js",
+          "path": "/_next/static/chunks/7942-4c66c1709416fc0a.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/7942-4c66c1709416fc0a.js",
+          "bytes": 18501,
+          "hash": "sha256-iV1j9dOx5s0I3tEdu9qNq5cV8KbE1J/PMgF4Rn79rZw="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/main-app-4cb145734f34f7c4.js",
+          "path": "/_next/static/chunks/main-app-4cb145734f34f7c4.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/main-app-4cb145734f34f7c4.js",
+          "bytes": 612,
+          "hash": "sha256-9ZWrc8equ7oBTy5VyScvKXn6xBYdF2mRTOjSM46+QJ4="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/5110-f9e2f1cca08d2b96.js",
+          "path": "/_next/static/chunks/5110-f9e2f1cca08d2b96.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/5110-f9e2f1cca08d2b96.js",
+          "bytes": 8608,
+          "hash": "sha256-GwceoSVB9Y6u1dR0TJtgoonubWHS/CHf0DDbvEgb2Us="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/9814-cb7c4b7d4fad34dc.js",
+          "path": "/_next/static/chunks/9814-cb7c4b7d4fad34dc.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/9814-cb7c4b7d4fad34dc.js",
+          "bytes": 20370,
+          "hash": "sha256-vAquQEJiZm2mJt3tGhBC/g8n2wlmF3kit2KCe2JPNys="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/2251-fd778a4869d3ff55.js",
+          "path": "/_next/static/chunks/2251-fd778a4869d3ff55.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/2251-fd778a4869d3ff55.js",
+          "bytes": 13718,
+          "hash": "sha256-6nBTNVLK3dRMc97vut1EoAr29HKDUNPuJaq3DnnZ+U0="
+        },
+        {
+          "url": "https://usdtb.money/_next/static/chunks/8125-e1d53caa1c3963e5.js",
+          "path": "/_next/static/chunks/8125-e1d53caa1c3963e5.js",
+          "status": "observed",
+          "servedUrl": "https://usdtb.money/_next/static/chunks/8125-e1d53caa1c3963e5.js",
+          "bytes": 56120,
+          "hash": "sha256-B0nzttdR2smXNUa4LkBJkVZ2gD+caxFR/H8Miq0tV2c="
+        }
+      ],
+      "finalUrl": "https://usdtb.money",
+      "finalSite": "usdtb.money",
+      "htmlSha256": "de5bfab7c1486040d5b1cdedd954448fb0749cdad1373f0748dbeefdc05cd65d",
+      "inlineScriptsExcluded": 19,
+      "declaredExternalScripts": 27,
+      "overLimitScripts": 15,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "merlinchain.io",
+      "requestedUrl": "https://merlinchain.io/bridge/staking",
+      "capturedAt": "2026-11-06T22:49:42.745402+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/866393a7-f48302a3470f06ce.js",
+          "path": "/_next/static/chunks/866393a7-f48302a3470f06ce.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/866393a7-f48302a3470f06ce.js",
+          "bytes": 171906,
+          "hash": "sha256-yzN/Ci3GP19O4xDGyYyoFeoSeDrlLCDboRW4UHpwR9w="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/1536-9246d392524c2ced.js",
+          "path": "/_next/static/chunks/1536-9246d392524c2ced.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/1536-9246d392524c2ced.js",
+          "bytes": 104791,
+          "hash": "sha256-gupxe7TKPWBt5gEytbR77QoyjSqQlodRz6ktM9peYK4="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/main-app-28d17d47cd3e9756.js",
+          "path": "/_next/static/chunks/main-app-28d17d47cd3e9756.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/main-app-28d17d47cd3e9756.js",
+          "bytes": 471,
+          "hash": "sha256-FBfaUnWzmfaDqOxdHa7OiFJYUAHp1oPDSTO4g8IvDZc="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/9055-fc2740c8bc61d4a8.js",
+          "path": "/_next/static/chunks/9055-fc2740c8bc61d4a8.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/9055-fc2740c8bc61d4a8.js",
+          "bytes": 20355,
+          "hash": "sha256-YlTma93WhjS/eGWfnC498nh82CuxBmEKmmCRCNOsTuI="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/app/(page)/bridge/staking/(staking)/page-5e56fb21224b7470.js",
+          "path": "/_next/static/chunks/app/(page)/bridge/staking/(staking)/page-5e56fb21224b7470.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/app/(page)/bridge/staking/(staking)/page-5e56fb21224b7470.js",
+          "bytes": 442,
+          "hash": "sha256-ddUlu/eHQHv1KK/aHGPpym15wlmJ0zTMpoaJerpnXQw="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/6dc81886-08f2846522414128.js",
+          "path": "/_next/static/chunks/6dc81886-08f2846522414128.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/6dc81886-08f2846522414128.js",
+          "bytes": 69734,
+          "hash": "sha256-/vmbTYqmXvyp621VuLQeaGnV6tizN++WgzbZKdavgVw="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/5e93476f-39ff34644a5aae03.js",
+          "path": "/_next/static/chunks/5e93476f-39ff34644a5aae03.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/5e93476f-39ff34644a5aae03.js",
+          "bytes": 325187,
+          "hash": "sha256-5yFiru46YOt6rwGT4URQIJaw1tDfo0mRrNLAwyJSuwY="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/2a8657cb-e9acdc1368f96dee.js",
+          "path": "/_next/static/chunks/2a8657cb-e9acdc1368f96dee.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/2a8657cb-e9acdc1368f96dee.js",
+          "bytes": 98479,
+          "hash": "sha256-h4QoOSXBRuqIjDiEZPCcr/uI/lpwXCzvXpgiAthY6wI="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/f923c8e2-6262aef145e4f2b6.js",
+          "path": "/_next/static/chunks/f923c8e2-6262aef145e4f2b6.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/f923c8e2-6262aef145e4f2b6.js",
+          "bytes": 5679,
+          "hash": "sha256-k6goCtABeiD6SNkFQAHtcQZCObahsFkBfStepr5n7CE="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/41d80367-110184327f9ef5b7.js",
+          "path": "/_next/static/chunks/41d80367-110184327f9ef5b7.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/41d80367-110184327f9ef5b7.js",
+          "bytes": 415,
+          "hash": "sha256-SyoqBPa8NVfiL9k+nZp6sWNAZQA5Z1Z4sllwiq4LMIQ="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/8100ded3-8c1a06036f52273e.js",
+          "path": "/_next/static/chunks/8100ded3-8c1a06036f52273e.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/8100ded3-8c1a06036f52273e.js",
+          "bytes": 1553,
+          "hash": "sha256-K2jo7t215nwCAbYEh+3l2HeMR5gkMmSGp8KGls6PBTo="
+        },
+        {
+          "url": "https://merlinchain.io/_next/static/chunks/1067-2c27c4be0ec4dba2.js",
+          "path": "/_next/static/chunks/1067-2c27c4be0ec4dba2.js",
+          "status": "observed",
+          "servedUrl": "https://merlinchain.io/_next/static/chunks/1067-2c27c4be0ec4dba2.js",
+          "bytes": 21040,
+          "hash": "sha256-Y8Udon7nRjOm9xcrYhtIMetv5UXrmYf2+lSgFlAd1UA="
+        }
+      ],
+      "finalUrl": "https://merlinchain.io/bridge/staking",
+      "finalSite": "merlinchain.io",
+      "htmlSha256": "372e91606813a94e1edb770a78408c4da01d1ca39166c899c70fc7140839b20f",
+      "inlineScriptsExcluded": 23,
+      "declaredExternalScripts": 40,
+      "overLimitScripts": 28,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.huma.finance",
+      "requestedUrl": "https://app.huma.finance",
+      "capturedAt": "2026-11-06T22:49:45.465267+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://js.hs-scripts.com/44017599.js",
+          "path": "/44017599.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://app.huma.finance",
+      "finalSite": "app.huma.finance",
+      "htmlSha256": "769b8bc7835ac27dd45b4c9487d40cd413d8b4c06c2874585fc010e9a351a439",
+      "inlineScriptsExcluded": 0,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.euler.finance",
+      "requestedUrl": "https://www.euler.finance",
+      "capturedAt": "2026-11-06T22:49:46.356045+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/148fxp3ob2q1l.js",
+          "path": "/_next/static/chunks/148fxp3ob2q1l.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/148fxp3ob2q1l.js",
+          "bytes": 168911,
+          "hash": "sha256-3WxUGXJxLEWtsq47uEOYSL3PEwBHYKfvhJvjYCsDlD4="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/0-5v9e-irmykv.js",
+          "path": "/_next/static/chunks/0-5v9e-irmykv.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/0-5v9e-irmykv.js",
+          "bytes": 235044,
+          "hash": "sha256-mKPQ5ScvGzu/LKMPGOGTmgJ1mkH7cYtXm861mKykzQU="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/turbopack-3-ry682tkyiqk.js",
+          "path": "/_next/static/chunks/turbopack-3-ry682tkyiqk.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/turbopack-3-ry682tkyiqk.js",
+          "bytes": 10030,
+          "hash": "sha256-i7tYy/1GM8HYKMa8N7wyq8dooUnAGx38T1Ex/YEnRVE="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/1pbbivvrrauhi.js",
+          "path": "/_next/static/chunks/1pbbivvrrauhi.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/1pbbivvrrauhi.js",
+          "bytes": 38821,
+          "hash": "sha256-nWg6c6MQAX9LtD1OK3lREXG9MhDmE8SauZe8gPSSSY0="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/16ge5bcnqkegr.js",
+          "path": "/_next/static/chunks/16ge5bcnqkegr.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/16ge5bcnqkegr.js",
+          "bytes": 2794,
+          "hash": "sha256-AjCBcM+hpd2bFzgAqGW0xTC1sSG4oGzmIy4lcWvU2bk="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/0s7ygo2-u-dhw.js",
+          "path": "/_next/static/chunks/0s7ygo2-u-dhw.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/0s7ygo2-u-dhw.js",
+          "bytes": 349,
+          "hash": "sha256-8Js0bffg7jwdFM3BpW0/akRpmeUYyXkTLH1cFvs6K1E="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/2936nxupacrmz.js",
+          "path": "/_next/static/chunks/2936nxupacrmz.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/2936nxupacrmz.js",
+          "bytes": 4267,
+          "hash": "sha256-lAYn9TwiG16Eu+6SufMV2PUQ6PErxDHLGJqa0eGw9MM="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/3dgqjri2vguu2.js",
+          "path": "/_next/static/chunks/3dgqjri2vguu2.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/3dgqjri2vguu2.js",
+          "bytes": 34564,
+          "hash": "sha256-KFHO+kJBHeYx3pK9oNL+H8urFApsV0+gEarahGYpZOA="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/0cz1d0mv5g_q7.js",
+          "path": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/0cz1d0mv5g_q7.js",
+          "bytes": 112594,
+          "hash": "sha256-CXPB1kyIrcjjyVBBDLWLKI9yEY1ZZbeASUON648vloM="
+        },
+        {
+          "url": "https://www.euler.finance/_next/static/chunks/3koyarw6rgz08.js",
+          "path": "/_next/static/chunks/3koyarw6rgz08.js",
+          "status": "observed",
+          "servedUrl": "https://www.euler.finance/_next/static/chunks/3koyarw6rgz08.js",
+          "bytes": 28183,
+          "hash": "sha256-aN5C5q/A3tblt1OjCqRb0Zy0v24yhpS9sZoQogP8vL0="
+        }
+      ],
+      "finalUrl": "https://www.euler.finance",
+      "finalSite": "www.euler.finance",
+      "htmlSha256": "ccb0462cddb79d06bfea13e6474a312dad5f254b74211dccaec1d2c2d2c6c4ef",
+      "inlineScriptsExcluded": 5,
+      "declaredExternalScripts": 10,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "yieldlayer.cian.app",
+      "requestedUrl": "https://yieldlayer.cian.app/vaults/0xB13aa2d0345b0439b064f26B82D8dCf3f508775d?chainId=1&utm_source=TPFDZE",
+      "capturedAt": "2026-11-06T22:49:46.946558+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://yieldlayer.cian.app/_expo/static/js/web/entry-1d4c1a208c1f1a6daca8a976fe7649b9.js",
+          "path": "/_expo/static/js/web/entry-1d4c1a208c1f1a6daca8a976fe7649b9.js",
+          "status": "unavailable",
+          "reason": "Response exceeds byte limit"
+        }
+      ],
+      "finalUrl": "https://yieldlayer.cian.app/vaults/0xB13aa2d0345b0439b064f26B82D8dCf3f508775d?chainId=1&utm_source=TPFDZE",
+      "finalSite": "yieldlayer.cian.app",
+      "htmlSha256": "4801b28c7d5ff675b66d3e4927285060b1fc33977b02809ef5d64396d96cd7da",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "www.opentrade.io",
+      "requestedUrl": "https://www.opentrade.io",
+      "capturedAt": "2026-11-06T22:49:48.136942+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://use.typekit.net/nmg3uhy.js",
+          "path": "/nmg3uhy.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://www.googletagmanager.com/gtag/js?id=G-9NPJVKDYQH",
+          "path": "/gtag/js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://js-eu1.hs-scripts.com/148900173.js",
+          "path": "/148900173.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/npm/hls.js@1.6.11",
+          "path": "/npm/hls.js@1.6.11",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js",
+          "path": "/npm/swiper@8/swiper-bundle.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=6ab0e8f19536b26dff9993a2",
+          "path": "/js/jquery-3.5.1.min.dc5e7f18c8.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/6ab0e8f19536b26dff9993a2/js/webflow.schunk.c42549641b7d4501.js",
+          "path": "/6ab0e8f19536b26dff9993a2/js/webflow.schunk.c42549641b7d4501.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/6ab0e8f19536b26dff9993a2/js/webflow.schunk.b7d58e7eb412f2db.js",
+          "path": "/6ab0e8f19536b26dff9993a2/js/webflow.schunk.b7d58e7eb412f2db.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/6ab0e8f19536b26dff9993a2/js/webflow.6b32cf4a.47eae10014d11926.js",
+          "path": "/6ab0e8f19536b26dff9993a2/js/webflow.6b32cf4a.47eae10014d11926.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/gsap.min.js",
+          "path": "/gsap/3.15.0/gsap.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/SplitText.min.js",
+          "path": "/gsap/3.15.0/SplitText.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/gsap/3.15.0/ScrollTrigger.min.js",
+          "path": "/gsap/3.15.0/ScrollTrigger.min.js",
+          "status": "excluded",
+          "reason": "cross-origin"
+        }
+      ],
+      "finalUrl": "https://www.opentrade.io",
+      "finalSite": "www.opentrade.io",
+      "htmlSha256": "4ead6fb361c61615c08d49b71e93a2211f9541a49741988fc7664ed429d0fe7e",
+      "inlineScriptsExcluded": 14,
+      "declaredExternalScripts": 13,
+      "overLimitScripts": 1,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.aave.com",
+      "requestedUrl": "https://app.aave.com/markets/?marketName=proto_horizon_v3",
+      "capturedAt": "2026-11-06T22:49:49.855799+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.aave.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "bytes": 112594,
+          "hash": "sha256-CXPB1kyIrcjjyVBBDLWLKI9yEY1ZZbeASUON648vloM="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/webpack-95c5a710b35bd95d.js",
+          "path": "/_next/static/chunks/webpack-95c5a710b35bd95d.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/webpack-95c5a710b35bd95d.js",
+          "bytes": 10094,
+          "hash": "sha256-wMMom24brpV07rZ8bghpez/ivLLlwa28TeFAnu3jIr4="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/framework-6c17f08e07d1abc4.js",
+          "path": "/_next/static/chunks/framework-6c17f08e07d1abc4.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/framework-6c17f08e07d1abc4.js",
+          "bytes": 139905,
+          "hash": "sha256-DfX85E6HQwGaqSp/WXYx2waHgqbkeuyXsx9WQEQ20/0="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/main-a738a79affe2d1e8.js",
+          "path": "/_next/static/chunks/main-a738a79affe2d1e8.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/main-a738a79affe2d1e8.js",
+          "bytes": 159726,
+          "hash": "sha256-eXEDFzpy+eD15Xo+pvPTLQMMnEXxhfPRJiEs/mz/NGA="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/pages/_app-76791b1e993c5bb5.js",
+          "path": "/_next/static/chunks/pages/_app-76791b1e993c5bb5.js",
+          "status": "unavailable",
+          "reason": "Response exceeds byte limit"
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/9520-d0e953950e0bfbcb.js",
+          "path": "/_next/static/chunks/9520-d0e953950e0bfbcb.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/9520-d0e953950e0bfbcb.js",
+          "bytes": 7414,
+          "hash": "sha256-w+XTbdJw0pvY3axiPefwW28SkhBzI2bqzyD4d16Mi0g="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/2526-857b855ccc7840e9.js",
+          "path": "/_next/static/chunks/2526-857b855ccc7840e9.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/2526-857b855ccc7840e9.js",
+          "bytes": 75139,
+          "hash": "sha256-AtKnDvSqS3/to9QRy+UIPlgrADfVfOWH+8IoQhm3VxY="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/7730-7f49fdf65b92eb63.js",
+          "path": "/_next/static/chunks/7730-7f49fdf65b92eb63.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/7730-7f49fdf65b92eb63.js",
+          "bytes": 9829,
+          "hash": "sha256-8h2zqehNMVZbqk7YoXp+4Tmr3qp/NF+WGnUqglpoUr8="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/4016-a663acf6e007dcd6.js",
+          "path": "/_next/static/chunks/4016-a663acf6e007dcd6.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/4016-a663acf6e007dcd6.js",
+          "bytes": 13030,
+          "hash": "sha256-QvaRJPMx+Kwn+5/FgpbevitQUHbVRLtR32AXP8wJo8k="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/8430-6d4b9ee6c840131a.js",
+          "path": "/_next/static/chunks/8430-6d4b9ee6c840131a.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/8430-6d4b9ee6c840131a.js",
+          "bytes": 21311,
+          "hash": "sha256-11HdMlm3KGh81CwjxuHlWCFDjrIuRIWHDfgdN187Ug0="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/7493-935bfe77ce1bdce1.js",
+          "path": "/_next/static/chunks/7493-935bfe77ce1bdce1.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/7493-935bfe77ce1bdce1.js",
+          "bytes": 29938,
+          "hash": "sha256-oadyF9NRk6EJA+RvcdIhQ/zS9iB7468LIkYSKqWaocQ="
+        },
+        {
+          "url": "https://app.aave.com/_next/static/chunks/pages/markets-d2b331e5aa38050b.js",
+          "path": "/_next/static/chunks/pages/markets-d2b331e5aa38050b.js",
+          "status": "observed",
+          "servedUrl": "https://app.aave.com/_next/static/chunks/pages/markets-d2b331e5aa38050b.js",
+          "bytes": 20028,
+          "hash": "sha256-tfQRpDq2OqJ3KdqUKNY97/Gb5yQBycxfdNtmk6zlX+E="
+        }
+      ],
+      "finalUrl": "https://app.aave.com/markets/?marketName=proto_horizon_v3",
+      "finalSite": "app.aave.com",
+      "htmlSha256": "1f404ada2bbd064f68b05249a97c12943af89d3a60e6345b046892a6c6e766ec",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 15,
+      "overLimitScripts": 3,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.plume.org",
+      "requestedUrl": "https://app.plume.org/vaults",
+      "capturedAt": "2026-11-06T22:49:51.935711+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.plume.org/assets/index-C5f1FlOX.js",
+          "path": "/assets/index-C5f1FlOX.js",
+          "status": "observed",
+          "servedUrl": "https://app.plume.org/assets/index-C5f1FlOX.js",
+          "bytes": 786276,
+          "hash": "sha256-59IwIYx6lQLZwthPNIwNHT95zI0coONETNhrSEDba+4="
+        }
+      ],
+      "finalUrl": "https://app.plume.org/vaults",
+      "finalSite": "app.plume.org",
+      "htmlSha256": "1d1b83041ba9eb01cc052d23d0b58cf46f26a0f8fc399cbbd46daa547d496538",
+      "inlineScriptsExcluded": 19,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.benqi.fi",
+      "requestedUrl": "https://app.benqi.fi/savax",
+      "capturedAt": "2026-11-06T22:49:54.523855+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/b6f86f34009b78e3.js",
+          "path": "/_next/static/chunks/b6f86f34009b78e3.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/b6f86f34009b78e3.js",
+          "bytes": 36727,
+          "hash": "sha256-mApE5UqLEuo9CZLBzC2/QsOlQAmSE+hgoHebu2iKG40="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/e50207299f7fdcba.js",
+          "path": "/_next/static/chunks/e50207299f7fdcba.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/e50207299f7fdcba.js",
+          "bytes": 63597,
+          "hash": "sha256-rvRVQxRcR79gh9hKHLSeKDhTrns8Bd596gxMy4MnNWA="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/b9af3ad99b37a3f1.js",
+          "path": "/_next/static/chunks/b9af3ad99b37a3f1.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/b9af3ad99b37a3f1.js",
+          "bytes": 188218,
+          "hash": "sha256-Ns4BhyA6rsYaEhqMCtf2+wMHaz7pfT/NrP7TCaPsJsE="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/38202b308a45d209.js",
+          "path": "/_next/static/chunks/38202b308a45d209.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/38202b308a45d209.js",
+          "bytes": 45304,
+          "hash": "sha256-zIZCk8IuSghOXjRzc97s+1VicsDj4dbEu1y+qwXNgJU="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/turbopack-55530df1317860db.js",
+          "path": "/_next/static/chunks/turbopack-55530df1317860db.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/turbopack-55530df1317860db.js",
+          "bytes": 10301,
+          "hash": "sha256-2aPmD3Hi9ILI2QXTnNSIf3G/LLS+y0XTXzq5Pn/Ob5E="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/36a11d39cd20159e.js",
+          "path": "/_next/static/chunks/36a11d39cd20159e.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/36a11d39cd20159e.js",
+          "bytes": 23675,
+          "hash": "sha256-ocaFUIRhlogWWsW6MZ5OugAEPjwscXmr1lb/jNY9qNA="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/48a4c3d27fdb6385.js",
+          "path": "/_next/static/chunks/48a4c3d27fdb6385.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/48a4c3d27fdb6385.js",
+          "bytes": 24299,
+          "hash": "sha256-Ug91nV9lOw1HeAdvhdhc4iyeFM6NBe12lNPI16WJ9Y0="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/6c7a28405bf87a06.js",
+          "path": "/_next/static/chunks/6c7a28405bf87a06.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/6c7a28405bf87a06.js",
+          "bytes": 40191,
+          "hash": "sha256-lTXvt99pNkyf00Ivx0ygLPBtY87GW4UvyLUV2My1y0I="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/9db005931638ca8a.js",
+          "path": "/_next/static/chunks/9db005931638ca8a.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/9db005931638ca8a.js",
+          "bytes": 27048,
+          "hash": "sha256-LZ7melsWN6pIRBerboC+LbHp1peXg3ePFBHkf2/OfDc="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/a41c1272a36ea859.js",
+          "path": "/_next/static/chunks/a41c1272a36ea859.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/a41c1272a36ea859.js",
+          "bytes": 37431,
+          "hash": "sha256-NwRaPADyCkOVepT2oqXqH0ZNiQp+0FJaK3dDwA2ACj8="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/0c66aed875256414.js",
+          "path": "/_next/static/chunks/0c66aed875256414.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/0c66aed875256414.js",
+          "bytes": 32505,
+          "hash": "sha256-qDxnXBfhZ3e2ttU3wf6ksDnnD1qTkZXYCvF6PxVoIOY="
+        },
+        {
+          "url": "https://app.benqi.fi/_next/static/chunks/3d8eec741e94ac42.js",
+          "path": "/_next/static/chunks/3d8eec741e94ac42.js",
+          "status": "observed",
+          "servedUrl": "https://app.benqi.fi/_next/static/chunks/3d8eec741e94ac42.js",
+          "bytes": 41449,
+          "hash": "sha256-UMzyC1jsTQYuCXfIv48MAj3Ty9d1UgUTB2RLSlUSCAY="
+        }
+      ],
+      "finalUrl": "https://app.benqi.fi/savax",
+      "finalSite": "app.benqi.fi",
+      "htmlSha256": "5284d7208da5c5e5ecd08e7a1152d4e22c264797194f0e9a3042d0b0b51f82d7",
+      "inlineScriptsExcluded": 44,
+      "declaredExternalScripts": 33,
+      "overLimitScripts": 21,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "app.olympusdao.finance",
+      "requestedUrl": "https://app.olympusdao.finance/#/lending/cooler",
+      "capturedAt": "2026-11-06T22:49:55.996498+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://app.olympusdao.finance/assets/index-Crcho3TT.js",
+          "path": "/assets/index-Crcho3TT.js",
+          "status": "unavailable",
+          "reason": "Response exceeds byte limit"
+        }
+      ],
+      "finalUrl": "https://app.olympusdao.finance/#/lending/cooler",
+      "finalSite": "app.olympusdao.finance",
+      "htmlSha256": "176c5cb6c491b8a95fd7e3825dc679c1dc1fc6e306d12267521449465d91bfc4",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "gmx.io",
+      "requestedUrl": "https://gmx.io",
+      "capturedAt": "2026-11-06T22:49:57.465243+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://gmx.io/assets/main-BZt0Fsf1.js",
+          "path": "/assets/main-BZt0Fsf1.js",
+          "status": "unavailable",
+          "reason": "Response exceeds byte limit"
+        }
+      ],
+      "finalUrl": "https://gmx.io",
+      "finalSite": "gmx.io",
+      "htmlSha256": "147d6473559963be7444c5a28855749e2c2b7da42eb4c77bbbf5aa438406f49c",
+      "inlineScriptsExcluded": 1,
+      "declaredExternalScripts": 1,
+      "overLimitScripts": 0,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "near.com",
+      "requestedUrl": "https://near.com/",
+      "capturedAt": "2026-11-06T22:49:58.712162+00:00",
+      "status": "no-comparable-scripts",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://near.com/_next/static/chunks/0m04-nr1tfy-b.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0m04-nr1tfy-b.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/15qv57ppon~d9.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/15qv57ppon~d9.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/07zrqyx6-f4~j.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/07zrqyx6-f4~j.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/106w1ocd8yls2.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/106w1ocd8yls2.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/0uz~0go0s7d~r.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0uz~0go0s7d~r.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/turbopack-0y5cs.ee_mgje.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/turbopack-0y5cs.ee_mgje.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/0yosr6ea.ev3~.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0yosr6ea.ev3~.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/0-d_jid_ryykr.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0-d_jid_ryykr.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/0rbas5u0x0~23.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0rbas5u0x0~23.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/0~b~5q5s-ozn7.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0~b~5q5s-ozn7.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/0dhr~lg7u.jag.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/0dhr~lg7u.jag.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        },
+        {
+          "url": "https://near.com/_next/static/chunks/00_~b~.ktlj55.js?dpl=dpl_3o3r1RYh1ZEUxUkwAeSk2LT9KNoS",
+          "path": "/_next/static/chunks/00_~b~.ktlj55.js",
+          "status": "excluded",
+          "reason": "query-or-fragment (not compatible with current collector)"
+        }
+      ],
+      "finalUrl": "https://near.com/",
+      "finalSite": "near.com",
+      "htmlSha256": "f14466bc1e7f2c476fc33b974c7e3828a56063aba137db3309f82c7100ca17a9",
+      "inlineScriptsExcluded": 23,
+      "declaredExternalScripts": 30,
+      "overLimitScripts": 18,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    },
+    {
+      "site": "staderlabs.com",
+      "requestedUrl": "https://staderlabs.com",
+      "capturedAt": "2026-11-06T22:49:59.694170+00:00",
+      "status": "observed",
+      "trust": "unreviewed-observation",
+      "scripts": [
+        {
+          "url": "https://staderlabs.com/js/nr.min.js",
+          "path": "/js/nr.min.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/js/nr.min.js",
+          "bytes": 53366,
+          "hash": "sha256-+fdtT3SnaBg0FJ8b/P2nKNe92XgFlHTP7EzVXpgEevk="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+          "path": "/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+          "bytes": 91460,
+          "hash": "sha256-AiXrA00CSgO9yQ6mx59WGTZi58Pu6QlpYpiCDlF8u4M="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/webpack-3de98c745eb3df0a.js",
+          "path": "/_next/static/chunks/webpack-3de98c745eb3df0a.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/webpack-3de98c745eb3df0a.js",
+          "bytes": 2600,
+          "hash": "sha256-5ou5PLTPwv04T6n/+wlN3oXNGtPGshhVKrbj2njcS9U="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/framework-c471feadf4bae993.js",
+          "path": "/_next/static/chunks/framework-c471feadf4bae993.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/framework-c471feadf4bae993.js",
+          "bytes": 140820,
+          "hash": "sha256-QuTK2XRHOUjGCF4uldz8iLvyZvPokcr4qtaKpz7hK/E="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/main-1f68783c438ae31f.js",
+          "path": "/_next/static/chunks/main-1f68783c438ae31f.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/main-1f68783c438ae31f.js",
+          "bytes": 109468,
+          "hash": "sha256-gjTPJXS/9Ej17PiuCEaBrgMlni6ULfabPjIrShTPOq4="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/pages/_app-1395c3addf63c2bf.js",
+          "path": "/_next/static/chunks/pages/_app-1395c3addf63c2bf.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/pages/_app-1395c3addf63c2bf.js",
+          "bytes": 487407,
+          "hash": "sha256-XA7dVA0lKxWq6+DmYZoKc6qc8osIIuoqfyq1tXjPxJQ="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/726-cc51591b0065ebae.js",
+          "path": "/_next/static/chunks/726-cc51591b0065ebae.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/726-cc51591b0065ebae.js",
+          "bytes": 30845,
+          "hash": "sha256-Qq5AusN+lc9tZIYHsuMorH/x/g7pQqX5F3ko4/wgYO4="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/8-65fae20ca5b4cf4f.js",
+          "path": "/_next/static/chunks/8-65fae20ca5b4cf4f.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/8-65fae20ca5b4cf4f.js",
+          "bytes": 164629,
+          "hash": "sha256-Abic+fvVCo9SuDfmoXdklkt6k6FAxuy/wOn3p10PIMI="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/462-edc08bb47aedc148.js",
+          "path": "/_next/static/chunks/462-edc08bb47aedc148.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/462-edc08bb47aedc148.js",
+          "bytes": 7443,
+          "hash": "sha256-qyOhmusCqMnsViS4E86QCE9sHkYP9bDgy3s2GLIucu0="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/968-c5a9d800600d51b6.js",
+          "path": "/_next/static/chunks/968-c5a9d800600d51b6.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/968-c5a9d800600d51b6.js",
+          "bytes": 87095,
+          "hash": "sha256-ikow2yLUfC1V6M/sW/CqNgAddEpedBh3DLkqb6OOPj8="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/chunks/pages/index-e64fb682e0197dd8.js",
+          "path": "/_next/static/chunks/pages/index-e64fb682e0197dd8.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/chunks/pages/index-e64fb682e0197dd8.js",
+          "bytes": 25997,
+          "hash": "sha256-lhvcpDBFZ8UckhWCA9CUNsOLx2BycyvrcApT2pP3V4I="
+        },
+        {
+          "url": "https://staderlabs.com/_next/static/P9wssG00LKEArRItZCzNY/_buildManifest.js",
+          "path": "/_next/static/P9wssG00LKEArRItZCzNY/_buildManifest.js",
+          "status": "observed",
+          "servedUrl": "https://staderlabs.com/_next/static/P9wssG00LKEArRItZCzNY/_buildManifest.js",
+          "bytes": 1438,
+          "hash": "sha256-JD1mfbCOFJkBnfBwXA3XvtDIpD6hg5sQVEdVBDsJzGY="
+        }
+      ],
+      "finalUrl": "https://staderlabs.com",
+      "finalSite": "staderlabs.com",
+      "htmlSha256": "e386a6fc8d0e0f9ad79a359030012a08a55f9d0d0179c0eb82e12c70a37f7a18",
+      "inlineScriptsExcluded": 8,
+      "declaredExternalScripts": 13,
+      "overLimitScripts": 1,
+      "coverage": "partial: initial HTML scripts only; modules, lazy chunks, inline and runtime code not covered"
+    }
+  ]
+}

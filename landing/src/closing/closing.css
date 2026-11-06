@@ -3,7 +3,10 @@
 .cl-inner { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: clamp(96px, 18vh, 220px) 0; }
 .cl h2 { margin: 0; font-size: clamp(54px, 10vw, 168px); font-weight: 400; line-height: 0.92; letter-spacing: -0.035em; }
 .cl h2 em { font-style: italic; }
-.cl-em { background: linear-gradient(var(--accent, #ffd500), var(--accent, #ffd500)) no-repeat 0 90% / 100% 38%; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* Highlight sits on each word, not the whole (possibly multi-line) phrase: a shared background box
+   over text that wraps onto several unevenly sized lines paints a different-width bar per line
+   fragment, not one continuous highlight. Per-word boxes have no wrapping to go wrong. */
+.cl-em .rv-w { background: linear-gradient(var(--accent, #ffd500), var(--accent, #ffd500)) no-repeat 0 90% / 0% 38%; padding: 0 0.04em; margin: 0 -0.04em; }
 .cl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 32px; margin-top: clamp(36px, 6vh, 72px); }
 .cl-primary { display: inline-flex; align-items: center; gap: 14px; height: 56px; padding: 0 28px; border-radius: 999px; background: var(--ink, #0b0b0c); color: #fff; font-size: 21px; box-shadow: 0 18px 40px -18px rgba(11, 11, 12, 0.55); transition: transform 0.3s cubic-bezier(.2,.7,.2,1), background 0.2s; }
 .cl-primary:hover { transform: translateY(-2px); background: #26262a; }

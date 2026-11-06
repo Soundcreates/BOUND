@@ -132,7 +132,12 @@ export default function ToyOS() {
     mm.add('(prefers-reduced-motion: no-preference)', () => {
       // The desktop rises into place as you scroll to it, then its windows settle in.
       gsap.fromTo(q('.os')[0], { y: 70, scale: 0.94, autoAlpha: 0.5 }, { y: 0, scale: 1, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: q('.os')[0], start: 'top 92%', end: 'top 45%', scrub: 0.6 } });
-      gsap.from(q('.os-win'), { autoAlpha: 0, y: 24, duration: 0.8, ease: 'expo.out', stagger: 0.1, scrollTrigger: { trigger: q('.os')[0], start: 'top 70%', once: true } });
+      // Each pane is its own batch trigger (not one trigger watching the whole, very tall `.os` block):
+      // on the mobile stack the four panes can span several screens, so a single far-off trigger either
+      // never saw a clean "enter" or left them permanently stuck mid-tween. Per-pane batching is the
+      // same proven pattern used for the incident and technology cards elsewhere on this page.
+      gsap.set(q('.os-win'), { autoAlpha: 0, y: 24 });
+      ScrollTrigger.batch(q('.os-win'), { start: 'top 95%', once: true, onEnter: (els) => gsap.to(els, { autoAlpha: 1, y: 0, duration: 0.8, ease: 'expo.out', stagger: 0.1, overwrite: true }) });
       gsap.from(q('.os-head > *'), { autoAlpha: 0, y: 24, duration: 0.9, ease: 'expo.out', stagger: 0.1, scrollTrigger: { trigger: q('.os-head')[0], start: 'top 85%', once: true } });
     });
     document.fonts?.ready.then(() => ScrollTrigger.refresh());

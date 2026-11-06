@@ -15,7 +15,10 @@ export default function Closing() {
     const mm = gsap.matchMedia();
     mm.add('(prefers-reduced-motion: no-preference)', () => {
       gsap.fromTo(q('.rv-w'), { opacity: 0, y: 36 }, { opacity: 1, y: 0, ease: 'none', stagger: 0.12, scrollTrigger: { trigger: root.current, start: 'top 75%', end: 'center 50%', scrub: 0.6 } });
-      gsap.fromTo(q('.cl-em'), { backgroundSize: '0% 38%' }, { backgroundSize: '100% 38%', ease: 'none', scrollTrigger: { trigger: root.current, start: 'top 55%', end: 'center 40%', scrub: 0.6 } });
+      // The highlight tweens per WORD, not across the whole (possibly multi-line) phrase: a single
+      // backgroundSize growing over several unevenly-wrapped lines produces disconnected fragments once
+      // the phrase wraps onto 3+ lines, which it reliably does on narrow screens.
+      gsap.fromTo(q('.cl-em .rv-w'), { backgroundSize: '0% 38%' }, { backgroundSize: '100% 38%', ease: 'none', stagger: 0.12, scrollTrigger: { trigger: root.current, start: 'top 55%', end: 'center 40%', scrub: 0.6 } });
       gsap.from(q('.cl-actions > *'), { autoAlpha: 0, y: 20, duration: 0.8, ease: 'expo.out', stagger: 0.1, scrollTrigger: { trigger: q('.cl-actions')[0], start: 'top 92%', once: true } });
     });
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
