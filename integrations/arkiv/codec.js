@@ -50,3 +50,12 @@ export function encodeExtendEntity({entityKey,lifetimeBlocks}) {
  const operation=concat(word(3),word(64),dynamicBytes(extension));
  return '0x49650044'+concat(word(32),word(1),word(32),operation).toString('hex');
 }
+
+// Delete is operation 5 with payload abi.encode((bytes32 entityKey)), per the
+// official @arkiv-network/sdk OperationType. Irreversible: the caller must
+// verify ownership of entityKey first.
+export function encodeDeleteEntity({entityKey}) {
+ if(typeof entityKey!=='string'||!/^0x[0-9a-f]{64}$/.test(entityKey))throw new Error('invalid Arkiv delete configuration');
+ const operation=concat(word(5),word(64),dynamicBytes(Buffer.from(entityKey.slice(2),'hex')));
+ return '0x49650044'+concat(word(32),word(1),word(32),operation).toString('hex');
+}

@@ -17,7 +17,12 @@
 </head>
 <body>
   <h1>BOUND</h1>
-  <p>BOUND reviews supported wallet requests and opens a warning before they reach your wallet. A grey verdict means there is no baseline to compare.</p>
+  <p>BOUND reviews supported wallet requests and opens a warning before they reach your wallet. It scores and warns; it never refuses a request. A grey verdict means there is no baseline to compare.</p>
+  <section class="panel">
+    <strong id="monitoring-state">Monitoring is off.</strong>
+    <p class="muted">While monitoring is off, BOUND checks nothing, records nothing, reads no trust data and sends no reports. Wallet requests go straight to your wallet.</p>
+    <button id="monitoring" type="button">Start monitoring</button>
+  </section>
   <p id="site" class="muted">Loading current tab…</p>
   <section class="panel">
     <strong id="coverage">Checking coverage…</strong>

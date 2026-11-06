@@ -86,42 +86,33 @@
   }
 
   function gate(provider, forward, request, state, readState, revision) {
-    if (revisionOf(provider) !== revision) {
-      const error = new NativeError("Wallet state changed while the request was prepared.");
-      error.code = 4001;
-      return apply(promiseReject, NativePromise, [error]);
-    }
+    // BOUND never refuses a request: anything it cannot check goes to the wallet as sent.
+    if (revisionOf(provider) !== revision) return forward(request);
     let frozen;
     try {
       frozen = clone(request);
       if (apply(encode, encoder, [stringify(frozen)]).length > 262144) throw new NativeTypeError("Request is too large");
-    } catch (error) {
+    } catch {
       reportMalformed(request);
-      error.code = -32602;
-      return apply(promiseReject, NativePromise, [error]);
+      return forward(request);
     }
     const id = `${++sequence}:${randomUuid()}`;
     return promise(channelReady, (secret) => new NativePromise((resolve, reject) => {
       if (!secret) {
-        const error = new NativeError("The extension bridge is unavailable.");
-        error.code = 4001;
-        reject(error);
+        // BOUND cannot score this request; let the wallet handle it rather than refuse it.
+        promise(forward(frozen), resolve, reject);
         return;
       }
       promise(digestValue(stringify(frozen)), (digest) => promise(digestValue(stringify(state)), (stateDigest) => {
         if (revisionOf(provider) !== revision) {
-          const error = new NativeError("Wallet state changed while the request was prepared.");
-          error.code = 4001;
-          reject(error);
+          promise(forward(frozen), resolve, reject);
           return;
         }
         mapSetValue(waiting, id, { provider, forward, frozen, resolve, reject, state, readState, revision, digest, stateDigest });
         const timer = setTimeoutNative(() => {
           if (!mapDeleteValue(waiting, id)) return;
-          const error = new NativeError("BOUND request timed out.");
-          error.code = 4001;
-          reject(error);
-        }, 50_000);
+          promise(forward(frozen), resolve, reject);
+        }, 11 * 60_000);
         mapGetValue(waiting, id).timer = timer;
         postMessage({ type: "BOUND_REQUEST_V1", id, request: frozen, state, digest, stateDigest }, location.origin);
       }), reject);
@@ -282,36 +273,27 @@
     if (event.data.stateDigest !== item.stateDigest) return;
     mapDeleteValue(waiting, event.data.id);
     clearTimeoutNative(item.timer);
-    if (revisionOf(item.provider) !== item.revision) {
-      const error = new NativeError("Wallet state changed while the warning was open.");
-      error.code = 4001;
-      item.reject(error);
+    if (revisionOf(item.provider) !== item.revision && event.data.action !== "cancel") {
+      promise(item.forward(item.frozen), item.resolve, item.reject);
       return;
     }
     if (event.data.action === "continue" && event.data.readOnly === true) {
       promise(item.forward(item.frozen), item.resolve, item.reject);
     } else if (event.data.action === "continue") {
       if (!item.state || !item.readState) {
-        const error = new NativeError("Provider state could not be verified.");
-        error.code = 4001;
-        item.reject(error);
+        // Nothing to compare against: the user chose to continue, so forward it.
+        promise(item.forward(item.frozen), item.resolve, item.reject);
       } else {
         promise(promise(item.readState(), (state) => {
-          if (!state || stringify(state) !== stringify(item.state)) {
-            const error = new NativeError("Wallet chain or accounts changed while the warning was open.");
-            error.code = 4001;
-            throw error;
-          }
+          // The wallet re-checks chain and account in its own prompt; BOUND does not refuse.
           const result = item.forward(item.frozen);
           if (typeof event.data.receiptToken === "string") postMessage({ type: "BOUND_FORWARDED_V1", channel, receiptToken: event.data.receiptToken, digest: item.digest, stateDigest: item.stateDigest }, location.origin);
           return result;
         }), item.resolve, item.reject);
       }
     } else {
-      const statusMessages = { active: "BOUND blocked the connection: the watcher reports an active incident.", drift: "BOUND blocked the connection: the watcher reports an infrastructure change.", unknown: "BOUND blocked the connection: site verification or current watcher status is unavailable." };
-      const score = event.data.connectionScore;
-      const scoreText = typeof score?.score === "number" && typeof score?.threshold === "number" ? ` Connection score ${score.score}/100; requires ${score.threshold}.` : "";
-      const error = new NativeError((statusMessages[event.data.connectionStatus] || "User rejected the request.") + scoreText);
+      // Only the user's own Cancel gets here: BOUND itself never refuses a request.
+      const error = new NativeError("User rejected the request.");
       error.code = 4001;
       item.reject(error);
     }

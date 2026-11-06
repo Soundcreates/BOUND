@@ -29,7 +29,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     const decoderRoot = path.join(resolvedTemp, "packages", "decoder");
     const policyRoot = path.join(resolvedTemp, "packages", "policy-core");
     await Promise.all([mkdir(extensionRoot, { recursive: true }), mkdir(decoderRoot, { recursive: true }), mkdir(policyRoot, { recursive: true })]);
-    for (const file of ["sw.js", "connection-score.mjs", "score-settings.mjs", "score-config.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "anon-rpc-host.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
+    for (const file of ["sw.js", "connection-score.mjs", "score-settings.mjs", "score-config.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "settings.mjs", "anon-rpc-host.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
       await copyFile(path.join(repoRoot, "apps", "extension", file), path.join(extensionRoot, file));
     }
     await copyFile(path.join(repoRoot, "packages", "decoder", "index.mjs"), path.join(decoderRoot, "index.mjs"));
@@ -65,7 +65,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
         "1": { trustedCounterparties: [], trustedContracts: [TRUSTED], deployers: [], source: "fake" }
       }]))
     };
-    const local = {};
+    const local = { boundMonitoring: true };
     const session = {};
     const fake = {
       site: SITE,
@@ -168,19 +168,23 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       assert.equal((await connect(method, connectionSender)).action, "continue");
       for (const status of ["active", "drift"]) {
         fake.adapters.records = scenarioRecords(status);
+        // An incident or drift is reported with the score; the connection is never refused.
         const result = await connect(method, connectionSender);
-        assert.equal(result.action, "cancel");
+        assert.equal(result.action, "continue");
         assert.equal(result.connectionStatus, status);
+        assert.equal(local.boundWarningHistory.at(-1).verdict, "connection risky");
       }
+      // No watcher records is missing data, not a problem: it connects unverified.
       fake.adapters.records = [];
-      assert.equal((await connect(method, connectionSender)).connectionStatus, "unknown");
+      assert.equal((await connect(method, connectionSender)).action, "continue");
       assert.equal(local.boundWarningHistory.at(-1).method, method);
-      assert.equal(local.boundWarningHistory.at(-1).verdict, "connection blocked");
-      assert.match(local.boundWarningHistory.at(-1).reasons[0], /unavailable/);
+      assert.equal(local.boundWarningHistory.at(-1).verdict, "connection unverified");
+      assert.match(local.boundWarningHistory.at(-1).reasons[0], /connected unverified/);
     }
     const connectionSender = makeSender(SITE, "connection-cross-frame");
     fake.adapters.records = scenarioRecords("normal");
-    assert.equal((await connect("eth_requestAccounts", { ...connectionSender, url: "https://unknown.example/" })).connectionStatus, "unknown");
+    // A frame from a site BOUND has no data for also connects unverified.
+    assert.equal((await connect("eth_requestAccounts", { ...connectionSender, url: "https://unknown.example/" })).action, "continue");
     fake.currentDocuments.set("1:0", "replacement-doc");
     assert.equal((await connect("eth_requestAccounts", connectionSender)).action, "cancel");
     const startRequest = async (site, request, status = "normal") => {
