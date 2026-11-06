@@ -29,8 +29,8 @@ button.addEventListener("click", async () => {
   status.hidden = true;
   try {
     if (capturing) {
-      await chrome.storage.local.set({ boundMonitoring: false });
       await capture("stop");
+      await chrome.storage.local.set({ boundMonitoring: false });
     } else {
       // Consent comes first: the service worker refuses to capture while monitoring
       // is off, so monitoring is turned on before capture starts, and turned back off

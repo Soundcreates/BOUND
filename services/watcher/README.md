@@ -40,12 +40,56 @@ The extension seals every observation batch to the aggregator's public key with 
 
 Without a pinned key the extension keeps reports queued and sends nothing. Batches are sealed at send time, so after a rotation and rebuild, queued reports go out under the new key; only an extension still running the old build is rejected until it is updated.
 
-## Frontend hash aggregation
+## Deploy the aggregator as a container (Docker Hub image, e.g. on Render)
 
-Frontend observations are kept in `.bound/watcher-frontend-journal.json`, including deduplication and pending publication state. A hash matures with three independent reporters and one hour of observation; these thresholds are fixed. Reports from scopes without a confirmed safe status, or with drift or an incident, are quarantined. Declare explicitly normal scopes using `BOUND_LOCAL_INTAKE_NORMAL_SCOPES`, a comma-separated list of `host:port` or `host:port@chainId` entries; omitted chain IDs use `BOUND_LOCAL_INTAKE_CHAIN_ID`. An empty list trusts no scopes. Known Arkiv drift or incident and corroborated watcher triggers override the declaration. The watcher prunes and publishes hourly, after accepted intake, and at startup to drain pending work. With Arkiv disabled, publication is journal-only.
+The image (`Dockerfile` at the repo root) holds no state and no secrets. On start, `local-intake.mjs` rebuilds its state from what its writer key already published on Arkiv (`rebuild-from-arkiv.mjs`):
 
-The local intake composition keeps a published drift status sticky after warning reports expire. To authorize recovery, independently review the scope and set `BOUND_LOCAL_INTAKE_RECOVERY_APPROVAL_FILE` to a private approval file using the format above. For local drift, set `incidentId` to the exact current status operation ID in the local Arkiv registry journal (64 lowercase hex characters); this is a status version, not an incident ID. The approval must be unexpired, and the watcher must have no recent or pending warning for its counting window. The next flush uses the archive's version-guarded recovery write; a newer status invalidates the approval. Incident recovery is not provided by this local route. No HTTP endpoint grants recovery. Remove expired approvals after use, and protect the file from unauthorized modification. Quarantined frontend reports are discarded on recovery and fresh reports must mature again. When Arkiv is disabled, frontend publications remain pending until verified archive readback is available. Journal `.lock` files are exclusive across processes; after an unclean shutdown, verify the owner is gone before removing a stale lock.
+- **Report journal:** every live `observation` entity, with its original time from its creation block, so the 1-hour incident window and the 8-day retention survive a restart.
+- **Upsert registry:** each site's current `baseline` and `status` entity, so the next publish patches it instead of creating a duplicate that readers would reject.
 
-Frontend upserts have a second safety check at the Arkiv execution boundary, using the registry's current status and an independently supplied scope-safety callback. Archive integrations must supply `getFrontendSafety(scope, status)`; absent or unavailable safety fails closed. The callback must not call serialized archive methods. The local intake also durably quarantines a pending frontend registry operation when it observes an unsafe scope, so later recovery cannot replay its old aggregate. A quarantined operation remains blocked across restart and needs manual reconciliation of the registry and sender journals; the sender may also block other writes while a signed transaction is unresolved. Do not remove or edit journals without reconciling the transaction, nonce, and onchain entity with the operator's trusted procedures. A transaction already signed or broadcast may still be submitted or confirmed independently; this guard cannot revoke it. Safety can also change after the last check and before submission, so operators must account for that interval.
+It then waits for any transaction its predecessor left in flight to settle. A replacement container is therefore an exact copy of the one that stopped, on any host.
 
-Local intake accepts `ARKIV_RPC_URL`, `ARKIV_CHAIN_ID`, `ARKIV_TEST_WRITER_ADDRESS` and `ARKIV_TEST_WRITER_PRIVATE_KEY` as fallbacks for the corresponding `BOUND_ARKIV_*` settings. Nonempty watcher-specific values take precedence, and the selected key must match the selected owner. Remove stale overrides or explicitly supply a matching pair; the watcher never silently switches identities after a mismatch.
+**Run exactly one aggregator per writer key.** Two at once collide on transaction nonces.
+- Use one instance, and stop the laptop aggregator before a hosted one starts.
+- On hosts with zero-downtime deploys (Render keeps the old instance until the new one is healthy), set `BOUND_STARTUP_WRITE_DELAY_MS=60000`. The new instance then writes nothing for its first minute; `POST`s get `503 retry` and the extension resends.
+- Render's free plan sleeps idle services, which stops the hourly republish. Use an always-on instance.
+
+### Build and publish the image
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t <dockerhub-user>/bound-aggregator:<tag> --push .
+```
+
+### Environment (hosting secrets)
+
+Put these in one env file. On Render, add it under **Secret Files** with the filename `.env`; Render mounts it at `/etc/secrets/.env`, which the aggregator reads on start. `BOUND_ENV_FILE` points it elsewhere. Ordinary environment variables also work and win over the file.
+
+| Variable | Value |
+|---|---|
+| `BOUND_ARKIV_RPC_URL` | `https://rpc.rabdi.db-chain.testnet.arkiv.network` |
+| `BOUND_ARKIV_CHAIN_ID` | `7794095` |
+| `BOUND_ARKIV_OWNER` | the writer address |
+| `BOUND_ARKIV_PRIVATE_KEY` | the writer key |
+| `ARKIV_ACCESS_KEY` | an Arkiv API key. Required: the anonymous Rabdi query budget is exhausted |
+| `BOUND_INTAKE_PRIVATE_JWK` | output of `node scripts/integration/intake-keygen.mjs --print-env` (a private key: never paste it into chat or logs) |
+| `BOUND_INTAKE_PUBLIC_KEY` | same as in `.env`. Optional: the container refuses to start if the JWK doesn't match it |
+| `BOUND_LOCAL_INTAKE_SCOPES` | sites to publish before any traffic, e.g. `127.0.0.1:8005,app.uniswap.org` |
+| `BOUND_TRUST_PROXY` | `1` behind a hosting proxy, so the per-IP limit sees client addresses |
+| `BOUND_STARTUP_WRITE_DELAY_MS` | `60000` on Render (see above) |
+
+The host's `PORT` is honoured; the image binds `0.0.0.0` and defaults to 8787.
+
+### On Render
+
+1. **New → Web Service → Existing image**, `docker.io/<dockerhub-user>/bound-aggregator:<tag>`.
+2. Set **Instances: 1**, add the variables above as a secret file named `.env`, and set the **Health Check Path** to `/healthz`. No disk.
+3. After deploy, `https://<service>.onrender.com/healthz` returns `{"ok":true}`.
+4. In BOUND → Options, set **Watcher intake URL** to `https://<service>.onrender.com/v1/observations`. The extension build must pin the matching `BOUND_INTAKE_PUBLIC_KEY`.
+
+### Behaviour
+
+- `POST /v1/observations` replies `202` only once the batch's reports are on Arkiv. Otherwise it replies `503 retry`, and the extension retries; duplicates are dropped.
+- More than `BOUND_INTAKE_RATE` (default 30) batches per address in 10 minutes gets `429`.
+- `GET /healthz` reports `503` until the rebuild and Arkiv writer are ready.
+- `BOUND_REBUILD=always` forces a rebuild even when state files exist. With `BOUND_LOCAL_INTAKE_ARKIV=off` the rebuild still runs, read-only, as a dry run.
+- Duplicate baseline/status entities found during a rebuild are logged, never deleted automatically.

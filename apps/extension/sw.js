@@ -129,6 +129,7 @@ function applyMonitoring(on) {
 chrome.storage.onChanged?.addListener((changes, area) => {
   if (area !== "local" || !changes.boundMonitoring) return;
   monitoringCache = changes.boundMonitoring.newValue === true;
+  refreshMonitoringBadges(monitoringCache).catch(() => {});
   applyMonitoring(monitoringCache).catch(() => {});
   if (monitoringCache) {
     refreshPublicData().catch(() => {});
@@ -139,7 +140,7 @@ chrome.storage.onChanged?.addListener((changes, area) => {
   }
 });
 // Reconcile registrations with the stored choice every time the worker starts.
-monitoringEnabled().then(applyMonitoring).catch(() => {});
+monitoringEnabled().then(on => Promise.all([applyMonitoring(on), refreshMonitoringBadges(on)])).catch(() => {});
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === dispatcher.alarmName) monitoringEnabled().then((on) => on && dispatcher.dispatch()).catch(() => {});
@@ -644,19 +645,25 @@ function clearCoverage(tabId) {
     delete boundSiteAlerts[tabId];
     await chrome.storage.session.set({ boundCoverage, boundSiteStatuses, boundSiteAlerts });
     await chrome.notifications?.clear(`bound-site-${tabId}`).catch(() => {});
-    chrome.action.setBadgeText({ tabId, text: "" });
+    setMonitoringBadge(tabId, monitoringCache === true);
     if (decisionAdapters) chrome.alarms.clear(`${STATUS_EXPIRY_PREFIX}${tabId}`).catch(() => {});
   });
 }
 function updateBadge(tabId, coverage, statuses) {
-  const frames = Object.values(coverage).filter((item) => item.tabId === tabId);
-  const siteStatus = statuses[tabId];
-  const active = siteStatus?.status === "active" && Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now();
-  const drift = siteStatus?.status === "drift" && Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now();
-  const current = active ? "incident" : drift ? "drift" : frames.some((item) => item.bypassPossible) ? "bypass_possible" : frames.some((item) => item.value === "unsupported") ? "unsupported" : frames.some((item) => item.value === "mediated") ? "mediated" : "";
-  chrome.action.setBadgeText({ tabId, text: current === "incident" ? "INC" : current === "drift" ? "DNS" : current === "bypass_possible" ? "BYP" : current === "unsupported" ? "UNS" : current === "mediated" ? "MED" : "" });
-  if (current) chrome.action.setBadgeBackgroundColor({ tabId, color: ["incident", "bypass_possible"].includes(current) ? "#a52a2a" : ["unsupported","drift"].includes(current) ? "#7c5b13" : "#1e6045" });
+  monitoringEnabled().then(on => setMonitoringBadge(tabId, on)).catch(() => {});
 }
+function setMonitoringBadge(tabId, on) {
+  chrome.action.setBadgeBackgroundColor({ tabId, color: "#2b2b2b" });
+  chrome.action.setBadgeTextColor?.({ tabId, color: "#34d399" });
+  chrome.action.setBadgeText({ tabId, text: on ? "●" : "" });
+}
+async function refreshMonitoringBadges(on) {
+  const tabs = await chrome.tabs.query({});
+  for (const tab of tabs) if (Number.isInteger(tab.id)) setMonitoringBadge(tab.id, on);
+}
+chrome.tabs.onCreated?.addListener(tab => {
+  if (Number.isInteger(tab.id)) monitoringEnabled().then(on => setMonitoringBadge(tab.id, on)).catch(() => {});
+});
 async function refreshSiteStatus(tabId, siteOrigin, revision) {
   if (!(await monitoringEnabled())) return;
   const request = Symbol("status request");
