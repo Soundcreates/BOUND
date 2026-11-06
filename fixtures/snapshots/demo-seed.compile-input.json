@@ -72,7 +72,9 @@
       "chainId": 11155111,
       "trustedContracts": [
         "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e",
-        "0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16"
+        "0x4a4c8b7cdab6b19dc2cdb417cdb53a2ccbaf5322",
+        "0xdc4a563d00f5c3012b699794eb9e13a561be386f",
+        "0xf633e7fc17e2bbe0d0965d18ec1821dcb754a3d3"
       ],
       "evidence": [
         {
@@ -82,10 +84,22 @@
           "codeHash": "0x8ea75f170914f04bc7c03e47eac3d7f5763f40fd5337cad69011bc7245fcf4a0"
         },
         {
-          "address": "0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16",
+          "address": "0x4a4c8b7cdab6b19dc2cdb417cdb53a2ccbaf5322",
           "kind": "contract",
           "sourceUrl": "https://docs.ens.domains/learn/deployments",
-          "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+          "codeHash": "0x8061eea4f4e297d177c472285786923d69874d849ba37bce0088db99c6422596"
+        },
+        {
+          "address": "0xdc4a563d00f5c3012b699794eb9e13a561be386f",
+          "kind": "contract",
+          "sourceUrl": "https://docs.ens.domains/learn/deployments",
+          "codeHash": "0x04359a1efd638740104492646990972a028c2f74da718798545b9a5c4f4ff860"
+        },
+        {
+          "address": "0xf633e7fc17e2bbe0d0965d18ec1821dcb754a3d3",
+          "kind": "contract",
+          "sourceUrl": "https://docs.ens.domains/learn/deployments",
+          "codeHash": "0xb025a7edb8e81862c2d28857211a7a91c1fb2b17c5bcf28b983987067f083c2a"
         }
       ],
       "attestationName": "ens.eth"
