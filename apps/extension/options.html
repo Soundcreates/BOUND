@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BOUND settings</title>
-<style>body{font:15px/1.45 system-ui,sans-serif;max-width:52rem;margin:2rem auto;padding:0 1rem;color:#18202a}label{display:block;font-weight:600;margin:1rem 0}input,textarea{display:block;box-sizing:border-box;width:100%;padding:.5rem;font:inherit}button{padding:.6rem 1rem}small{font-weight:400}#status{min-height:1.5rem}</style></head>
-<body><h1>BOUND settings</h1><p>Use public test-network endpoints and addresses. Do not enter private keys or credentials.</p>
+<link rel="stylesheet" href="ui.css"></head>
+<body class="options"><main><h1>BOUND settings</h1><p>Use public test-network endpoints and addresses. Do not enter private keys or credentials.</p>
 <form id="settings">
 <label>ENS root name<input name="ensRootName" placeholder="bound-demo.eth"></label>
 <label>Pinned ENS resolver address<input name="ensResolver" placeholder="0x…"></label>
@@ -12,4 +12,4 @@
 <label>Anon-RPC destination RPC URL<input name="anonRpcUrl" placeholder="https://…"></label>
 <button type="submit">Save settings</button><p id="status" role="status"></p></form>
 <p>ENS root, protocol attestation, and site-specific chain reads use the anonymizing worker. Its configured bootstrap endpoint is contacted directly to fetch and verify the worker; eligible reads never fall back to public RPC.</p>
-<script type="module" src="options.mjs"></script></body></html>
+</main><script type="module" src="options.mjs"></script></body></html>
