@@ -11,6 +11,7 @@
   "background": { "service_worker": "sw.js", "type": "module" },
   "sandbox": { "pages": ["anon-rpc/*/sandbox.html"] },
   "content_security_policy": {
-    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; child-src 'self' blob:; worker-src 'self' blob:; connect-src *;"
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; child-src 'self' blob:; worker-src 'self' blob:; connect-src *;",
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-ancestors 'none';"
   }
 }

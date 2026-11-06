@@ -6,8 +6,20 @@ const TRUST_SOURCES = new Set(["snapshot", "ens_attestation", "shared_contract",
 // A snapshot can require several ENS/Arkiv RPCs, and an Arkiv status query may
 // span multiple pages. Both budgets fit within the hook's 50-second deadline.
 const BULK_READ_TIMEOUT_MS = 20_000;
+const BUNDLE_READ_TIMEOUT_MS = 2_000;
+const frontendReadTimeoutMs = 1_750;
+const anonymousReads = new Map();
 const ANON_READ_TIMEOUT_MS = 20_000;
 const ENS_SOURCES = new Set(["live", "memory", "arkiv_unconfirmed", "unavailable", "not_configured"]);
+
+const unavailableCommunity = () => ({ state: "unavailable", fetchedAt: null, ageMs: null, verifiedAt: null, block: null, frontend: null, rawDrift: false, corroboratedDrift: false, activeIncident: false, ambiguous: false });
+
+export async function readFrontendContext({ siteOrigin, chainId, watcherOwner, adapters, now = Date.now() }) {
+  const site = canonicalHttpsHost(siteOrigin), chain = normalizeChain(chainId), owner = normalizeAddress(watcherOwner);
+  if (!site || !chain || !owner || !Number.isSafeInteger(now) || now < 0 || typeof adapters?.readFrontendCommunity !== "function") return unavailableCommunity();
+  try { return await withTimeout(() => adapters.readFrontendCommunity({ site, chain, budgetMs: 1500 }), frontendReadTimeoutMs); }
+  catch { return unavailableCommunity(); }
+}
 
 /**
  * Compose extension-owned trust and watcher data for policy-core.evaluate.
@@ -43,18 +55,19 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
   const site = canonicalHttpsHost(siteOrigin);
   const chain = normalizeChain(chainId);
   const owner = normalizeAddress(watcherOwner);
+  const frontendRead = readFrontendContext({ siteOrigin, chainId, watcherOwner, adapters, now });
   if (!site || !chain || !owner || !adapters || typeof adapters.readVerifiedSnapshot !== "function") {
-    return emptyContext("invalid_context");
+    return { ...emptyContext("invalid_context"), frontendCommunity: await frontendRead };
   }
 
   let verified = null, verifiedSource = null;
   try { verifiedSource = await withTimeout(() => adapters.readVerifiedSnapshot(), BULK_READ_TIMEOUT_MS); verified = validateVerifiedSnapshot(verifiedSource, currentTime()); }
   catch { /* No site-specific requests are made without a current verified snapshot. */ }
-  if (!verified) return { ...emptyContext("snapshot_unavailable"), site, chain };
+  if (!verified) return { ...emptyContext("snapshot_unavailable"), site, chain, frontendCommunity: await frontendRead };
 
   const siteEntry = snapshotEntry(verified.snapshot, site, chain);
   if (!siteEntry && typeof adapters.readUncuratedViaAnonRpc !== "function") {
-    return { ...emptyContext("watcher_baseline_unavailable"), site, chain, snapshotAvailable: true };
+    return { ...emptyContext("watcher_baseline_unavailable"), site, chain, snapshotAvailable: true, frontendCommunity: await frontendRead };
   }
   const baselineRead = siteEntry
     ? typeof adapters.readWatcherBundle === "function"
@@ -76,7 +89,7 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
   ]);
 
   const completedAt = currentTime();
-  if (!Number.isFinite(completedAt) || !validateVerifiedSnapshot(verifiedSource, completedAt)) return { ...emptyContext("snapshot_unavailable"), site, chain };
+  if (!Number.isFinite(completedAt) || !validateVerifiedSnapshot(verifiedSource, completedAt)) return { ...emptyContext("snapshot_unavailable"), site, chain, frontendCommunity: await frontendRead };
 
   const policy = Object.create(null);
   for (const address of verified.snapshot.sharedContracts[chain] || []) addSource(policy, address, "shared_contract", ["rights", "destination", "called", "token"]);
@@ -139,6 +152,7 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
   const usable = baselinePresent;
 
   return {
+    frontendCommunity: await frontendRead,
     policy: usable ? policy : Object.create(null),
     baseline: usable ? (siteEntry ? "seeded" : "uncurated") : null,
     drift: usable && drift,
@@ -176,9 +190,12 @@ export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, ad
 
   let records;
   try {
-    records = typeof adapters.readSiteStatusViaAnonRpc === "function"
-      ? await withTimeout(() => adapters.readSiteStatusViaAnonRpc({ site }), ANON_READ_TIMEOUT_MS)
-      : await withTimeout(() => adapters.readWatcherBundle(), BULK_READ_TIMEOUT_MS);
+    if (typeof adapters.readWatcherBundle === "function") {
+      try { records = await withTimeout(() => adapters.readWatcherBundle(), BUNDLE_READ_TIMEOUT_MS); } catch { /* Try anonymous fallback. */ }
+    }
+    if (!Array.isArray(records) && typeof adapters.readSiteStatusViaAnonRpc === "function") {
+      records = await readAnonymousStatus(owner, site, adapters);
+    }
   } catch { return result("unknown"); }
   evidence.watcherLookup = Array.isArray(records);
   if (!Array.isArray(records)) return result("unknown");
@@ -219,6 +236,17 @@ export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, ad
     return true;
   });
   return normal ? result("normal", earliestExpiry(snapshotExpiry, normalRecords)) : result("unknown");
+}
+
+function readAnonymousStatus(owner, site, adapters) {
+  const key = `${owner}:${site}`;
+  let pending = anonymousReads.get(key);
+  if (!pending) {
+    pending = withTimeout(() => adapters.readSiteStatusViaAnonRpc({ site }), ANON_READ_TIMEOUT_MS)
+      .finally(() => { if (anonymousReads.get(key) === pending) anonymousReads.delete(key); });
+    anonymousReads.set(key, pending);
+  }
+  return pending;
 }
 
 function earliestExpiry(snapshotExpiry, records) {

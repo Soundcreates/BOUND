@@ -1,3 +1,4 @@
+import { frontendIntegrityText } from "./warning-integrity.mjs";
 const id = new URLSearchParams(location.search).get("request");
 const main = document.querySelector("main");
 const typed = document.querySelector("#confirmation");
@@ -49,20 +50,10 @@ async function awaitDetails() {
     document.querySelector("#ens").textContent = ensText + (data.ensInconsistent ? " The watcher's cached copy differs from the live record." : "");
   }
   if (data.kind === "connection") renderConnection(data);
+  else { document.body.classList.add(`tier-${data.tier || "warning"}`); document.querySelector("h1").textContent = ({pass:"Review request", warning:"Review request", huge:"Warning: review this request", firewall:"Stop: review this request"})[data.tier] || "Review request"; }
   const addresses = document.querySelector("#entries");
   addresses.textContent = data.entries.length ? data.entries.map((entry) => `${entry.role}: ${entry.address}${entry.verified === false ? " (unverified)" : ""}`).join(" · ") : "No counterparty decoded";
-  if (data.frontend) {
-    const node = document.querySelector("#frontend");
-    node.replaceChildren();
-    for (const item of data.frontend.scripts) {
-      const line = document.createElement("div");
-      line.textContent = `${item.label} (${item.source}): ${item.hash}`;
-      node.append(line);
-    }
-    const note = document.createElement("div");
-    note.textContent = `${data.frontend.unavailable} scripts unavailable or not inspected. Cached bytes may differ from what executed.`;
-    node.append(note);
-  }
+  document.querySelector("#frontend").textContent = frontendIntegrityText(data.frontendIntegrity);
   if (data.networkCapture?.active) {
     const node = document.querySelector("#network-capture"); node.replaceChildren();
     for (const row of data.networkCapture.rows) {
@@ -94,7 +85,7 @@ async function awaitDetails() {
     approvalPairs.append(pair);
   }
   document.querySelector("#approval-links").hidden = !approvals.length;
-  if (data.verdict === "escalated") {
+  if (data.requireTypedConfirmation || data.verdict === "escalated") {
     typed.hidden = false;
     typedLabel.hidden = false;
     continueButton.disabled = true;

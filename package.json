@@ -22,7 +22,9 @@
     "probe:swarm-gateway": "node --experimental-strip-types services/curator/probe/probe-swarm-gateway.ts",
     "probe:seed-codehash": "node --experimental-strip-types services/curator/probe/seed-codehash.ts",
     "probe:verify-bytecode": "node --experimental-strip-types services/curator/probe/verify-bytecode.ts",
-    "curator": "node --experimental-strip-types services/curator/src/cli.ts"
+    "curator": "node --experimental-strip-types services/curator/src/cli.ts",
+    "swarm:safe:check": "node scripts/swarm/publish-safe-page.mjs --gateway --dry-run",
+    "swarm:safe:publish": "node scripts/swarm/publish-safe-page.mjs --gateway --publish"
   },
   "dependencies": {
     "@hpke/core": "^1.10.0",
