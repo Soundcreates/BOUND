@@ -42,6 +42,16 @@ test('switch controls stay in-process and unsupported modes are rejected', async
     await demo.close();
   }
 });
+test('opt-in scanner cloaking serves clean and attack pages at the same origin',async()=>{
+ const demo=await createDemoCutover({port:0,token,spender,scannerClean:true});
+ try{
+  demo.setMode('hijack');
+  const scanner=await fetch(demo.origin,{headers:{'user-agent':'Mozilla/5.0 HeadlessChrome/130.0'}});
+  const browser=await fetch(demo.origin,{headers:{'user-agent':'Mozilla/5.0 Chrome/130.0'}});
+  assert.equal(new URL(scanner.url).origin,new URL(browser.url).origin);
+  assert.match(await scanner.text(),/No wallet request/);assert.match(await browser.text(),/Request test approval/);
+ }finally{await demo.close();}
+});
 test('same-origin cutover can serve a synthetic local-chain approval request', async () => {
   const demo=await createDemoCutover({port:0,token,spender});
   try {

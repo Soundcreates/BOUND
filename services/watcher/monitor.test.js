@@ -18,3 +18,9 @@ test('missing reference or failed poll cannot publish or silently create a basel
  const outage=createDriftMonitor({readBaseline:async()=>baseline,poll:async()=>{throw Error('offline');},publish:async()=>published++});
  await assert.rejects(outage.check('example.org',1),/offline/); assert.equal(published,0);
 });
+test('monitor records successful observations before publication and marks poll failures stale',async()=>{
+ const calls=[];let fail=false;
+ const monitor=createDriftMonitor({readBaseline:async()=>baseline,poll:async()=>{if(fail)throw Error('offline');return {...baseline,nameservers:['ns2.example']};},onObservation:async(_site,_chain,result)=>calls.push(['observation',result]),onPollFailure:async()=>calls.push(['unavailable']),publish:async()=>{calls.push(['publish']);throw Error('swarm offline');}});
+ await assert.rejects(monitor.check('example.org',1),/publication/);assert.deepEqual(calls.map(c=>c[0]),['observation','publish']);
+ fail=true;await assert.rejects(monitor.check('example.org',1),/offline/);assert.equal(calls.at(-1)[0],'unavailable');
+});

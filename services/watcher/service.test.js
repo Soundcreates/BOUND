@@ -1,0 +1,75 @@
+import {test} from 'node:test';
+import {strict as assert} from 'node:assert';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createWatcherService} from './service.js';
+const origin='chrome-extension://'+'a'.repeat(32),site='example.org',value='0x'+'1'.repeat(40);
+test('service accepts, delivers and publishes an hour-rounded baseline',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-service-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const writes=[],baselines=[];
+ const service=await createWatcherService({journalPath:join(dir,'watcher.json'),windowMs:3600000,retentionMs:7200000,k:3,now:()=>3600123,sites:[{site,chainId:1}],allowedOrigins:[origin],monitor:{check:async()=>{}},handleTriggers:async()=>{},isIncidentActive:async()=>false,hasCorroboratedDrift:async()=>false,archive:{writeObservation:async(record,id)=>writes.push({record,id}),writeBaseline:async(record,id)=>baselines.push({record,id})},intervals:{poll:100000,flush:100000,baseline:100000}});
+ const address=await service.start({port:0});t.after(()=>service.stop());
+ const payload={schemaVersion:1,events:[{site,chainId:1,value,kind:'counterparty',reporterKey:'key'}]};
+ const response=await fetch(`http://127.0.0.1:${address.port}/v1/observations`,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(payload)});
+ assert.equal(response.status,202);await service.runtime.runFlush();await service.runtime.runBaseline();
+ assert.equal(writes.length,1);assert.deepEqual(baselines[0].record.counterparties,[value]);assert.equal(baselines[0].record.updatedAt,'1970-01-01T01:00:00.000Z');
+ assert.equal(typeof baselines[0].id,'string');await service.stop();
+});
+test('service refuses to listen on a public interface',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-service-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const service=await createWatcherService({journalPath:join(dir,'watcher.json'),windowMs:1,retentionMs:1,k:2,now:()=>0,sites:[{site,chainId:1}],allowedOrigins:[origin],monitor:{check:async()=>{}},handleTriggers:async()=>{},isIncidentActive:async()=>false,hasCorroboratedDrift:async()=>false,archive:{writeObservation:async()=>{},writeBaseline:async()=>{}},intervals:{poll:1000,flush:1000,baseline:1000}});
+ await assert.rejects(service.start({host:'0.0.0.0',port:0}),/loopback/);
+});
+test('service forwards distinct-key trigger to its incident adapter',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-service-inc-'));t.after(()=>rm(dir,{recursive:true,force:true}));const delivered=[],handled=[];
+ const service=await createWatcherService({journalPath:join(dir,'watcher.json'),windowMs:3600000,retentionMs:7200000,k:3,now:()=>0,sites:[{site,chainId:1}],allowedOrigins:[origin],monitor:{check:async()=>{}},handleTriggers:async(...args)=>handled.push(args),isIncidentActive:async()=>false,hasCorroboratedDrift:async()=>false,archive:{writeObservation:async(record)=>delivered.push(record),writeBaseline:async()=>{}},intervals:{poll:100000,flush:100000,baseline:100000}});
+ const address=await service.start({port:0});t.after(()=>service.stop());
+ const payload={schemaVersion:1,events:['a','b','c'].map(reporterKey=>({site,chainId:1,value,kind:'warned',reporterKey}))};
+ assert.equal((await fetch(`http://127.0.0.1:${address.port}/v1/observations`,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(payload)})).status,202);
+ await service.runtime.runFlush();assert.equal(delivered.length,3);assert.deepEqual(handled,[[site,1,[{counterparty:value,trigger:'K-same-counterparty-warned'}]]]);
+});
+test('incident lifecycle integrates with the service and blocks incident-time observations',async t=>{
+ const {openWatcherIncidents}=await import('./incident-binding.js');
+ const {keccak256}=await import('../../packages/contracts/keccak-reference.js');
+ const dir=await mkdtemp(join(tmpdir(),'bound-service-lifecycle-'));t.after(()=>rm(dir,{recursive:true,force:true}));let clock=0,recover=false;const observations=[],statuses=[];
+ const archive={writeObservation:async record=>observations.push(record),writeBaseline:async()=>{},writeIncident:async()=> '0x'+'a'.repeat(64),writeStatus:async record=>{statuses.push(record);return {state:'current'};}};
+ const incidents=await openWatcherIncidents({path:join(dir,'incidents.json'),now:()=>clock,feeds:[{site,chainId:1,feedReference:'0x'+'d'.repeat(64),evidenceReferences:[]}],canRecover:async()=>recover,hash:bytes=>keccak256(bytes),upload:async bytes=>({reference:'b'.repeat(64),digest:keccak256(bytes)}),archive});
+ const service=await createWatcherService({journalPath:join(dir,'watcher.json'),windowMs:3600000,retentionMs:7200000,k:3,now:()=>clock,sites:[{site,chainId:1}],allowedOrigins:[origin],monitor:{check:async()=>{}},handleTriggers:incidents.handleTriggers,isIncidentActive:incidents.isIncidentActive,hasCorroboratedDrift:async()=>false,archive,intervals:{poll:100000,flush:100000,baseline:100000}});
+ const address=await service.start({port:0});t.after(()=>service.stop());
+ const send=events=>fetch(`http://127.0.0.1:${address.port}/v1/observations`,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({schemaVersion:1,events})});
+ await send(['a','b','c'].map(reporterKey=>({site,chainId:1,value,kind:'warned',reporterKey})));await service.runtime.runFlush();
+ assert.equal(incidents.isIncidentActive(site,1),true);assert.deepEqual(statuses.map(s=>s.state),['incident','incident']);
+ await send([{site,chainId:1,value:'0x'+'2'.repeat(40),kind:'counterparty',reporterKey:'d'}]);await service.runtime.runFlush();assert.equal(observations.length,3);
+ clock=3600000;recover=true;await service.runtime.runFlush();assert.equal(statuses.at(-1).state,'normal');assert.equal(incidents.isIncidentActive(site,1),false);
+});
+test('fresh drift plus one warning triggers an incident and recovery waits for clean polling',async t=>{
+ const {openWatcherIncidents}=await import('./incident-binding.js');const {openWatchedDrift}=await import('./drift-binding.js');const {keccak256}=await import('../../packages/contracts/keccak-reference.js');
+ const dir=await mkdtemp(join(tmpdir(),'bound-drift-service-'));t.after(()=>rm(dir,{recursive:true,force:true}));let clock=0,current;const statuses=[],drifts=[];
+ const reference={nameservers:['ns1.example'],addresses:['192.0.2.1'],asns:{'192.0.2.1':'64500'},certificate:{fingerprint:'old',issuer:'CA',names:[site]}};current=structuredClone(reference);
+ const drift=await openWatchedDrift({path:join(dir,'drift.json'),now:()=>clock,maxAgeMs:7200000,readBaseline:async()=>reference,poll:async()=>current,publish:async event=>drifts.push(event)});
+ const archive={writeObservation:async()=>{},writeBaseline:async()=>{},writeIncident:async()=> '0x'+'a'.repeat(64),writeStatus:async record=>{statuses.push(record);return {state:'current'};}};
+ const incidents=await openWatcherIncidents({path:join(dir,'incidents.json'),now:()=>clock,feeds:[{site,chainId:1,feedReference:'0x'+'d'.repeat(64),evidenceReferences:[]}],canRecover:async()=>{const state=await drift.readStatus(site,1);return !state.stale&&state.state==='normal';},hash:bytes=>keccak256(bytes),upload:async bytes=>({reference:'b'.repeat(64),digest:keccak256(bytes)}),archive});
+ const service=await createWatcherService({journalPath:join(dir,'watcher.json'),windowMs:3600000,retentionMs:7200000,k:3,now:()=>clock,sites:[{site,chainId:1}],allowedOrigins:[origin],monitor:drift.monitor,handleTriggers:incidents.handleTriggers,isIncidentActive:incidents.isIncidentActive,hasCorroboratedDrift:drift.hasCorroboratedDrift,archive,intervals:{poll:100000,flush:100000,baseline:100000}});
+ const address=await service.start({port:0});t.after(()=>service.stop());
+ current={...reference,nameservers:['ns2.example']};await service.runtime.runPoll();assert.equal(drifts.length,1);
+ const payload={schemaVersion:1,events:[{site,chainId:1,value,kind:'warned',reporterKey:'key'}]};
+ await fetch(`http://127.0.0.1:${address.port}/v1/observations`,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(payload)});await service.runtime.runFlush();assert.equal(incidents.isIncidentActive(site,1),true);
+ clock=3600000;current=reference;await service.runtime.runPoll();await service.runtime.runFlush();assert.equal(incidents.isIncidentActive(site,1),false);assert.equal(statuses.at(-1).state,'normal');
+});
+test('guarded drift publication cannot overwrite an active incident',async t=>{
+ const {openWatcherIncidents}=await import('./incident-binding.js');const {openWatchedDrift}=await import('./drift-binding.js');const {openDriftPublisher}=await import('./drift-publisher.js');const {createGuardedWatcherFlows,guardedDriftStatus}=await import('./guarded-flows.js');const {keccak256}=await import('../../packages/contracts/keccak-reference.js');
+ const dir=await mkdtemp(join(tmpdir(),'bound-guarded-service-'));t.after(()=>rm(dir,{recursive:true,force:true}));let clock=0,current;const statuses=[],drifts=[];
+ const reference={nameservers:['ns1.example'],addresses:['192.0.2.1'],asns:{'192.0.2.1':'64500'},certificate:{fingerprint:'old',issuer:'CA',names:[site]}};current={...reference,nameservers:['ns2.example']};
+ const archive={writeObservation:async()=>{},writeBaseline:async()=>{},writeIncident:async()=> '0x'+'a'.repeat(64),writeDrift:async record=>drifts.push(record),writeStatus:async record=>{statuses.push(record);return {state:'current'};}};
+ const upload=async bytes=>({reference:'b'.repeat(64),digest:keccak256(bytes)}),hash=bytes=>keccak256(bytes),feedReference='0x'+'d'.repeat(64);
+ const publisher=await openDriftPublisher({path:join(dir,'publication.json'),now:()=>clock,renewalWindowMs:1,feeds:[{site,chainId:1,feedReference}],hash,upload,writeDrift:archive.writeDrift,writeDriftStatusIfNoIncident:guardedDriftStatus});
+ const drift=await openWatchedDrift({path:join(dir,'drift.json'),now:()=>clock,maxAgeMs:7200000,readBaseline:async()=>reference,poll:async()=>current,publish:publisher.publish});
+ const incidents=await openWatcherIncidents({path:join(dir,'incidents.json'),now:()=>clock,feeds:[{site,chainId:1,feedReference,evidenceReferences:[]}],canRecover:async()=>{const state=await drift.readStatus(site,1);return !state.stale&&state.state==='normal';},hash,upload,archive});
+ const guarded=createGuardedWatcherFlows({monitor:drift.monitor,publisher,readDriftStatus:drift.readStatus,incidents,archive});
+ const service=await createWatcherService({journalPath:join(dir,'watcher.json'),windowMs:3600000,retentionMs:7200000,k:3,now:()=>clock,sites:[{site,chainId:1}],allowedOrigins:[origin],monitor:guarded.monitor,handleTriggers:guarded.handleTriggers,isIncidentActive:guarded.isIncidentActive,hasCorroboratedDrift:drift.hasCorroboratedDrift,archive,intervals:{poll:100000,flush:100000,baseline:100000}});
+ const address=await service.start({port:0});t.after(()=>service.stop());await service.runtime.runPoll();assert.equal(statuses.at(-1).state,'drift');
+ const body=JSON.stringify({schemaVersion:1,events:[{site,chainId:1,value,kind:'warned',reporterKey:'key'}]});await fetch(`http://127.0.0.1:${address.port}/v1/observations`,{method:'POST',headers:{origin,'content-type':'application/json'},body});await service.runtime.runFlush();assert.equal(statuses.at(-1).state,'incident');
+ clock=1;await service.runtime.runPoll();assert.equal(drifts.length,2);assert.equal(statuses.at(-1).state,'incident');
+ clock=3600000;current=reference;await service.runtime.runPoll();await service.runtime.runFlush();assert.equal(statuses.at(-1).state,'normal');
+});

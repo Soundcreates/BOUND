@@ -2,7 +2,9 @@
 
 **Purpose:** turn the project architecture into a three-developer implementation plan with independent work lanes, explicit phase gates, and live end-to-end proof for every required integration.
 
-**Architecture basis:** BOUND Final Architecture v2.0. At plan creation, the repository contained only the two architecture documents. Developer 3 Phase 0 has since added a dependency-free root workspace, executable contract package, fixtures, and CI test command. Browser, watcher, live Arkiv writer, and other product implementations remain absent. This plan treats architecture claims as design input until executable evidence is present in this checkout.
+**Architecture basis:** BOUND Final Architecture v2.0. At plan creation, the repository contained only the two architecture documents. Since then, Developer 3 has added the workspace and executable contract package, a durable watcher and incident pipeline, Arkiv read/write composition, and local integration harnesses. The current local suite exercises those paths with fakes. The live Arkiv create/patch/expiry gate now passes; the browser extension, ENSv2, Swarm, Anon-RPC, and controlled DNS/TLS drift remain unverified in this checkout. Treat architecture claims as design input until executable evidence is present here.
+
+**Phase status (2026-11-06): Phase 0 remains open.** Local unit tests exercise the Developer 3 implementation, and the live Rabdi Arkiv create, patch, owner-query, and expiry checks passed; evidence is in `packages/contracts/feasibility.md`. Controlled DNS/TLS drift still requires an end-to-end cutover. Developer 1 and 2 browser, ENSv2, Swarm, and Anon-RPC gates remain outstanding. No later phase is accepted as complete until every shared exit gate below is evidenced.
 
 ## 1. Source of truth and current baseline
 

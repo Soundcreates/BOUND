@@ -1,0 +1,8 @@
+{
+  "name": "@bound/mediation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./index.js",
+  "dependencies": {"ethers":"^6.17.0"}
+}

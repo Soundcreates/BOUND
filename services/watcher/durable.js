@@ -1,7 +1,7 @@
 import {createHash, randomUUID} from 'node:crypto';
 import {open, readFile, rename, unlink} from 'node:fs/promises';
 import {dirname} from 'node:path';
-import {parseUniqueJSON, validateObservationBatch, validateRecord} from '../../packages/contracts/index.js';
+import {parseUniqueJSON, validateObservation, validateObservationBatch, validateRecord} from '../../packages/contracts/index.js';
 
 const exact = (value, names) => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === names.length && names.every(name => Object.hasOwn(value, name));
 const validId = value => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
@@ -70,6 +70,7 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
   const toRecord = event => ({schemaVersion: 1, kind: 'observation', site: event.site, chainId: event.chainId, value: event.value, reporterKey: event.reporterKey, event: event.kind});
 
   async function intake(batch) {
+    batch = structuredClone(batch);
     return serialize(async () => {
       if (!validateObservationBatch(batch)) return {schemaVersion: 1, result: 'rejected'};
       const time = clock();
@@ -111,7 +112,7 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
   }
 
   const pending = () => serialize(async () => state.entries.filter(entry => !entry.delivered).map(({id, record}) => ({id, record: structuredClone(record)})));
-  async function triggers(site, chainId) {
+  async function evaluateTriggers(site, chainId) {
     return serialize(async () => {
       const time = clock();
       const groups = new Map();
@@ -121,12 +122,21 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
         if (!groups.has(record.value)) groups.set(record.value, new Set());
         groups.get(record.value).add(record.reporterKey);
       }
-      const drift = await hasCorroboratedDrift(site, chainId);
-      if (typeof drift !== 'boolean') throw new Error('drift status unavailable');
-      return [...groups].filter(([, reporters]) => drift || reporters.size >= k)
-        .map(([counterparty]) => ({counterparty, trigger: drift ? 'drift+warned' : 'K-same-counterparty-warned'}));
+      let drift = null;
+      try { const value = await hasCorroboratedDrift(site, chainId); if (typeof value === 'boolean') drift = value; } catch { /* unavailable drift never invents corroboration */ }
+      const triggers = [...groups].filter(([, reporters]) => drift === true || reporters.size >= k)
+        .map(([counterparty]) => ({counterparty, trigger: drift === true ? 'drift+warned' : 'K-same-counterparty-warned'}));
+      return {triggers, driftStatus: drift === null ? 'unavailable' : 'available'};
     });
   }
+
+  async function triggers(site, chainId) { return (await evaluateTriggers(site, chainId)).triggers; }
+
+  const recoveryQuiet=(site,chainId)=>serialize(()=>{
+    if(!validateObservation({site,chainId,value:'0x'+'0'.repeat(40),kind:'warned',reporterKey:'validation'}))throw new Error('invalid recovery scope');
+    const time=clock();
+    return !state.entries.some(entry=>time-entry.acceptedAt<windowMs&&entry.record.site===site&&entry.record.chainId===chainId&&entry.record.event==='warned');
+  });
 
   async function baseline(site, chainId) {
     return serialize(async () => {
@@ -141,5 +151,5 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
     const [site, chainId] = JSON.parse(value);
     return {site, chainId};
   }).sort((a, b) => a.site.localeCompare(b.site) || a.chainId - b.chainId);
-  return {intake, flush, pending, triggers, baseline, scopes};
+  return {intake, flush, pending, triggers, evaluateTriggers, recoveryQuiet, baseline, scopes};
 }

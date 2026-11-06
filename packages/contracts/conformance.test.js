@@ -119,3 +119,8 @@ test('incident status remains valid while the public report is unavailable', asy
   assert.equal(validateRecord({...status,incidentReference:null}),true);
   assert.equal(validateRecord({...status,state:'normal',incidentReference:status.incidentReference}),false);
 });
+test('raw JSON rejects lone UTF-16 surrogates required by RFC 8785',()=>{
+  assert.throws(()=>parseUniqueJSON('{"x":"\\ud800"}'),/Unicode/);
+  assert.throws(()=>parseUniqueJSON('{"\\udc00":1}'),/Unicode/);
+  assert.deepEqual(parseUniqueJSON('{"x":"\\ud83d\\ude00"}'),{x:'😀'});
+});

@@ -25,3 +25,7 @@ test('incident input is captured before asynchronous publication',async()=>{
  await composer.publish(input);
  assert.ok(published.every(record=>record.site==='example.org'));
 });
+test('secondary incidents publish reports without replacing the primary status',async()=>{
+ const calls=[],composer=createIncidentComposer({markActive:async()=>calls.push('active'),hash:bytes=>keccak256(bytes),upload:async bytes=>({reference,digest:keccak256(bytes)}),writeIncident:async()=>{calls.push('incident');return entityKey;},writeStatus:async()=>calls.push('status')});
+ await composer.publish(incident,{statusMode:'record-only'});assert.deepEqual(calls,['active','incident']);
+});

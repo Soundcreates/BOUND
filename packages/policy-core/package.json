@@ -1,1 +1,14 @@
-{"name":"@bound/policy-core","private":true,"type":"module","scripts":{"test":"node --test"}}
+{
+  "name": "@bound/policy-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./browser": "./index.mjs",
+    "./observations": "./observations.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

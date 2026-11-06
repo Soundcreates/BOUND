@@ -9,9 +9,9 @@ const same = (left, right) => JSON.stringify(canonical(left)) === JSON.stringify
 
 // SDK/signing boundary: adapters must index the operation ID and public-read it
 // back with actual Arkiv owner, key, and expiry metadata before acknowledging.
-export function createArkivWriter({owner, schemaTag, findByOperationId, submitOnce, currentBlock, minLifetimeBlocks = 43_200}) {
+export function createArkivWriter({owner, schemaTag, findByOperationId, submitOnce, currentBlock, reconcileExisting=async()=>{}, minLifetimeBlocks = 43_200}) {
   if (typeof owner !== 'string' || !address.test(owner) || typeof schemaTag !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(schemaTag) ||
-      typeof findByOperationId !== 'function' || typeof submitOnce !== 'function' || typeof currentBlock !== 'function' ||
+      typeof findByOperationId !== 'function' || typeof submitOnce !== 'function' || typeof currentBlock !== 'function' || typeof reconcileExisting!=='function' ||
       !Number.isSafeInteger(minLifetimeBlocks) || minLifetimeBlocks < 1 || minLifetimeBlocks > MAX_LIFETIME_BLOCKS) throw new Error('invalid Arkiv writer configuration');
 
   async function lookup(id) {
@@ -30,6 +30,7 @@ export function createArkivWriter({owner, schemaTag, findByOperationId, submitOn
     const prior = await lookup(id);
     if (prior.entity) {
       if (!same(prior.entity.record, record)) throw new Error('Arkiv operation ID conflict');
+      await reconcileExisting({operationId:id,record:structuredClone(record),entity:structuredClone(prior.entity)});
       return prior.entity;
     }
     // submitOnce must persist signed bytes before submission and reuse them after restart.

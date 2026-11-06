@@ -64,3 +64,23 @@ test('read paths refuse a backward clock after state was persisted',async t=>{
  await assert.rejects(w.baseline(site,1),/clock/);
  await assert.rejects(w.triggers(site,1),/clock/);
 });
+test('intake captures the batch before queued asynchronous work',async t=>{
+ const {options,deliveries}=await setup(t),watcher=await openDurableWatcher(options),request=batch(event('a'));
+ const result=watcher.intake(request);request.events[0].value=other;await result;await watcher.flush();
+ assert.equal(deliveries[0].record.value,addr);
+});
+test('K distinct warnings still trigger when drift state is unavailable',async t=>{
+ const {options}=await setup(t);options.hasCorroboratedDrift=async()=>{throw Error('offline');};const w=await openDurableWatcher(options);
+ await w.intake(batch(event('a'),event('b')));await w.flush();
+ assert.deepEqual(await w.evaluateTriggers(site,1),{triggers:[],driftStatus:'unavailable'});
+ await w.intake(batch(event('c')));await w.flush();
+ assert.deepEqual(await w.evaluateTriggers(site,1),{triggers:[{counterparty:addr,trigger:'K-same-counterparty-warned'}],driftStatus:'unavailable'});
+});
+test('recovery quiet period includes pending warnings and survives restart',async t=>{
+ const {options,setClock}=await setup(t);let watcher=await openDurableWatcher(options);
+ await watcher.intake(batch(event('a')));assert.equal(await watcher.recoveryQuiet(site,1),false);
+ assert.equal(await watcher.recoveryQuiet('other.example',1),true);
+ setClock(999);watcher=await openDurableWatcher(options);assert.equal(await watcher.recoveryQuiet(site,1),false);
+ setClock(1000);assert.equal(await watcher.recoveryQuiet(site,1),true);
+ await assert.rejects(watcher.recoveryQuiet('invalid/site',1),/scope/);
+});

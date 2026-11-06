@@ -3,7 +3,17 @@ const ADDRESS_RE = /^0x[0-9a-f]{40}$/;
 const DIGEST_RE = /^0x[0-9a-f]{64}$/;
 const SWARM_REFERENCE_RE = /^[0-9a-f]{64}$/;
 const integer = n => Number.isSafeInteger(n) && n >= 0;
-const nonempty = s => typeof s === 'string' && s.length > 0;
+const wellFormed = s => {
+  for (let i = 0; i < s.length; i++) {
+    const unit = s.charCodeAt(i);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = s.charCodeAt(++i);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
+  }
+  return true;
+};
+const nonempty = s => typeof s === 'string' && s.length > 0 && wellFormed(s);
 const isAddress = v => typeof v === 'string' && ADDRESS_RE.test(v);
 const isDigest = v => typeof v === 'string' && DIGEST_RE.test(v);
 const isPlainSwarmReference = v => typeof v === 'string' && SWARM_REFERENCE_RE.test(v);
@@ -132,7 +142,11 @@ export function parseUniqueJSON(text) {
     const start = i++;
     while (i < text.length) {
       if (text[i] === '\\') { i += 2; continue; }
-      if (text[i++] === '"') return JSON.parse(text.slice(start, i));
+      if (text[i++] === '"') {
+        const value = JSON.parse(text.slice(start, i));
+        if (!wellFormed(value)) throw new Error('invalid Unicode string');
+        return value;
+      }
     }
     throw new Error('unterminated string');
   };
