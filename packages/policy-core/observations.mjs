@@ -28,8 +28,12 @@ export function observationCandidates({ site, chain, classification, request, ac
   const privateAddresses = privateAddressesFor(request, accounts);
   if (!privateAddresses) return [];
   const output = [];
-  if (classification.kind !== "decoded") return output;
+  // Undecodable calldata still has a known called contract (the transaction's `to`).
+  // Report only that one; addresses scanned out of opaque calldata have no known role.
+  const opaque = classification.kind === "opaque";
+  if (classification.kind !== "decoded" && !opaque) return output;
   for (const entry of classification.entries || []) {
+    if (opaque && entry.role !== "called") continue;
     const value = entry.address?.toLowerCase();
     if (!value || privateAddresses.has(value) || entry.verified === false) continue;
     const key = `${site}:${chain}:${value}`;

@@ -19,19 +19,19 @@ test("randomly schedules queued reports and restores the durable alarm", async (
   const h = harness([{ site: "swap.example", kind: "warned", chain: "1", reporterKey: "rotating" }]);
   const dispatcher = createObservationDispatcher({ storage: h.storage, alarms: h.alarmApi, send: async () => {}, now: () => 1000, random: () => 0.5 });
   await dispatcher.schedule();
-  assert.equal(h.storageData.boundObservationDispatchAt, 916_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, 7_000);
   await dispatcher.resume();
-  assert.equal(h.alarms.get(dispatcher.alarmName), 916_000);
+  assert.equal(h.alarms.get(dispatcher.alarmName), 7_000);
 });
 
 test("resume schedules an existing queue without a stored alarm", async () => {
   const h = harness([{ site: "queued.example", kind: "warned", chain: "1", reporterKey: "rotating" }]);
   const dispatcher = createObservationDispatcher({ storage: h.storage, alarms: h.alarmApi, send: async () => {}, now: () => 5000, random: () => 0 });
   await dispatcher.resume();
-  assert.equal(h.storageData.boundObservationDispatchAt, 35_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, 7_000);
   assert.equal(typeof h.storageData.boundObservationGeneration, "string");
   assert.equal(h.storageData.boundObservationScheduledGeneration, h.storageData.boundObservationGeneration);
-  assert.equal(h.alarms.get(dispatcher.alarmName), 35_000);
+  assert.equal(h.alarms.get(dispatcher.alarmName), 7_000);
 });
 
 test("crash recovery reschedules a queue whose generation is newer than its alarm", async () => {
@@ -47,11 +47,11 @@ test("crash recovery reschedules a queue whose generation is newer than its alar
   const dispatcher = createObservationDispatcher({ storage: h.storage, alarms: h.alarmApi, send: async () => { sent++; }, now: () => now, random: () => 0 });
   await dispatcher.dispatch();
   assert.equal(sent, 0);
-  assert.equal(h.storageData.boundObservationDispatchAt, now + 30_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, now + 2_000);
   assert.equal(h.storageData.boundObservationScheduledGeneration, "generation-new");
   await dispatcher.resume();
-  assert.equal(h.alarms.get(dispatcher.alarmName), now + 30_000);
-  now += 30_000;
+  assert.equal(h.alarms.get(dispatcher.alarmName), now + 2_000);
+  now += 2_000;
   await dispatcher.dispatch();
   assert.equal(sent, 1);
 });
@@ -66,7 +66,7 @@ test("deduplicated enqueue arms an unscheduled existing queue", async () => {
   now = 20_000;
   await dispatcher.enqueue([record], now);
   assert.equal(h.storageData.boundObservationQueue.length, 1);
-  assert.equal(h.storageData.boundObservationDispatchAt, 50_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, 22_000);
 });
 
 test("new reports reset an older alarm and serialize against dispatch", async () => {
@@ -77,10 +77,10 @@ test("new reports reset an older alarm and serialize against dispatch", async ()
   const dispatcher = createObservationDispatcher({ storage: h.storage, alarms: h.alarmApi, send: async batch => sent.push(batch), now: () => now, random: () => 0 });
   const record = { site: "new.example", kind: "warned", chain: "1" };
   await Promise.all([dispatcher.enqueue([record], now), dispatcher.dispatch()]);
-  assert.equal(h.storageData.boundObservationDispatchAt, now + 30_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, now + 2_000);
   assert.deepEqual(sent, []);
   assert.equal(h.storageData.boundObservationQueue.length, 2);
-  now += 30_000;
+  now += 2_000;
   await dispatcher.dispatch();
   assert.equal(sent[0].length, 2);
 });
@@ -114,7 +114,7 @@ test("timed out transport retains the batch and schedules bounded retry", async 
   await assert.rejects(dispatcher.dispatch(), /timeout/);
   assert.deepEqual(h.storageData.boundObservationQueue, [record]);
   assert.equal(h.storageData.boundObservationRetry, 1);
-  assert.equal(h.storageData.boundObservationDispatchAt, now + 30_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, now + 2_000);
 });
 
 test("dispatcher timeout aborts transport and keeps the batch queued", async () => {
@@ -135,5 +135,5 @@ test("dispatcher timeout aborts transport and keeps the batch queued", async () 
   await assert.rejects(dispatcher.dispatch(), /timed out/);
   assert.equal(signal.aborted, true);
   assert.deepEqual(h.storageData.boundObservationQueue, [record]);
-  assert.equal(h.storageData.boundObservationDispatchAt, now + 30_000);
+  assert.equal(h.storageData.boundObservationDispatchAt, now + 2_000);
 });

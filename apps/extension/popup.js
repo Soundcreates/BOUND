@@ -32,14 +32,21 @@ button.addEventListener("click", async () => {
       await chrome.storage.local.set({ boundMonitoring: false });
       await capture("stop");
     } else {
-      await capture("start");
+      // Consent comes first: the service worker refuses to capture while monitoring
+      // is off, so monitoring is turned on before capture starts, and turned back off
+      // if capture cannot start on this tab.
+      await chrome.storage.local.set({ boundMonitoring: true });
       try {
-        await chrome.storage.local.set({ boundMonitoring: true });
+        await capture("start");
       } catch (error) {
-        await capture("stop").catch(() => {});
+        await chrome.storage.local.set({ boundMonitoring: false }).catch(() => {});
         throw error;
       }
     }
+    // Page scripts are registered on Start and removed on Stop; open tabs keep
+    // whatever they loaded with until they are reloaded.
+    status.textContent = "Reload open tabs to apply.";
+    status.hidden = false;
   } catch (error) {
     status.textContent = error.message || "Unable to update monitoring. Please try again.";
     status.hidden = false;

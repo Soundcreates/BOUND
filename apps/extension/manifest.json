@@ -3,8 +3,8 @@
   "name": "BOUND Prototype",
   "version": "0.1.0",
   "description": "Phase 0 wallet request interception prototype.",
-  "minimum_chrome_version": "116",
-  "permissions": ["storage", "tabs", "offscreen", "alarms", "webNavigation", "notifications", "debugger"],
+  "minimum_chrome_version": "119",
+  "permissions": ["storage", "tabs", "offscreen", "alarms", "webNavigation", "notifications", "debugger", "scripting"],
   "action": { "default_title": "BOUND coverage", "default_popup": "popup.html" },
   "options_ui": { "page": "options.html", "open_in_tab": true },
   "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
@@ -12,22 +12,5 @@
   "sandbox": { "pages": ["anon-rpc/*/sandbox.html"] },
   "content_security_policy": {
     "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; child-src 'self' blob:; worker-src 'self' blob:; connect-src *;"
-  },
-  "content_scripts": [
-    {
-      "matches": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
-      "js": ["hook.js"],
-      "run_at": "document_start",
-      "all_frames": true,
-      "match_about_blank": true,
-      "world": "MAIN"
-    },
-    {
-      "matches": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
-      "js": ["relay.js", "frontend-collector.js"],
-      "run_at": "document_start",
-      "all_frames": true,
-      "match_about_blank": true
-    }
-  ]
+  }
 }

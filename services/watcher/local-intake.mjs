@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseUniqueJSON, validateObservationBatch, validateIntakeResponse } from '../../packages/contracts/index.js';
@@ -8,6 +8,7 @@ import { FetchRequest, JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from 'e
 import { openDurableWatcher } from './durable.js';
 import { openArkivArchive } from '../../integrations/arkiv/archive.js';
 import { createArkivSigner } from '../../integrations/arkiv/signer.js';
+import { importPrivateKey, openReport } from '../../integrations/report-crypto/index.mjs';
 
 // Run from the repo root with: node --env-file=.env services/watcher/local-intake.mjs
 // Accepted observations are journaled first, then flushed to Arkiv in the
@@ -21,6 +22,10 @@ const journalPath = path.join(boundDir, 'watcher-local-journal.json');
 const port = 8787;
 const host = '127.0.0.1';
 const FLUSH_RETRY_MS = 30000;
+// Reports stay in the baseline for 8 days. The extension re-reports a (site, address)
+// pair at most once a week, so a shorter retention would empty baselines between reports.
+const RETENTION_MS = 8 * 24 * 3600000;
+const WINDOW_MS = 3600000;
 const CHAIN_ID = Number(process.env.BOUND_LOCAL_INTAKE_CHAIN_ID ?? 11155111);
 const corroborationK = Number(process.env.BOUND_LOCAL_INTAKE_K ?? 3);
 if (!Number.isSafeInteger(corroborationK) || corroborationK < 2) throw new Error('BOUND_LOCAL_INTAKE_K must be an integer of 2 or more');
@@ -58,13 +63,13 @@ async function openArchive() {
   // Dedicated journals: the curator's journals stay untouched.
   const stateDir = path.join(boundDir, 'watcher-arkiv');
   await mkdir(stateDir, { recursive: true, mode: 0o700 });
-  // Rabdi produces a block every ~2s. Observations live ~4h, which outlasts
-  // the watcher's 2h retention; the other kinds are unused here but required.
+  // Rabdi produces a block every ~2s. Observations live 8 days (345600 blocks), matching
+  // the watcher's retention. Baselines and statuses live ~24h and are republished hourly.
   const archive = await openArkivArchive({
     url, accessKey, owner, target, chainId, schemaTag: 'bound.record.v1',
     senderJournal: path.join(stateDir, 'sender.json'),
     registryJournal: path.join(stateDir, 'registry.json'),
-    lifetimes: { observation: 7200, baseline: 43200, drift: 43200, incident: 43200, status: 43200 },
+    lifetimes: { observation: 345600, baseline: 43200, drift: 43200, incident: 43200, status: 43200 },
     ...createArkivSigner({ wallet, provider, owner, target, chainId }),
     hash: keccak256, confirmTimeoutMs: 120000, confirmPollMs: 1500
   });
@@ -72,12 +77,39 @@ async function openArchive() {
   return archive;
 }
 
+// Reports arrive sealed to this key (HPKE, see integrations/report-crypto). There is
+// no plaintext path: without the key the intake does not start.
+async function loadReportKey() {
+  const file = path.resolve(process.env.BOUND_INTAKE_KEY_FILE ?? path.join(boundDir, 'intake-key.json'));
+  let stored;
+  try { stored = JSON.parse(await readFile(file, 'utf8')); }
+  catch { throw new Error(`report key not found at ${file}: run node scripts/integration/intake-keygen.mjs`); }
+  if (stored?.version !== 1 || typeof stored.keyId !== 'string' || !/^[0-9a-f]{16}$/.test(stored.keyId)) throw new Error(`invalid report key file ${file}`);
+  return { keyId: stored.keyId, privateKey: await importPrivateKey(stored.privateKey) };
+}
+const reportKey = await loadReportKey();
+console.log(`[Watcher] Report key loaded: keyId=${reportKey.keyId}`);
+
 const archive = await openArchive();
+
+// An existing journal records the retention it was opened with; widening it only keeps
+// entries longer, so the stored setting is raised in place (window and k must match).
+async function widenJournalRetention() {
+  let state;
+  try { state = JSON.parse(await readFile(journalPath, 'utf8')); } catch (error) { if (error.code === 'ENOENT') return; throw error; }
+  const config = state?.config;
+  if (!config || config.retentionMs >= RETENTION_MS || config.windowMs !== WINDOW_MS || config.k !== corroborationK) return;
+  const temporary = `${journalPath}.${process.pid}.tmp`;
+  await writeFile(temporary, JSON.stringify({ ...state, config: { ...config, retentionMs: RETENTION_MS } }), { mode: 0o600 });
+  await rename(temporary, journalPath);
+  console.log(`[Watcher] Journal retention raised from ${config.retentionMs} ms to ${RETENTION_MS} ms`);
+}
+await widenJournalRetention();
 
 const watcher = await openDurableWatcher({
   path: journalPath,
-  windowMs: 3600000,
-  retentionMs: 7200000,
+  windowMs: WINDOW_MS,
+  retentionMs: RETENTION_MS,
   // Corroboration needs at least two independent reporters, so k cannot go below 2:
   // one browser profile holds one reporter key per week and can never corroborate itself.
   k: corroborationK,
@@ -148,8 +180,13 @@ function scheduleFlush() {
   })().finally(() => { flushing = null; });
   return flushing;
 }
+// Baselines and statuses live ~24h on Arkiv. Republish every hour even without
+// traffic (a new hour bucket changes updatedAt), so a quiet site never expires to grey.
+let lastPublishedHour = hourBucket();
 const retryTimer = setInterval(async () => {
-  if ((await watcher.pending()).length) scheduleFlush();
+  const hour = hourBucket();
+  if (hour !== lastPublishedHour) { lastPublishedHour = hour; scheduleFlush(); }
+  else if ((await watcher.pending()).length) scheduleFlush();
 }, FLUSH_RETRY_MS);
 if (declaredScopes.length) console.log(`[Watcher] Operator-declared scopes: ${declaredScopes.map(s => `${s.site}@${s.chainId}`).join(', ')}`);
 scheduleFlush();
@@ -173,6 +210,8 @@ const server = http.createServer(async (req, res) => {
 
   const respond = (status, body) => {
     if (res.headersSent) return;
+    // One line per request, never the body: shows whether the extension reaches the intake at all.
+    console.log(`[Watcher] ${req.method} ${req.url} origin=${origin ?? 'none'} -> ${status}`);
     if (body !== undefined) headers['content-type'] = 'application/json; charset=utf-8';
     res.writeHead(status, headers);
     res.end(body === undefined ? undefined : JSON.stringify(body));
@@ -208,13 +247,14 @@ const server = http.createServer(async (req, res) => {
     const text = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
     let batch;
     try {
-      batch = parseUniqueJSON(text);
+      // Only sealed v2 envelopes are accepted; a plaintext batch is refused.
+      batch = parseUniqueJSON(await openReport(reportKey.privateKey, reportKey.keyId, parseUniqueJSON(text)));
     } catch {
-      return respond(400, { error: 'Invalid JSON' });
+      return respond(400, { error: 'Invalid report' });
     }
 
     if (!validateObservationBatch(batch)) {
-      console.warn('[Watcher] Rejected invalid observation batch:', batch);
+      console.warn('[Watcher] Rejected invalid observation batch');
       return respond(400, { error: 'Invalid observation batch' });
     }
 
@@ -231,8 +271,9 @@ const server = http.createServer(async (req, res) => {
     if (result.result === 'accepted') scheduleFlush();
     return respond(result.result === 'accepted' ? 202 : 400, result);
   } catch (err) {
-    console.error('[Watcher] Intake error:', err);
-    return respond(400, { error: err.message });
+    // Details go to the operator's own log only; the client gets a generic answer.
+    console.error(`[Watcher] Intake error: ${err.message}`);
+    return respond(400, { error: 'Invalid report' });
   }
 });
 

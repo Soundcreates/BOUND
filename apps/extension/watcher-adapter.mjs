@@ -1,3 +1,5 @@
+import {importPublicKey,sealReport} from "../../integrations/report-crypto/index.mjs";
+import {INTAKE_KEY} from "./score-settings.mjs";
 const ADDRESS=/^0x[0-9a-f]{40}$/;
 function endpoint(value){
  if(typeof value!=="string")throw new Error("Watcher endpoint is not configured");
@@ -18,13 +20,19 @@ function convert(record){
  if(!ADDRESS.test(record.value)||!["observation","warned"].includes(record.kind)||(record.observationKind!==undefined&&(record.kind!=="observation"||record.observationKind!=="called-contract")))throw new Error("Invalid queued observation");
  return {site:record.site,kind:record.kind==="warned"?"warned":record.observationKind??"counterparty",value:record.value,chainId:Number(chainId),reporterKey:record.reporterKey};
 }
-export function createWatcherSender({getConfig,fetchImpl=fetch}){
- if(typeof getConfig!=="function"||typeof fetchImpl!=="function")throw new Error("Invalid watcher sender configuration");
+// Batches are sealed to the aggregator's pinned public key (HPKE, P-256). There is
+// no plaintext fallback: without a key the batch stays queued and nothing is sent.
+export function createWatcherSender({getConfig=storedSettings,fetchImpl=fetch,publicKey=null}={}){
+ if(typeof getConfig!=="function"||typeof fetchImpl!=="function"||(publicKey!==null&&typeof publicKey!=="string"))throw new Error("Invalid watcher sender configuration");
+ let imported=null;
+ const key=()=>imported??=importPublicKey(publicKey).catch(error=>{imported=null;throw error;});
  return async(records,{signal}={})=>{
   if(!Array.isArray(records)||!records.length||records.length>100)throw new Error("Invalid observation batch");
   const events=records.map(convert).filter(Boolean);if(!events.length)return;
+  if(!publicKey)throw new Error("Aggregator key not configured");
   const config=await getConfig(),url=endpoint(config?.watcherUrl);
-  const response=await fetchImpl(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({schemaVersion:1,events}),redirect:"error",credentials:"omit",signal});
+  const envelope=await sealReport(await key(),{schemaVersion:1,events});
+  const response=await fetchImpl(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(envelope),redirect:"error",credentials:"omit",signal});
   if(!response.ok)throw new Error("Watcher unavailable");
   const length=response.headers?.get?.("content-length");if(length!==null&&length!==undefined&&(!/^\d+$/.test(length)||Number(length)>4096))throw new Error("Watcher response too large");
   let payload;if(response.body?.getReader){
@@ -36,5 +44,8 @@ export function createWatcherSender({getConfig,fetchImpl=fetch}){
   if(!payload||typeof payload!=="object"||Array.isArray(payload)||Object.keys(payload).sort().join(",")!=="result,schemaVersion"||payload.schemaVersion!==1||payload.result!=="accepted")throw new Error("Watcher did not accept the batch");
  };
 }
-export async function isObservationConfigured(){try{const {boundSettings}=await chrome.storage.local.get("boundSettings");endpoint(boundSettings?.watcherUrl);return true;}catch{return false;}}
-export const sendObservationBatch=createWatcherSender({getConfig:async()=>{const {boundSettings}=await chrome.storage.local.get("boundSettings");return boundSettings;}});
+async function storedSettings(){const {boundSettings}=await chrome.storage.local.get("boundSettings");return boundSettings;}
+// The aggregator's public key is pinned at build time; it is never read from settings.
+const PINNED_KEY=INTAKE_KEY?.publicKey??null;
+export async function isObservationConfigured(publicKey=PINNED_KEY){try{if(!publicKey)return false;await importPublicKey(publicKey);endpoint((await storedSettings())?.watcherUrl);return true;}catch{return false;}}
+export const sendObservationBatch=createWatcherSender({publicKey:PINNED_KEY});

@@ -24,6 +24,7 @@ export function createNetworkCapture({ api, now = Date.now }) {
     catch (error) { tabs.delete(tabId); await api.detach({ tabId }).catch(() => {}); throw error; }
   }
   async function stop(tabId) { tabs.delete(tabId); await api.detach({ tabId }).catch(() => {}); }
+  async function stopAll() { for (const tabId of [...tabs.keys()]) await stop(tabId); }
   function snapshot(tabId) {
     const state = tabs.get(tabId);
     return state ? { active: true, startedAt: state.startedAt, missing: state.missing, rows: structuredClone(state.rows) } : { active: false, rows: [], missing: 0 };
@@ -61,5 +62,5 @@ export function createNetworkCapture({ api, now = Date.now }) {
   }
   api.onEvent.addListener((source, method, params) => { onEvent(source, method, params).catch(() => {}); });
   api.onDetach.addListener(source => tabs.delete(source.tabId));
-  return { start, stop, reset, snapshot };
+  return { start, stop, stopAll, reset, snapshot };
 }
