@@ -175,6 +175,18 @@ async function cmdAttestWrite(
 
   const txHash = await publishAttestation(walletClient, publicClient, ensName, resolverAddress, attestation);
   process.stdout.write(`  tx: ${txHash}\n`);
+
+  // Wait for the receipt before returning. writeContract() resolves as soon as the tx is
+  // accepted into the mempool, so without this the command exits while the record is still
+  // the previous one. An `attest-read` run straight afterwards then resolves stale data and
+  // reports a schema error against a record that was already replaced — which is exactly
+  // how a bad address appeared to survive three corrected writes during bring-up. Printing
+  // a tx hash that is not yet mined makes the tool lie about what is on-chain.
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    throw new Error(`attest-write: tx ${txHash} reverted (block ${receipt.blockNumber})`);
+  }
+  process.stdout.write(`  mined in block ${receipt.blockNumber} — record is live\n`);
 }
 
 /** Read a live protocol self-attestation from ENS via UniversalResolverV2.resolve(). */
