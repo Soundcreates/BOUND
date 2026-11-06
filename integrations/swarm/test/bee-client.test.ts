@@ -102,3 +102,51 @@ test("uploadAndSelfVerify throws if the round-tripped bytes do not match what wa
     () => assert.rejects(() => uploadAndSelfVerify({ apiUrl: "https://bee.example", batchId: BATCH_ID }, sent), BeeUploadError),
   );
 });
+
+test("stampedByHost posts no swarm-* headers at all, so a public gateway stamps the upload", async () => {
+  let capturedHeaders: Headers | undefined;
+  let capturedUrl: string | undefined;
+  await withFetch(
+    (async (url: string | URL, init?: RequestInit) => {
+      capturedUrl = String(url);
+      capturedHeaders = new Headers(init?.headers);
+      return new Response(JSON.stringify({ reference: REF }), { status: 201 });
+    }) as typeof fetch,
+    async () => {
+      const ref = await uploadBytes({ apiUrl: "https://api.gateway.example", stampedByHost: true }, new Uint8Array([1, 2, 3]));
+      assert.equal(ref, REF);
+    },
+  );
+  assert.equal(capturedUrl, "https://api.gateway.example/bytes");
+  // Any of these would turn a working anonymous upload into an opaque 4xx: the gateway
+  // stamps with its own batch and will not honour pin/deferred directives from a stranger.
+  assert.equal(capturedHeaders?.get("swarm-postage-batch-id"), null);
+  assert.equal(capturedHeaders?.get("swarm-pin"), null);
+  assert.equal(capturedHeaders?.get("swarm-deferred-upload"), null);
+  assert.equal(capturedHeaders?.get("content-type"), "application/octet-stream");
+});
+
+test("uploadBytes refuses batchId and stampedByHost together rather than picking a payer", async () => {
+  await assert.rejects(
+    () => uploadBytes({ apiUrl: "https://bee.example", batchId: BATCH_ID, stampedByHost: true }, new Uint8Array([1])),
+    TypeError,
+  );
+});
+
+test("uploadBytes refuses an upload with neither a batchId nor stampedByHost", async () => {
+  await assert.rejects(() => uploadBytes({ apiUrl: "https://bee.example" }, new Uint8Array([1])), TypeError);
+});
+
+test("uploadAndSelfVerify round-trips a host-stamped upload through the same gateway", async () => {
+  const sent = new Uint8Array([7, 8, 9]);
+  await withFetch(
+    (async (url: string | URL, init?: RequestInit) =>
+      init?.method === "POST"
+        ? new Response(JSON.stringify({ reference: REF }), { status: 201 })
+        : new Response(sent, { status: 200 })) as typeof fetch,
+    async () => {
+      const ref = await uploadAndSelfVerify({ apiUrl: "https://api.gateway.example", stampedByHost: true }, sent);
+      assert.equal(ref, REF);
+    },
+  );
+});

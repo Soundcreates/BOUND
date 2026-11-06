@@ -32,7 +32,7 @@ export interface PublishResult {
 
 /**
  * Reads the live root (if any), refuses a non-advancing epoch, uploads the compiled bytes
- * to the curator's own Bee node (self-verified round-trip), and publishes the new root
+ * to Swarm (our own Bee node, or unstamped to a public gateway; self-verified round-trip either way), and publishes the new root
  * record. Every step is sequential and each failure is specific — a caller must be able to
  * tell "refused due to rollback" apart from "Swarm upload failed" apart from "ENS write
  * reverted," since the three call for different operator responses.
@@ -63,7 +63,12 @@ export async function publishSnapshot(
     throw new PublishRefusedError((e as Error).message);
   }
 
-  const swarmRef = await uploadAndSelfVerify({ apiUrl: config.beeApiUrl, batchId: config.postageBatchId }, compiled.bytes);
+  const swarmRef = await uploadAndSelfVerify(
+    config.swarmUpload.mode === "bee"
+      ? { apiUrl: config.swarmUpload.apiUrl, batchId: config.swarmUpload.batchId }
+      : { apiUrl: config.swarmUpload.apiUrl, stampedByHost: true },
+    compiled.bytes,
+  );
 
   const walletClient = makeWalletClient(config.rpcUrl, config.curatorAccount);
   const txHash = await publishRootRecord(walletClient, publicClient, config.ens, {

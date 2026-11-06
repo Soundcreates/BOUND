@@ -17,7 +17,18 @@ import { assertPostageBatchId } from "./postage.ts";
 
 export interface BeeClientConfig {
   readonly apiUrl: string;
-  readonly batchId: string;
+  /** Our own postage batch. Omit ONLY together with `stampedByHost: true`. */
+  readonly batchId?: string;
+  /**
+   * Let the upload host apply its own postage batch: a public Bee gateway stamps an
+   * unstamped `POST /bytes` for free. This is opt-in and never inferred from a missing
+   * `batchId`, for two reasons. An accidentally unstamped upload to a real Bee node is
+   * rejected outright, and an intentionally unstamped upload to a gateway buys no
+   * persistence guarantee — the host's batch, not ours, decides how long the bytes
+   * survive. Integrity is unaffected either way: the root record's digest is what makes
+   * served bytes unforgeable, so what is traded away here is availability, never trust.
+   */
+  readonly stampedByHost?: boolean;
   /** Defaults to false: wait for the upload to be synced before returning the reference. */
   readonly deferred?: boolean;
   /** Pin the content on this node so garbage collection cannot evict it. Defaults to true. */
@@ -44,14 +55,30 @@ function trimBase(url: string): string {
 
 /** Uploads raw bytes to the curator's own Bee node and returns the resulting Swarm reference. */
 export async function uploadBytes(config: BeeClientConfig, bytes: Uint8Array): Promise<string> {
-  assertPostageBatchId(config.batchId, "uploadBytes");
   const base = trimBase(config.apiUrl);
-  const headers: Record<string, string> = {
-    "Content-Type": "application/octet-stream",
-    "swarm-postage-batch-id": config.batchId,
-    "swarm-deferred-upload": String(config.deferred ?? false),
-    "swarm-pin": String(config.pin ?? true),
-  };
+  const headers: Record<string, string> = { "Content-Type": "application/octet-stream" };
+  if (config.stampedByHost) {
+    if (config.batchId !== undefined) {
+      throw new TypeError(
+        "uploadBytes: pass either batchId (our own batch) or stampedByHost (the host's), not both — " +
+          "the two describe different payers and silently preferring one would hide which was used",
+      );
+    }
+    // Deliberately no swarm-* headers at all. A public gateway stamps with its own batch and
+    // ignores or rejects pin/deferred directives from an anonymous caller, so sending them
+    // would turn a working upload into an opaque 4xx.
+  } else {
+    if (config.batchId === undefined) {
+      throw new TypeError(
+        "uploadBytes: no batchId. Pass our own postage batch id, or set stampedByHost: true to let " +
+          "a public Bee gateway stamp the upload (free, but the host's batch decides persistence)",
+      );
+    }
+    assertPostageBatchId(config.batchId, "uploadBytes");
+    headers["swarm-postage-batch-id"] = config.batchId;
+    headers["swarm-deferred-upload"] = String(config.deferred ?? false);
+    headers["swarm-pin"] = String(config.pin ?? true);
+  }
   const res = await fetch(`${base}/bytes`, { method: "POST", headers, body: bytes });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
