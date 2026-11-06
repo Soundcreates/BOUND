@@ -1,6 +1,8 @@
 import {decodeSnapshotBytes} from "../../packages/snapshot/src/digest.ts";
 import {parseRootRecord,encodeRootRecord} from "../../packages/snapshot/src/root-record.ts";
-import {makePublicClient,readRootRecord} from "../../integrations/ens/src/resolver-client.ts";
+import {makePublicClient,readRootRecord,readAttestation} from "../../integrations/ens/src/resolver-client.ts";
+import {createPublicClient,custom} from "viem";
+import {sepolia} from "viem/chains";
 import {normalizeSettings} from "./settings.mjs";
 
 const MAX_BYTES=8*1024*1024,REFRESH_MS=5*60_000;
@@ -39,9 +41,9 @@ async function defaultReadRoot(settings){
  const client=makePublicClient(settings.ensRpcUrl);if(await client.getChainId()!==settings.ensChainId)throw new Error("Unexpected ENS chain");
  return readRootRecord(client,{chainId:settings.ensChainId,rootName:settings.ensRootName,resolverAddress:settings.ensResolver});
 }
-export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,fetchImpl=fetch,now=Date.now,refreshMs=REFRESH_MS}){
+export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,fetchImpl=fetch,now=Date.now,refreshMs=REFRESH_MS,anonymousRequest,readProtocolAttestation=readAttestation}){
  if(typeof getSettings!=="function"||!storage||typeof storage.get!=="function"||typeof storage.set!=="function"||typeof readRoot!=="function"||typeof fetchImpl!=="function"||typeof now!=="function"||!Number.isSafeInteger(refreshMs)||refreshMs<0)throw new Error("Invalid trust engine configuration");
- let queue=Promise.resolve();
+ let queue=Promise.resolve();const issued=new WeakMap();
  const serial=fn=>{const result=queue.then(fn);queue=result.catch(()=>{});return result;};
  async function read(){
   const settings=normalizeSettings(await getSettings()),anchor=scope(settings),key=`bound.trust.v1:${JSON.stringify(anchor)}`,time=now();
@@ -52,7 +54,8 @@ export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,
    const root=validRoot(saved.root),snapshot=checkSnapshot(root,textEncoder.encode(saved.canonical),anchor,time,{allowExpired:true});
    cached={root,snapshot,canonical:saved.canonical,verifiedAt:saved.verifiedAt};
   }
-  const asResult=value=>({root:value.root,snapshot:decisionSnapshot(value.snapshot),sourceSnapshot:value.snapshot,cached:true,verifiedAt:value.verifiedAt});
+  const issue=value=>{issued.set(value,{anchor:JSON.stringify(anchor),snapshot:structuredClone(value.sourceSnapshot)});return value;};
+  const asResult=value=>issue({root:value.root,snapshot:decisionSnapshot(value.snapshot),sourceSnapshot:value.snapshot,cached:true,verifiedAt:value.verifiedAt});
   if(cached&&time-cached.verifiedAt<refreshMs&&Date.parse(cached.snapshot.expiresAt)>time)return asResult(cached);
   try{
    const root=validRoot(await readRoot(settings));
@@ -60,8 +63,20 @@ export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,
    if(cached&&(root.epoch<cached.root.epoch||(root.epoch===cached.root.epoch&&JSON.stringify(root)!==JSON.stringify(cached.root))))throw new Error("Snapshot rollback or equivocation");
    const bytes=await fetchSnapshot(settings.swarmGateways,root.swarmRef,fetchImpl),snapshot=checkSnapshot(root,bytes,anchor,time);
    const canonical=textDecoder.decode(bytes);await storage.set({[key]:{version:1,root,canonical,verifiedAt:time}});
-   return {root,snapshot:decisionSnapshot(snapshot),sourceSnapshot:snapshot,cached:false,verifiedAt:time};
+   return issue({root,snapshot:decisionSnapshot(snapshot),sourceSnapshot:snapshot,cached:false,verifiedAt:time});
   }catch(error){if(cached&&Date.parse(cached.snapshot.expiresAt)>time)return asResult(cached);throw error;}
  }
- return {readVerifiedSnapshot:()=>serial(read)};
+ async function readVerifiedSnapshot(){const value=await serial(read);const anchor=scope(normalizeSettings(await getSettings()));if(issued.get(value)?.anchor!==JSON.stringify(anchor))throw new Error("Trust settings changed");return value;}
+ async function readProtocolAttestationsViaAnonRpc({site,chain,verifiedSource}){
+  if(!verifiedSource||!issued.has(verifiedSource)||typeof anonymousRequest!=="function")return [];
+  const proof=issued.get(verifiedSource),anchor=scope(normalizeSettings(await getSettings()));if(proof.anchor!==JSON.stringify(anchor)||Date.parse(proof.snapshot.expiresAt)<=now())return [];
+  const name=proof.snapshot.sites[site]?.[chain]?.attestation?.name;if(!name)return [];
+  const network=await anonymousRequest({method:"eth_chainId",params:[]});if(network?.result!==`0x${anchor.chainId.toString(16)}`)return [];
+  const client=createPublicClient({chain:sepolia,transport:custom({request:async({method,params})=>{const response=await anonymousRequest({method,params:params??[]});if(response?.error||!Object.hasOwn(response??{},"result"))throw new Error("Anonymous RPC unavailable");return response.result;}})});
+  const attestation=await readProtocolAttestation(client,name);
+  const expires=Date.parse(attestation.expiresAt);if(attestation.site!==site||!Number.isFinite(expires)||expires<=now())return [];
+  if(Date.parse(proof.snapshot.expiresAt)<=now()||proof.anchor!==JSON.stringify(scope(normalizeSettings(await getSettings()))))return [];
+  return (attestation.addresses[chain]??[]).map(address=>({address,site,chain}));
+ }
+ return {readVerifiedSnapshot,readProtocolAttestationsViaAnonRpc};
 }

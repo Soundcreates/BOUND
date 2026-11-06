@@ -302,7 +302,9 @@
             error.code = 4001;
             throw error;
           }
-          return item.forward(item.frozen);
+          const result = item.forward(item.frozen);
+          if (typeof event.data.receiptToken === "string") postMessage({ type: "BOUND_FORWARDED_V1", channel, receiptToken: event.data.receiptToken, digest: item.digest, stateDigest: item.stateDigest }, location.origin);
+          return result;
         }), item.resolve, item.reject);
       }
     } else {

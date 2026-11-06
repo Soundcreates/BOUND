@@ -14,6 +14,8 @@
  * Input must already be a JS string decoded with a FATAL UTF-8 decoder (see decodeUtf8Strict).
  */
 
+import { isWellFormedUnicode } from "./unicode.ts";
+
 export type JsonValue = null | boolean | number | string | JsonValue[] | JsonObject;
 export interface JsonObject {
   [key: string]: JsonValue;
@@ -110,7 +112,7 @@ export function parseStrictJson(text: string, limits: StrictParseLimits = DEFAUL
     if (out.length > limits.maxStringLength) fail("string too long");
     // Reject lone surrogates: they cannot be encoded as UTF-8 and would make
     // canonical bytes ambiguous.
-    if (!out.isWellFormed()) fail("lone surrogate in string");
+    if (!isWellFormedUnicode(out)) fail("lone surrogate in string");
     return out;
   };
 
