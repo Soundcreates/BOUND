@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Phase 0 wallet request interception prototype.",
   "minimum_chrome_version": "116",
-  "permissions": ["storage", "tabs", "offscreen"],
+  "permissions": ["storage", "tabs", "offscreen", "alarms", "webNavigation"],
   "action": { "default_title": "BOUND coverage", "default_popup": "popup.html" },
   "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "https://*/*"],
   "background": { "service_worker": "sw.js", "type": "module" },

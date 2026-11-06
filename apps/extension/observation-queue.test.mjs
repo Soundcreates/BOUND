@@ -31,3 +31,32 @@ test("failed sends retain queued reports for retry; successful sends remove one 
   assert.equal(await flush(async () => {}, storage), 20);
   assert.equal(storage.data.boundObservationQueue.length, 5);
 });
+
+test("simultaneous writes and a flush retain every unsent record", async () => {
+  const storage = memoryStorage();
+  const record = n => ({ site: `site${n}.example`, kind: "observation", value: `0x${n.toString(16).padStart(40, "0")}`, chain: "1" });
+  await Promise.all(Array.from({ length: 20 }, (_, i) => enqueue([record(i + 1)], storage, 10_000)));
+  assert.equal(storage.data.boundObservationQueue.length, 20);
+  let release;
+  const blocked = new Promise(resolve => { release = resolve; });
+  let started;
+  const sending = new Promise(resolve => { started = resolve; });
+  const flushing = flush(async () => { started(); await blocked; }, storage, 10);
+  await sending;
+  const adding = enqueue([record(21)], storage, 10_001);
+  release();
+  await Promise.all([flushing, adding]);
+  assert.equal(storage.data.boundObservationQueue.length, 11);
+  assert.equal(storage.data.boundObservationQueue.some(item => item.site === "site21.example"), true);
+});
+
+test("queue strips extra fields and refuses to discard existing records when full", async () => {
+  const storage = memoryStorage();
+  const record = { site: "swap.example", kind: "observation", value: "0x" + "a".repeat(40), chain: "1", wallet: "secret", choice: "continue" };
+  await enqueue([record], storage, 1);
+  assert.deepEqual(Object.keys(storage.data.boundObservationQueue[0]).sort(), ["chain", "kind", "reporterKey", "site", "value"]);
+  const original = Array.from({ length: 500 }, (_, i) => ({ site: `s${i}`, kind: "warned", chain: "1", reporterKey: "key" }));
+  storage.data.boundObservationQueue = original;
+  await assert.rejects(enqueue([{ ...record, site: "new.example" }], storage, 2), /queue is full/);
+  assert.deepEqual(storage.data.boundObservationQueue, original);
+});

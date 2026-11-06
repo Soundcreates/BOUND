@@ -1,17 +1,57 @@
 import { classifyRequest, cloneRequest } from "../../packages/decoder/index.mjs";
 import { canonicalSite, evaluate } from "../../packages/policy-core/index.mjs";
-import { observationCandidates, warnedEvent } from "../../packages/policy-core/observations.mjs";
+import { mayRecordObservation, observationCandidates, warningCandidates } from "../../packages/policy-core/observations.mjs";
 import { enqueue } from "./observation-queue.mjs";
+import { createObservationDispatcher } from "./observation-dispatcher.mjs";
+import { sendObservationBatch } from "./watcher-adapter.mjs";
+import { createDecisionContext, readPreconnectionSiteStatus } from "./decision-context.mjs";
+import { decisionAdapters, watcherOwner } from "./trust-adapter.mjs";
 import { anonRpc } from "./anon-rpc-host.mjs";
 
 const pending = new Map();
 const rate = new Map();
+const tabRevisions = new Map();
+const frameRevisions = new Map();
 const MAX_PENDING_PER_FRAME = 8;
-const DEADLINE_MS = 55_000;
+const DEADLINE_MS = 45_000;
+const STATUS_ALARM = "bound-site-status-refresh";
+const STATUS_EXPIRY_PREFIX = "bound-site-status-expiry:";
+let coverageOperation = Promise.resolve();
+let coverageUncertain = false;
+const dispatcher = typeof sendObservationBatch === "function" ? createObservationDispatcher({ send: sendObservationBatch }) : null;
+async function enqueueReports(records) {
+  if (!records.length) return;
+  try { await (dispatcher ? dispatcher.enqueue(records) : enqueue(records)); }
+  catch { await chrome.storage.local.set({ boundObservationQueueError: true }).catch(() => {}); }
+}
+
+if (dispatcher) {
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === dispatcher.alarmName) dispatcher.dispatch().catch(() => {});
+  });
+  dispatcher.resume().catch(() => {});
+}
+if (decisionAdapters && watcherOwner) {
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === STATUS_ALARM) refreshOpenSiteStatuses().catch(() => {});
+    else if (alarm.name.startsWith(STATUS_EXPIRY_PREFIX)) {
+      const tabId = Number(alarm.name.slice(STATUS_EXPIRY_PREFIX.length));
+      if (Number.isInteger(tabId)) chrome.tabs.get(tabId).then((tab) => {
+        if (tab?.url) return refreshSiteStatus(tabId, tab.url, tabRevisions.get(tabId) || 0);
+      }).catch(() => {});
+    }
+  });
+  chrome.alarms.create(STATUS_ALARM, { periodInMinutes: 5 }).catch(() => {});
+  refreshOpenSiteStatuses().catch(() => {});
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "BOUND_STATUS_V1" && sender.id === chrome.runtime.id && !sender.tab) {
+    sendResponse({ observationReporting: Boolean(dispatcher) });
+    return;
+  }
   if (message?.type === "BOUND_REQUEST_V1") {
-    handleRequest(message, sender, sendResponse);
+    handleRequest(message, sender, sendResponse).catch(() => sendResponse({ action: "cancel", digest: message.digest, stateDigest: message.stateDigest }));
     return true;
   }
   if (message?.type === "BOUND_MALFORMED_V1") {
@@ -26,28 +66,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     anonRpc(message.request).then(sendResponse, () => sendResponse({ error: "anon_rpc_unavailable" }));
     return true;
   }
-  if (message?.type === "BOUND_GET_V1") {
-    const entry = pending.get(message.id);
-    if (isWarningPage(sender) && entry) sendResponse(entry.details);
-    else sendResponse(null);
-    return;
-  }
-  if (message?.type === "BOUND_DECISION_V1") {
-    const entry = pending.get(message.id);
-    if (!isWarningPage(sender) || !entry || entry.used) {
-      sendResponse({ ok: false });
-      return;
-    }
-    if (entry.details.verdict === "escalated" && message.action === "continue" && message.confirmation !== "I UNDERSTAND") {
-      sendResponse({ ok: false, error: "confirmation_required" });
-      return;
-    }
-    entry.used = true;
-    finish(message.id, message.action === "continue" ? "continue" : "cancel");
-    sendResponse({ ok: true });
-    return;
+  if (message?.type === "BOUND_GET_V1" || message?.type === "BOUND_DECISION_V1") {
+    handleWarningMessage(message, sender).then(sendResponse, () => sendResponse(message.type === "BOUND_GET_V1" ? null : { ok: false }));
+    return true;
   }
   if (message?.type === "BOUND_STATE_CHANGE_V1") {
+    const key = `${sender.tab?.id}:${sender.frameId}:${sender.documentId || sender.url}`;
+    frameRevisions.set(key, (frameRevisions.get(key) || 0) + 1);
     for (const [id, entry] of pending) {
       if (entry.details.tabId === sender.tab?.id && entry.details.frameId === sender.frameId && entry.details.documentId === sender.documentId) finish(id, "cancel");
     }
@@ -57,19 +82,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-chrome.tabs.onUpdated.addListener((tabId, change) => {
+chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (change.status === "loading" || change.url) {
+    tabRevisions.set(tabId, (tabRevisions.get(tabId) || 0) + 1);
     invalidate((item) => item.tabId === tabId);
     clearCoverage(tabId).catch(() => {});
+    if (decisionAdapters && watcherOwner && (change.url || tab?.url)) {
+      refreshSiteStatus(tabId, change.url || tab.url, tabRevisions.get(tabId)).catch(() => {});
+    }
   }
 });
 chrome.tabs.onRemoved.addListener((tabId) => {
+  tabRevisions.set(tabId, (tabRevisions.get(tabId) || 0) + 1);
   invalidate((item) => item.tabId === tabId);
   clearCoverage(tabId).catch(() => {});
+});
+chrome.windows.onRemoved.addListener((windowId) => {
+  for (const [id, entry] of pending) if (entry.windowId === windowId) finish(id, "cancel");
 });
 
 async function handleRequest(message, sender, sendResponse) {
   const frameKey = `${sender.tab?.id}:${sender.frameId}:${sender.documentId || sender.url}`;
+  const tabRevision = tabRevisions.get(sender.tab?.id) || 0;
+  const frameRevision = frameRevisions.get(frameKey) || 0;
+  const valid = () => (tabRevisions.get(sender.tab?.id) || 0) === tabRevision && (frameRevisions.get(frameKey) || 0) === frameRevision;
   const now = Date.now();
   const recent = (rate.get(frameKey) || []).filter((at) => now - at < 10_000);
   if (recent.length >= MAX_PENDING_PER_FRAME || pending.size >= 128) {
@@ -88,8 +124,16 @@ async function handleRequest(message, sender, sendResponse) {
     sendResponse({ action: "cancel" });
     return;
   }
+  let stateBytes;
+  try {
+    stateBytes = JSON.stringify(message.state ?? null);
+    if (typeof stateBytes !== "string" || stateBytes.length > 8192) throw new TypeError("Oversized provider state");
+  } catch {
+    sendResponse({ action: "cancel", digest: message.digest, stateDigest: message.stateDigest });
+    return;
+  }
   const digest = await sha256(bytes);
-  const stateDigest = await sha256(JSON.stringify(message.state ?? null));
+  const stateDigest = await sha256(stateBytes);
   if (digest !== message.digest || stateDigest !== message.stateDigest) {
     sendResponse({ action: "cancel", digest: message.digest, stateDigest: message.stateDigest });
     return;
@@ -100,7 +144,15 @@ async function handleRequest(message, sender, sendResponse) {
     return;
   }
   const locked = !validProviderState(message.state);
-  const evaluated = evaluate({ classification, baseline: null, signerAccounts: locked ? [] : message.state.accounts });
+  const bypass = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id);
+  const coverage = locked || classification.kind === "unsupported" ? "unsupported" : bypass ? "bypass_possible" : "mediated";
+  let context = { baseline: null, incidentStatus: "unknown" };
+  if (!locked && decisionAdapters && watcherOwner) {
+    try { context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
+    catch { /* Unavailable policy data leaves the request grey. */ }
+  }
+  if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
+  const evaluated = evaluate({ classification, ...context, signerAccounts: locked ? [] : message.state.accounts, coverage });
   const id = crypto.randomUUID();
   const details = {
     id,
@@ -111,41 +163,42 @@ async function handleRequest(message, sender, sendResponse) {
     score: evaluated.score,
     reasons: locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons,
     entries: classification.entries,
+    approvals: classification.approvals || [],
     tabId: sender.tab?.id,
     frameId: sender.frameId,
     documentId: sender.documentId,
     topOrigin: originOf(sender.tab?.url),
     frameOrigin: originOf(sender.url),
     chainId: locked ? null : message.state.chainId,
+    incidentStatus: context.incidentStatus || "unknown",
   };
-  const coverage = locked || classification.kind === "unsupported" ? "unsupported" : "mediated";
   details.coverage = coverage;
   details.locked = locked;
   if (sender.tab?.id !== undefined) setCoverage(sender.tab.id, sender.frameId, sender.documentId, coverage).catch(() => {});
-  if (!locked && evaluated.score !== null && evaluated.score <= 39) await enqueue([warnedEvent({ site: siteFrom(sender.tab?.url), chain: message.state.chainId })]).catch(() => {});
   await recordWarning(details).catch(() => {});
+  if (!valid() || pending.size >= 128 || !(await currentDocument(sender)) || !valid() || pending.size >= 128) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
   const result = new Promise((resolve) => {
     const timer = setTimeout(() => finish(id, "cancel"), DEADLINE_MS);
     pending.set(id, { details, resolve, timer, used: false });
   });
-  chrome.windows.create({
-    url: chrome.runtime.getURL(`warning.html?request=${encodeURIComponent(id)}`),
-    type: "popup",
-    width: 440,
-    height: 600
-  }).catch(() => finish(id, "cancel"));
+  const warnings = !locked && evaluated.score !== null && evaluated.score <= 39
+    ? warningCandidates({ site: siteFrom(sender.tab?.url), chain: message.state.chainId, addresses: evaluated.warnedAddresses, request, accounts: message.state.accounts }) : [];
+  openWarning(id, warnings);
   result.then((action) => {
-    if (!locked && action === "continue" && ["green", "amber"].includes(evaluated.verdict)) {
-      enqueue(observationCandidates({
-        site: siteFrom(sender.tab?.url),
-        chain: message.state?.chainId || "unknown",
-        classification,
-        request,
-        accounts: message.state?.accounts || []
-      })).catch(() => {});
+    if (!locked && mayRecordObservation({ verdict: evaluated.verdict, incidentStatus: context.incidentStatus, action })) {
+      enqueueCurrentObservation({ classification, request, state: message.state, sender, coverage }).catch(() => {});
     }
     sendResponse({ action: locked ? "cancel" : action, digest, stateDigest, readOnly: false });
   });
+}
+
+async function enqueueCurrentObservation({ classification, request, state, sender, coverage }) {
+  if (!decisionAdapters || !watcherOwner) return;
+  const latest = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: state.chainId, watcherOwner, adapters: decisionAdapters });
+  const currentCoverage = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id) ? "bypass_possible" : coverage;
+  const evaluated = evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage });
+  if (!mayRecordObservation({ verdict: evaluated.verdict, incidentStatus: latest.incidentStatus, action: "continue" })) return;
+  await enqueueReports(observationCandidates({ site: siteFrom(sender.tab?.url), chain: state.chainId, classification, request, accounts: state.accounts }));
 }
 
 function handleMalformed(message, sender) {
@@ -179,12 +232,32 @@ function handleMalformed(message, sender) {
   pending.set(id, { details, resolve: () => {}, timer, used: false });
   setCoverage(sender.tab.id, sender.frameId, sender.documentId, "mediated").catch(() => {});
   recordWarning(details).catch(() => {});
-  chrome.windows.create({
+  openWarning(id);
+}
+
+function openWarning(id, warnings = []) {
+  const entry = pending.get(id);
+  entry.window = chrome.windows.create({
     url: chrome.runtime.getURL(`warning.html?request=${encodeURIComponent(id)}`),
-    type: "popup",
-    width: 440,
-    height: 600
-  }).catch(() => finish(id, "cancel"));
+    type: "popup", width: 440, height: 600
+  }).then(async (window) => {
+    entry.windowId = window.id;
+    if (pending.get(id) === entry && warnings.length) await enqueueReports(warnings).catch(() => {});
+    return window;
+  }).catch(() => { finish(id, "cancel"); return null; });
+}
+
+async function handleWarningMessage(message, sender) {
+  const denied = message.type === "BOUND_GET_V1" ? null : { ok: false };
+  const entry = pending.get(message.id);
+  if (!entry || !isWarningPage(sender) || new URL(sender.url).searchParams.get("request") !== message.id) return denied;
+  const window = await entry.window;
+  if (!window || sender.tab?.windowId !== window.id || pending.get(message.id) !== entry || entry.used) return denied;
+  if (message.type === "BOUND_GET_V1") return entry.details;
+  if (entry.details.verdict === "escalated" && message.action === "continue" && message.confirmation !== "I UNDERSTAND") return { ok: false, error: "confirmation_required" };
+  entry.used = true;
+  finish(message.id, message.action === "continue" ? "continue" : "cancel");
+  return { ok: true };
 }
 
 function finish(id, action) {
@@ -197,22 +270,70 @@ function finish(id, action) {
 function invalidate(predicate) {
   for (const [id, entry] of pending) if (predicate(entry.details)) finish(id, "cancel");
 }
-async function setCoverage(tabId, frameId, documentId, value) {
-  const { boundCoverage = {} } = await chrome.storage.session.get("boundCoverage");
-  const key = `${tabId}:${frameId}:${documentId || "unknown"}`;
-  const bypassPossible = value === "bypass_possible" || boundCoverage[key]?.bypassPossible === true;
-  boundCoverage[key] = { tabId, frameId, documentId, value, bypassPossible };
-  await chrome.storage.session.set({ boundCoverage });
-  const frames = Object.values(boundCoverage).filter((item) => item.tabId === tabId);
-  const current = frames.some((item) => item.bypassPossible) ? "bypass_possible" : frames.some((item) => item.value === "unsupported") ? "unsupported" : frames.some((item) => item.value === "mediated") ? "mediated" : "";
-  chrome.action.setBadgeText({ tabId, text: current === "bypass_possible" ? "BYP" : current === "unsupported" ? "UNS" : current === "mediated" ? "MED" : "" });
-  if (current) chrome.action.setBadgeBackgroundColor({ tabId, color: current === "bypass_possible" ? "#a52a2a" : current === "unsupported" ? "#7c5b13" : "#1e6045" });
+function updateCoverage(operation) {
+  const current = coverageOperation.then(operation);
+  coverageOperation = current.catch(() => { coverageUncertain = true; });
+  return current;
 }
-async function clearCoverage(tabId) {
-  const { boundCoverage = {} } = await chrome.storage.session.get("boundCoverage");
-  for (const [key, item] of Object.entries(boundCoverage)) if (item.tabId === tabId) delete boundCoverage[key];
-  await chrome.storage.session.set({ boundCoverage });
-  chrome.action.setBadgeText({ tabId, text: "" });
+function setCoverage(tabId, frameId, documentId, value) {
+  return updateCoverage(async () => {
+    const { boundCoverage = {}, boundSiteStatuses = {} } = await chrome.storage.session.get(["boundCoverage", "boundSiteStatuses"]);
+    const key = `${tabId}:${frameId}:${documentId || "unknown"}`;
+    const bypassPossible = value === "bypass_possible" || boundCoverage[key]?.bypassPossible === true;
+    boundCoverage[key] = { tabId, frameId, documentId, value, bypassPossible };
+    await chrome.storage.session.set({ boundCoverage });
+    updateBadge(tabId, boundCoverage, boundSiteStatuses);
+  });
+}
+function clearCoverage(tabId) {
+  return updateCoverage(async () => {
+    const { boundCoverage = {}, boundSiteStatuses = {} } = await chrome.storage.session.get(["boundCoverage", "boundSiteStatuses"]);
+    for (const [key, item] of Object.entries(boundCoverage)) if (item.tabId === tabId) delete boundCoverage[key];
+    delete boundSiteStatuses[tabId];
+    await chrome.storage.session.set({ boundCoverage, boundSiteStatuses });
+    chrome.action.setBadgeText({ tabId, text: "" });
+    if (decisionAdapters && watcherOwner) chrome.alarms.clear(`${STATUS_EXPIRY_PREFIX}${tabId}`).catch(() => {});
+  });
+}
+function updateBadge(tabId, coverage, statuses) {
+  const frames = Object.values(coverage).filter((item) => item.tabId === tabId);
+  const siteStatus = statuses[tabId];
+  const active = siteStatus?.status === "active" && Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now();
+  const current = active ? "incident" : frames.some((item) => item.bypassPossible) ? "bypass_possible" : frames.some((item) => item.value === "unsupported") ? "unsupported" : frames.some((item) => item.value === "mediated") ? "mediated" : "";
+  chrome.action.setBadgeText({ tabId, text: current === "incident" ? "INC" : current === "bypass_possible" ? "BYP" : current === "unsupported" ? "UNS" : current === "mediated" ? "MED" : "" });
+  if (current) chrome.action.setBadgeBackgroundColor({ tabId, color: ["incident", "bypass_possible"].includes(current) ? "#a52a2a" : current === "unsupported" ? "#7c5b13" : "#1e6045" });
+}
+async function refreshSiteStatus(tabId, siteOrigin, revision) {
+  const status = await readPreconnectionSiteStatus({ siteOrigin, watcherOwner, adapters: decisionAdapters });
+  await updateCoverage(async () => {
+    if ((tabRevisions.get(tabId) || 0) !== revision) return;
+    const { boundCoverage = {}, boundSiteStatuses = {} } = await chrome.storage.session.get(["boundCoverage", "boundSiteStatuses"]);
+    boundSiteStatuses[tabId] = status;
+    await chrome.storage.session.set({ boundSiteStatuses });
+    updateBadge(tabId, boundCoverage, boundSiteStatuses);
+    const expiresAt = Date.parse(status.expiresAt);
+    if (Number.isFinite(expiresAt) && expiresAt > Date.now()) await chrome.alarms.create(`${STATUS_EXPIRY_PREFIX}${tabId}`, { when: expiresAt });
+    else await chrome.alarms.clear(`${STATUS_EXPIRY_PREFIX}${tabId}`);
+  });
+}
+async function refreshOpenSiteStatuses() {
+  const tabs = await chrome.tabs.query({});
+  await Promise.allSettled(tabs.filter((tab) => Number.isInteger(tab.id) && typeof tab.url === "string").map((tab) => refreshSiteStatus(tab.id, tab.url, tabRevisions.get(tab.id) || 0)));
+}
+async function bypassPossible(tabId) {
+  try {
+    await coverageOperation;
+    if (coverageUncertain) return true;
+    const { boundCoverage = {} } = await chrome.storage.session.get("boundCoverage");
+    return Object.values(boundCoverage).some((item) => item.tabId === tabId && item.bypassPossible);
+  } catch { return true; }
+}
+async function currentDocument(sender) {
+  if (!Number.isInteger(sender.tab?.id) || !Number.isInteger(sender.frameId) || typeof sender.documentId !== "string") return false;
+  try {
+    const frame = await chrome.webNavigation.getFrame({ tabId: sender.tab.id, frameId: sender.frameId });
+    return frame?.documentId === sender.documentId;
+  } catch { return false; }
 }
 async function recordWarning(details) {
   const { boundWarningHistory = [] } = await chrome.storage.local.get("boundWarningHistory");
@@ -224,7 +345,8 @@ async function recordWarning(details) {
     chainId: details.chainId,
     verdict: details.verdict,
     score: details.score,
-    entries: (details.entries || []).map(({ address, role }) => ({ address, role }))
+    entries: (details.entries || []).map(({ address, role }) => ({ address, role })),
+    approvals: (details.approvals || []).map(({ token, spender }) => ({ token, spender }))
   });
   await chrome.storage.local.set({ boundWarningHistory: boundWarningHistory.slice(-50) });
 }
@@ -240,7 +362,7 @@ function originOf(value) {
   try { return new URL(value).origin; } catch { return "unknown"; }
 }
 function validProviderState(state) {
-  return Boolean(state && typeof state.chainId === "string" && /^0x[0-9a-f]+$/i.test(state.chainId) &&
+  return Boolean(state && typeof state.chainId === "string" && state.chainId.length <= 66 && /^0x[0-9a-f]+$/i.test(state.chainId) &&
     Array.isArray(state.accounts) && state.accounts.length <= 32 && state.accounts.every((account) => typeof account === "string" && /^0x[0-9a-f]{40}$/i.test(account)));
 }
 function siteFrom(value) {

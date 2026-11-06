@@ -1,6 +1,6 @@
 (() => {
   const NativePromise = Promise;
-  const promiseAll = Promise.all;
+  const promiseResolve = Promise.resolve;
   const promiseReject = Promise.reject;
   const promiseThen = Promise.prototype.then;
   const stringify = JSON.stringify;
@@ -17,10 +17,13 @@
   const weakHas = WeakSet.prototype.has;
   const weakAdd = WeakSet.prototype.add;
   const weakDelete = WeakSet.prototype.delete;
+  const weakMapGet = WeakMap.prototype.get;
+  const weakMapSet = WeakMap.prototype.set;
   const mapGet = Map.prototype.get;
   const mapSet = Map.prototype.set;
   const mapDelete = Map.prototype.delete;
   const NativeWeakSet = WeakSet;
+  const NativeWeakMap = WeakMap;
   const NativeMap = Map;
   const NativeError = Error;
   const NativeTypeError = TypeError;
@@ -48,6 +51,8 @@
   const mapSetValue = (map, key, value) => apply(mapSet, map, [key, value]);
   const mapDeleteValue = (map, key) => apply(mapDelete, map, [key]);
   const providers = new NativeWeakSet();
+  const providerRevisions = new NativeWeakMap();
+  const revisionOf = (provider) => apply(weakMapGet, providerRevisions, [provider]) || 0;
   const waiting = new NativeMap();
   let channel = null;
   let providerInstrumented = false;
@@ -80,12 +85,18 @@
     return freeze(result);
   }
 
-  function gate(provider, forward, request, state, readState) {
+  function gate(provider, forward, request, state, readState, revision) {
+    if (revisionOf(provider) !== revision) {
+      const error = new NativeError("Wallet state changed while the request was prepared.");
+      error.code = 4001;
+      return apply(promiseReject, NativePromise, [error]);
+    }
     let frozen;
     try {
       frozen = clone(request);
       if (apply(encode, encoder, [stringify(frozen)]).length > 262144) throw new NativeTypeError("Request is too large");
     } catch (error) {
+      reportMalformed(request);
       error.code = -32602;
       return apply(promiseReject, NativePromise, [error]);
     }
@@ -98,7 +109,13 @@
         return;
       }
       promise(digestValue(stringify(frozen)), (digest) => promise(digestValue(stringify(state)), (stateDigest) => {
-        mapSetValue(waiting, id, { provider, forward, frozen, resolve, reject, state, readState, digest, stateDigest });
+        if (revisionOf(provider) !== revision) {
+          const error = new NativeError("Wallet state changed while the request was prepared.");
+          error.code = 4001;
+          reject(error);
+          return;
+        }
+        mapSetValue(waiting, id, { provider, forward, frozen, resolve, reject, state, readState, revision, digest, stateDigest });
         const timer = setTimeoutNative(() => {
           if (!mapDeleteValue(waiting, id)) return;
           const error = new NativeError("BOUND request timed out.");
@@ -147,27 +164,39 @@
       if (typeof send === "function") return apply(send, provider, [method, []]);
       return apply(promiseReject, NativePromise, [new NativeError("No read path")]);
     };
-    const readState = async () => {
+    const readState = () => new NativePromise((resolve) => {
+      let chainId, accounts, remaining = 2, finished = false;
+      const timer = setTimeoutNative(() => finish(null), 5_000);
+      function finish(value) {
+        if (finished) return;
+        finished = true;
+        clearTimeoutNative(timer);
+        resolve(value);
+      }
+      function complete() {
+        if (--remaining || finished) return;
+        try {
+          if (typeof chainId !== "string" || chainId.length > 66 || !apply(regexpTest, chainPattern, [chainId]) || !isArray(accounts) || accounts.length > 32 || apply(arraySome, accounts, [(item) => typeof item !== "string" || !apply(regexpTest, addressPattern, [item])])) return finish(null);
+          const normalizedAccounts = apply(arrayMap, accounts, [(item) => apply(lower, item, [])]);
+          setPrototype(normalizedAccounts, null);
+          const state = create(null);
+          state.chainId = apply(lower, chainId, []);
+          state.accounts = freeze(normalizedAccounts);
+          finish(freeze(state));
+        } catch { finish(null); }
+      }
       try {
-        const [chainId, accounts] = await apply(promiseAll, NativePromise, [[
-          read("eth_chainId"),
-          read("eth_accounts")
-        ]]);
-        if (typeof chainId !== "string" || !apply(regexpTest, chainPattern, [chainId]) || !isArray(accounts) || apply(arraySome, accounts, [(item) => typeof item !== "string" || !apply(regexpTest, addressPattern, [item])])) return null;
-        const normalizedAccounts = apply(arrayMap, accounts, [(item) => apply(lower, item, [])]);
-        setPrototype(normalizedAccounts, null);
-        const state = create(null);
-        state.chainId = apply(lower, chainId, []);
-        state.accounts = freeze(normalizedAccounts);
-        return freeze(state);
-      } catch { return null; }
-    };
+        promise(apply(promiseResolve, NativePromise, [read("eth_chainId")]), (value) => { chainId = value; complete(); }, () => finish(null));
+        promise(apply(promiseResolve, NativePromise, [read("eth_accounts")]), (value) => { accounts = value; complete(); }, () => finish(null));
+      } catch { finish(null); }
+    });
     try {
       if (typeof request === "function") {
         const wrappedRequest = function (payload) {
         let frozen;
         try { frozen = clone(payload); } catch (error) { reportMalformed(payload); error.code = -32602; return apply(promiseReject, NativePromise, [error]); }
-        return promise(readState(), (state) => gate(provider, (exact) => apply(request, provider, [exact]), frozen, state, readState));
+        const revision = revisionOf(provider);
+        return promise(readState(), (state) => gate(provider, (exact) => apply(request, provider, [exact]), frozen, state, readState, revision));
         };
         provider.request = wrappedRequest;
         if (provider.request !== wrappedRequest) throw new NativeError("request could not be patched");
@@ -185,6 +214,7 @@
           if (callback) { callback(error); return; }
           return apply(promiseReject, NativePromise, [error]);
         }
+        const revision = revisionOf(provider);
         const resultPromise = promise(readState(), (state) => gate(provider, (exact) => {
           if (!callback) return typeof methodOrPayload === "string" ? apply(send, provider, [exact.method, exact.params]) : apply(send, provider, [exact]);
           return new NativePromise((resolve, reject) => {
@@ -194,7 +224,7 @@
               : apply(send, provider, [exact, done]);
             if (returned?.then) promise(returned, resolve, reject);
           });
-        }, frozen, state, readState));
+        }, frozen, state, readState, revision));
         if (callback) {
           promise(resultPromise, (result) => callback(null, { jsonrpc: "2.0", id: frozen.id ?? null, result }), callback);
           return;
@@ -208,7 +238,8 @@
         const wrappedSendAsync = function (payload, callback) {
         let frozen;
         try { frozen = clone(payload); } catch (error) { reportMalformed(payload); error.code = -32602; callback?.(error); return; }
-        return promise(promise(readState(), (state) => gate(provider, (exact) => new NativePromise((resolve, reject) => apply(sendAsync, provider, [exact, (error, response) => error ? reject(error) : resolve(response)])), frozen, state, readState)), (response) => callback?.(null, response), (error) => callback?.(error));
+        const revision = revisionOf(provider);
+        return promise(promise(readState(), (state) => gate(provider, (exact) => new NativePromise((resolve, reject) => apply(sendAsync, provider, [exact, (error, response) => error ? reject(error) : resolve(response)])), frozen, state, readState, revision)), (response) => callback?.(null, response), (error) => callback?.(error));
         };
         provider.sendAsync = wrappedSendAsync;
         if (provider.sendAsync !== wrappedSendAsync) throw new NativeError("sendAsync could not be patched");
@@ -220,7 +251,10 @@
         const providerEvents = ["chainChanged", "accountsChanged", "disconnect"];
         for (let i = 0; i < providerEvents.length; i++) {
           const event = providerEvents[i];
-          apply(on, provider, [event, () => postMessage({ type: "BOUND_STATE_CHANGE_V1", event }, location.origin)]);
+          apply(on, provider, [event, () => {
+            apply(weakMapSet, providerRevisions, [provider, revisionOf(provider) + 1]);
+            postMessage({ type: "BOUND_STATE_CHANGE_V1", event }, location.origin);
+          }]);
         }
       }
     } catch {
@@ -242,12 +276,18 @@
   addEvent("message", (event) => {
     if (event.source !== window || event.origin !== location.origin) return;
     if (event.data?.type !== "BOUND_DECISION_V1" || event.data?.channel !== channel) return;
+    apply(stopImmediate, event, []);
     const item = mapGetValue(waiting, event.data.id);
     if (!item || event.data.digest !== item.digest) return;
     if (event.data.stateDigest !== item.stateDigest) return;
-    apply(stopImmediate, event, []);
     mapDeleteValue(waiting, event.data.id);
     clearTimeoutNative(item.timer);
+    if (revisionOf(item.provider) !== item.revision) {
+      const error = new NativeError("Wallet state changed while the warning was open.");
+      error.code = 4001;
+      item.reject(error);
+      return;
+    }
     if (event.data.action === "continue" && event.data.readOnly === true) {
       promise(item.forward(item.frozen), item.resolve, item.reject);
     } else if (event.data.action === "continue") {
