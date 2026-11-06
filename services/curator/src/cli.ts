@@ -25,7 +25,7 @@ import { loadCuratorConfig, MissingEnvError } from "./env.ts";
 import { loadCompileInput, compileSnapshot } from "./compile.ts";
 import { publishSnapshot, PublishRefusedError } from "./publish.ts";
 import { readAndVerifyRoot, RootVerificationError } from "./read.ts";
-import { decodeSnapshotBytes, type Attestation } from "@bound/snapshot";
+import { decodeSnapshotBytes, normalizeAddress, type Attestation } from "@bound/snapshot";
 import {
   makePublicClient,
   makeWalletClient,
@@ -150,7 +150,13 @@ async function cmdAttestWrite(
   const publicClient = makePublicClient(rpcUrl);
   const walletClient = makeWalletClient(rpcUrl, protocolAccount);
 
-  const addrs = addrsCsv.split(",").map((a) => a.trim().toLowerCase());
+  // normalizeAddress() throws on anything that is not exactly 40 hex chars, so a
+  // truncated or typo'd address is refused here instead of being written on-chain as
+  // trust data that every reader then rejects. parseAttestation() also requires the
+  // list to be strictly sorted and unique, so sort/dedupe at the source too: the
+  // curator tool must never publish a record its own reader would refuse.
+  const addrs = [...new Set(addrsCsv.split(",").map((a) => normalizeAddress(a.trim())))].sort();
+  if (addrs.length === 0) throw new TypeError("attest-write: no addresses given");
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
 
   const attestation: Attestation = {
