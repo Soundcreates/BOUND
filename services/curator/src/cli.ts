@@ -32,7 +32,6 @@ import {
   publishAttestation,
   readAttestation,
   grantProtocolRole,
-  ENSV2_SEPOLIA,
   RootReadError,
 } from "@bound/integrations-ens";
 
@@ -100,7 +99,11 @@ async function cmdAttestGrant(protocolAddress: `0x${string}`): Promise<void> {
   // Using the curator key causes MissingRole revert (selector 0xd1a3b355).
   const rpcUrl = process.env.BOUND_SEPOLIA_RPC_URL;
   const ownerKey = process.env.BOUND_OWNER_PRIVATE_KEY;
-  const resolverAddress = (process.env.BOUND_RESOLVER_ADDRESS ?? ENSV2_SEPOLIA.permissionedResolverImpl) as `0x${string}`;
+  // NOTE: must be the dedicated PROXY deployed for our name, never
+  // ENSV2_SEPOLIA.permissionedResolverImpl — the shared implementation was never
+  // initialize()d with our admin, so every role check against it reverts MissingRole.
+  const resolverAddress = (process.env.BOUND_RESOLVER_ADDRESS ??
+    loadCuratorConfig().ens.resolverAddress) as `0x${string}`;
 
   if (!rpcUrl) throw new MissingEnvError("BOUND_SEPOLIA_RPC_URL", "Sepolia JSON-RPC endpoint");
   if (!ownerKey) throw new MissingEnvError("BOUND_OWNER_PRIVATE_KEY", "resolver admin/owner key — NOT the curator key; needed to grant roles");
@@ -134,7 +137,11 @@ async function cmdAttestWrite(
 ): Promise<void> {
   const rpcUrl = process.env.BOUND_SEPOLIA_RPC_URL;
   const protocolKey = process.env.BOUND_PROTOCOL_PRIVATE_KEY;
-  const resolverAddress = (process.env.BOUND_RESOLVER_ADDRESS ?? ENSV2_SEPOLIA.permissionedResolverImpl) as `0x${string}`;
+  // NOTE: must be the dedicated PROXY deployed for our name, never
+  // ENSV2_SEPOLIA.permissionedResolverImpl — the shared implementation was never
+  // initialize()d with our admin, so every role check against it reverts MissingRole.
+  const resolverAddress = (process.env.BOUND_RESOLVER_ADDRESS ??
+    loadCuratorConfig().ens.resolverAddress) as `0x${string}`;
 
   if (!rpcUrl) throw new MissingEnvError("BOUND_SEPOLIA_RPC_URL", "Sepolia JSON-RPC endpoint");
   if (!protocolKey) throw new MissingEnvError("BOUND_PROTOCOL_PRIVATE_KEY", "protocol account key (separate from curator)");

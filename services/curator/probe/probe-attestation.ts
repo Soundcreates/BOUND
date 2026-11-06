@@ -27,7 +27,6 @@ import {
   readAttestation,
   findResolver,
   ENSV2_SEPOLIA,
-  RootReadError,
 } from "@bound/integrations-ens";
 import type { Attestation } from "@bound/snapshot";
 
