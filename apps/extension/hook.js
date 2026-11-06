@@ -130,6 +130,30 @@
     });
   }
 
+  // Reads that cannot sign or move value. If a page (or another wallet extension's
+  // own script) sends one as a non-plain object, rebuild it as a frozen plain
+  // request and pass it to the wallet instead of rejecting it or alerting.
+  const PASSIVE_METHODS = ["eth_chainId", "net_version", "net_listening", "web3_clientVersion", "eth_accounts", "eth_coinbase",
+    "eth_blockNumber", "eth_call", "eth_estimateGas", "eth_gasPrice", "eth_maxPriorityFeePerGas", "eth_feeHistory", "eth_syncing",
+    "eth_getBalance", "eth_getCode", "eth_getStorageAt", "eth_getProof", "eth_getTransactionCount", "eth_getBlockByNumber",
+    "eth_getBlockByHash", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_getLogs", "eth_subscribe", "eth_unsubscribe",
+    "wallet_getPermissions", "wallet_getCapabilities", "wallet_getCallsStatus", "metamask_getProviderState"];
+  const arrayIncludes = Array.prototype.includes;
+  function rescuePassive(payload) {
+    try {
+      const methodDescriptor = descriptors(payload, "method");
+      if (!methodDescriptor || !("value" in methodDescriptor) || typeof methodDescriptor.value !== "string" || !apply(arrayIncludes, PASSIVE_METHODS, [methodDescriptor.value])) return null;
+      const rebuilt = create(null);
+      rebuilt.method = methodDescriptor.value;
+      const paramsDescriptor = descriptors(payload, "params");
+      if (paramsDescriptor && !("value" in paramsDescriptor)) return null;
+      rebuilt.params = paramsDescriptor && paramsDescriptor.value !== undefined ? clone(paramsDescriptor.value) : freeze(setPrototype([], null));
+      const idDescriptor = descriptors(payload, "id");
+      if (idDescriptor && "value" in idDescriptor && (typeof idDescriptor.value === "number" || typeof idDescriptor.value === "string")) rebuilt.id = idDescriptor.value;
+      return freeze(rebuilt);
+    } catch { return null; }
+  }
+
   function reportMalformed(payload) {
     let method = "unknown";
     try {
@@ -185,7 +209,11 @@
       if (typeof request === "function") {
         const wrappedRequest = function (payload) {
         let frozen;
-        try { frozen = clone(payload); } catch (error) { reportMalformed(payload); error.code = -32602; return apply(promiseReject, NativePromise, [error]); }
+        try { frozen = clone(payload); } catch (error) {
+          const passive = rescuePassive(payload);
+          if (passive) return apply(request, provider, [passive]);
+          reportMalformed(payload); error.code = -32602; return apply(promiseReject, NativePromise, [error]);
+        }
         const revision = revisionOf(provider);
         return promise(readState(), (state) => gate(provider, (exact) => apply(request, provider, [exact]), frozen, state, readState, revision));
         };
@@ -200,6 +228,11 @@
           : methodOrPayload;
         let frozen;
         try { frozen = clone(payload); } catch (error) {
+          const passive = rescuePassive(payload);
+          if (passive) {
+            if (!callback) return apply(send, provider, [passive]);
+            return void apply(sendAsync ?? send, provider, [passive, callback]);
+          }
           reportMalformed(payload);
           error.code = -32602;
           if (callback) { callback(error); return; }
@@ -228,7 +261,11 @@
       if (typeof sendAsync === "function") {
         const wrappedSendAsync = function (payload, callback) {
         let frozen;
-        try { frozen = clone(payload); } catch (error) { reportMalformed(payload); error.code = -32602; callback?.(error); return; }
+        try { frozen = clone(payload); } catch (error) {
+          const passive = rescuePassive(payload);
+          if (passive) return apply(sendAsync, provider, [passive, callback]);
+          reportMalformed(payload); error.code = -32602; callback?.(error); return;
+        }
         const revision = revisionOf(provider);
         return promise(promise(readState(), (state) => gate(provider, (exact) => new NativePromise((resolve, reject) => apply(sendAsync, provider, [exact, (error, response) => error ? reject(error) : resolve(response)])), frozen, state, readState, revision)), (response) => callback?.(null, response), (error) => callback?.(error));
         };
@@ -257,6 +294,144 @@
   function reportBypass() {
     postMessage({ type: "BOUND_COVERAGE_V1", coverage: "bypass_possible" }, location.origin);
   }
+
+  // --- MetaMask Connect / Multichain API (CAIP-25) -------------------------------
+  // Some dApps (e.g. app.uniswap.org) never call window.ethereum. They talk to the
+  // wallet through @metamask/multichain-api-client, either over a chrome.runtime
+  // port (`{type:"caip-348", data:<JSON-RPC>}`) or over window.postMessage
+  // (`{target:"metamask-contentscript", data:{name:"metamask-multichain-provider",
+  // data:<JSON-RPC>}}`). Both run in this MAIN world, so wrap them here and route
+  // session creation and wallet-invoked methods through the same BOUND gate.
+  const MM_CONTENT_SCRIPT = "metamask-contentscript";
+  const MM_INPAGE = "metamask-inpage";
+  const MM_MULTICHAIN = "metamask-multichain-provider";
+  const MM_CAIP_PORT_TYPE = "caip-348";
+  const caipProvider = freeze(create(null));
+  const evmChain = /^eip155:([0-9]{1,20})$/;
+  const parseInt10 = Number.parseInt;
+  const numberToString = Number.prototype.toString;
+  const objectKeys = Object.keys;
+
+  function caipChainId(scope) {
+    const match = typeof scope === "string" ? scope.match(evmChain) : null;
+    if (!match) return null;
+    const value = parseInt10(match[1], 10);
+    return numberIsFinite(value) && value > 0 ? "0x" + apply(numberToString, value, [16]) : null;
+  }
+
+  function sessionChainId(params) {
+    const scopes = [params?.requiredScopes, params?.optionalScopes];
+    for (let i = 0; i < scopes.length; i++) {
+      if (!scopes[i] || typeof scopes[i] !== "object") continue;
+      const names = objectKeys(scopes[i]);
+      for (let j = 0; j < names.length; j++) { const chain = caipChainId(names[j]); if (chain) return chain; }
+    }
+    return null;
+  }
+
+  // Returns {inner, chainId} for requests BOUND must review, or null to pass through.
+  function caipReviewTarget(rpc) {
+    if (!rpc || typeof rpc !== "object") return null;
+    if (rpc.method === "wallet_createSession") return { inner: { method: "wallet_createSession", params: [rpc.params ?? null] }, chainId: sessionChainId(rpc.params) || "0x1" };
+    if (rpc.method === "wallet_invokeMethod") {
+      const request = rpc.params?.request;
+      const chainId = caipChainId(rpc.params?.scope);
+      if (!request || typeof request.method !== "string") return { inner: { method: "wallet_invokeMethod", params: [rpc.params ?? null] }, chainId: chainId || "0x1" };
+      // Non-EVM scopes cannot be decoded by BOUND; review them as unsupported.
+      return { inner: chainId ? { method: request.method, params: request.params ?? [] } : { method: "wallet_invokeMethod", params: [rpc.params ?? null] }, chainId: chainId || "0x1" };
+    }
+    return null;
+  }
+
+  // deliver(): send the frozen original message to the wallet.
+  // fail(error): answer the dApp with a JSON-RPC error in the transport's own format.
+  function gateCaip(rpc, deliver, fail) {
+    let frozenRpc, target;
+    try {
+      frozenRpc = clone(rpc);
+      target = caipReviewTarget(frozenRpc);
+    } catch (error) {
+      reportMalformed(rpc);
+      error.code = -32602;
+      fail(rpc?.id, error);
+      return true;
+    }
+    if (!target) return false;
+    let state;
+    try {
+      const value = create(null);
+      value.chainId = target.chainId;
+      value.accounts = freeze(setPrototype([], null));
+      state = freeze(value);
+    } catch { return false; }
+    const readState = () => apply(promiseResolve, NativePromise, [state]);
+    promise(gate(caipProvider, () => deliver(frozenRpc), target.inner, state, readState, 0), () => {}, (error) => fail(frozenRpc.id, error));
+    return true;
+  }
+
+  function rpcError(id, error) {
+    const body = create(null);
+    body.jsonrpc = "2.0";
+    body.id = id ?? null;
+    const detail = create(null);
+    detail.code = typeof error?.code === "number" ? error.code : 4001;
+    detail.message = typeof error?.message === "string" ? error.message : "User rejected the request.";
+    body.error = detail;
+    return body;
+  }
+
+  try {
+    const nativeWindowPostMessage = window.postMessage;
+    const wrappedWindowPostMessage = function (message, ...rest) {
+      try {
+        if ((this === undefined || this === window) && message && message.target === MM_CONTENT_SCRIPT && message.data?.name === MM_MULTICHAIN) {
+          const handled = gateCaip(message.data.data,
+            (frozen) => apply(nativeWindowPostMessage, window, [{ target: MM_CONTENT_SCRIPT, data: { name: MM_MULTICHAIN, data: frozen } }, location.origin]),
+            (id, error) => postMessage({ target: MM_INPAGE, data: { name: MM_MULTICHAIN, data: rpcError(id, error) } }, location.origin));
+          if (handled) return;
+        }
+      } catch { /* fall through to the native call */ }
+      return apply(nativeWindowPostMessage, this === undefined ? window : this, [message, ...rest]);
+    };
+    window.postMessage = wrappedWindowPostMessage;
+    if (window.postMessage !== wrappedWindowPostMessage) reportBypass();
+  } catch { reportBypass(); }
+
+  function instrumentPort(port) {
+    if (!port || typeof port.postMessage !== "function" || !port.onMessage || typeof port.onMessage.addListener !== "function") return;
+    const listeners = [];
+    const nativeAdd = port.onMessage.addListener;
+    const nativeRemove = port.onMessage.removeListener;
+    const nativePost = port.postMessage;
+    port.onMessage.addListener = function (fn) { if (typeof fn === "function") listeners.push(fn); return apply(nativeAdd, this, [fn]); };
+    if (typeof nativeRemove === "function") port.onMessage.removeListener = function (fn) { const index = listeners.indexOf(fn); if (index >= 0) listeners.splice(index, 1); return apply(nativeRemove, this, [fn]); };
+    port.postMessage = function (message) {
+      try {
+        if (message && message.type === MM_CAIP_PORT_TYPE) {
+          const handled = gateCaip(message.data,
+            (frozen) => apply(nativePost, port, [{ type: MM_CAIP_PORT_TYPE, data: frozen }]),
+            (id, error) => { const reply = { data: rpcError(id, error) }; for (let i = 0; i < listeners.length; i++) { try { listeners[i](reply, port); } catch { /* listener errors are the dApp's */ } } });
+          if (handled) return;
+        }
+      } catch { /* fall through */ }
+      return apply(nativePost, port, [message]);
+    };
+    if (port.postMessage === nativePost) reportBypass();
+  }
+
+  try {
+    const runtime = window.chrome?.runtime;
+    if (runtime && typeof runtime.connect === "function") {
+      const nativeConnect = runtime.connect;
+      const wrappedConnect = function (...args) {
+        const port = apply(nativeConnect, this ?? runtime, args);
+        try { instrumentPort(port); } catch { reportBypass(); }
+        return port;
+      };
+      runtime.connect = wrappedConnect;
+      if (runtime.connect !== wrappedConnect) reportBypass();
+    }
+  } catch { reportBypass(); }
 
   addEvent("BOUND_INIT_V1", (event) => {
     if (event.target !== window || channel || typeof event.detail !== "string" || !/^[0-9a-f-]{36}$/i.test(event.detail)) return;

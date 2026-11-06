@@ -45,6 +45,7 @@ async function awaitDetails() {
     document.querySelector("#ens-field").hidden = false;
     document.querySelector("#ens").textContent = ensText + (data.ensInconsistent ? " The watcher's cached copy differs from the live record." : "");
   }
+  if (data.kind === "connection") renderConnection(data);
   const addresses = document.querySelector("#entries");
   addresses.textContent = data.entries.length ? data.entries.map((entry) => `${entry.role}: ${entry.address}${entry.verified === false ? " (unverified)" : ""}`).join(" · ") : "No counterparty decoded";
   if (data.frontend) {
@@ -97,6 +98,46 @@ async function awaitDetails() {
     typed.addEventListener("input", () => { continueButton.disabled = typed.value !== "I UNDERSTAND"; });
   } else continueButton.disabled = false;
   return data;
+}
+
+function renderConnection(data) {
+  const tier = data.tier || "warning";
+  document.body.classList.add(`tier-${tier}`);
+  document.querySelector("h1").textContent = { pass: "Connection request: site checks passed", warning: "Connection request: some checks unavailable", huge: "Warning: low confidence in this site", firewall: "Stop: BOUND found a serious problem" }[tier];
+  const score = data.connectionScore || {};
+  document.querySelector("#verdict").textContent = `Policy confidence ${data.score}% (${data.score} of 100 heuristic points). This is BOUND's configured check score, not a measured probability that the site is safe.`;
+  document.querySelector("#notice").textContent = {
+    pass: "This site is asking to see your wallet address. BOUND verified it against the signed site list and current watcher status. Continue to let your wallet ask you.",
+    warning: "This site is asking to see your wallet address. Some evidence was unavailable, so BOUND could not fully verify it. Nothing bad was detected. You decide.",
+    huge: "This site is asking to see your wallet address, and BOUND has low confidence in it. Check the address bar and the calculation below before continuing.",
+    firewall: data.connectionStatus === "active" ? "The watcher reports an ACTIVE INCIDENT for this site. Connecting may expose you to a compromised frontend. Type I UNDERSTAND only if you are sure."
+      : data.connectionStatus === "drift" ? "The watcher reports a change to this site's DNS or certificate. The site may be hijacked. Type I UNDERSTAND only if you are sure."
+      : "BOUND's confidence in this site is very low. Type I UNDERSTAND only if you are sure."
+  }[tier];
+  document.querySelector("#target").textContent = "Not applicable: account access request";
+  const field = document.querySelector("#connection-field");
+  const calc = document.querySelector("#connection-calc");
+  calc.replaceChildren();
+  for (const scope of score.scopes || []) {
+    const title = document.createElement("div");
+    title.textContent = `${scope.origin}: ${scope.score}/100`;
+    calc.append(title);
+    const table = document.createElement("table");
+    table.className = "calc";
+    const head = table.insertRow();
+    for (const [text, num] of [["Check", false], ["Weight", true], ["Outcome", false], ["Points", true], ["Running total", true]]) { const th = document.createElement("th"); th.textContent = text; if (num) th.className = "num"; head.append(th); }
+    let running = 0;
+    for (const check of scope.checks || []) {
+      running += check.points;
+      const row = table.insertRow();
+      const cells = [check.label, String(check.weight), check.outcome, `${check.points > 0 ? "+" : ""}${check.points}`, String(running)];
+      cells.forEach((text, index) => { const td = row.insertCell(); td.textContent = text; if ([1, 3, 4].includes(index)) td.className = "num"; if (index === 2) td.className = `outcome-${check.outcome}`; });
+    }
+    calc.append(table);
+    if (scope.blockers?.length) { const note = document.createElement("div"); note.textContent = `Detected: ${scope.blockers.join("; ")}`; calc.append(note); }
+  }
+  document.querySelector("#connection-formula").textContent = `Passed checks add their weight, failed checks subtract it, unavailable checks add 0. The total is clamped to 0–100; with several origins the lowest score counts. No review needed at ${score.threshold}+.`;
+  field.hidden = false;
 }
 
 async function decide(action) {

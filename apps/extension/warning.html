@@ -16,6 +16,13 @@
     button { cursor: pointer; }
     #continue { color: white; background: #263b53; }
     #cancel { background: #dce2e8; }
+    body.tier-pass .notice { background: #d9f2e1; }
+    body.tier-huge .notice, body.tier-firewall .notice { background: #b42318; color: #fff; font-weight: 600; }
+    body.tier-firewall h1, body.tier-huge h1 { color: #b42318; }
+    .calc { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+    .calc td, .calc th { padding: 4px 6px; border-bottom: 1px solid #dce2e8; text-align: left; }
+    .calc td.num, .calc th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .outcome-passed { color: #1d7a3a; } .outcome-failed { color: #b42318; } .outcome-unavailable { color: #8a5a00; }
   </style>
 </head>
 <body>
@@ -25,6 +32,11 @@
     <p class="notice" id="notice">No live trust snapshot or baseline is connected yet. This screen shows decoding and coverage only; it cannot mark a request safe.</p>
     <p class="notice" id="incident" hidden></p>
     <p class="field"><span class="label">Verdict</span><br><strong id="verdict">Loading…</strong></p>
+    <section class="field" id="connection-field" hidden>
+      <span class="label">How this connection score was calculated</span>
+      <div id="connection-calc"></div>
+      <span class="label" id="connection-formula"></span>
+    </section>
     <p class="field"><span class="label">Coverage</span><br><code id="coverage">Loading…</code></p>
     <p class="field"><span class="label">Top-level site</span><br><code id="top">Loading…</code></p>
     <p class="field"><span class="label">Requesting frame</span><br><code id="frame">Loading…</code></p>
