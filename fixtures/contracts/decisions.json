@@ -1,0 +1,9 @@
+[
+  {"valid":true,"value":{"coverage":"mediated","evaluated":true,"bypassPossible":false,"verdict":"green","score":70}},
+  {"valid":true,"value":{"coverage":"mediated","evaluated":true,"bypassPossible":false,"verdict":"grey","score":null}},
+  {"valid":true,"value":{"coverage":"unsupported","evaluated":false,"bypassPossible":true,"verdict":null,"score":null}},
+  {"valid":false,"value":{"coverage":"unsupported","evaluated":false,"bypassPossible":false,"verdict":"green","score":100}},
+  {"valid":false,"value":{"coverage":"mediated","evaluated":false,"bypassPossible":false,"verdict":"green","score":100}},
+  {"valid":false,"value":{"coverage":"mediated","evaluated":true,"bypassPossible":false,"verdict":"green","score":69}},
+  {"valid":false,"value":{"coverage":"mediated","evaluated":true,"bypassPossible":false,"verdict":"grey","score":0}}
+]

@@ -1,0 +1,126 @@
+{
+  "epoch": 1,
+  "network": "sepolia",
+  "rootName": "bound-demo.eth",
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "validityDays": 30,
+  "sites": [
+    {
+      "host": "app.uniswap.org",
+      "chainId": 11155111,
+      "trustedContracts": [
+        "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e",
+        "0x000000000022d473030f116ddee9f6b43ac78ba3"
+      ],
+      "evidence": [
+        {
+          "address": "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e",
+          "kind": "contract",
+          "sourceUrl": "https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments",
+          "codeHash": "0xe7f98ee73dfe6d5c96cbf8936920f496b1b82f24326d6a415b4144a2252271de"
+        },
+        {
+          "address": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+          "kind": "contract",
+          "sourceUrl": "https://docs.uniswap.org/contracts/permit2/reference/deployments",
+          "codeHash": "0x96d9f5c3f0fb0423426b7f970186235b7347027f4e5c19c40c412b7d97fc3751"
+        }
+      ],
+      "attestationName": "uniswap.eth"
+    },
+    {
+      "host": "app.aave.com",
+      "chainId": 11155111,
+      "trustedContracts": [
+        "0x6ae43d3271ff6888e7fc43fd7321a503ff738951",
+        "0x012bac54348c0e635dcac9d5fb99f06f24136c9a"
+      ],
+      "evidence": [
+        {
+          "address": "0x6ae43d3271ff6888e7fc43fd7321a503ff738951",
+          "kind": "contract",
+          "sourceUrl": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses",
+          "codeHash": "0xdfd31513a60cc252ec0bbcf0e7bdb7f9ba35fab80c1bb9ce0543436b8fe92e49"
+        },
+        {
+          "address": "0x012bac54348c0e635dcac9d5fb99f06f24136c9a",
+          "kind": "contract",
+          "sourceUrl": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses",
+          "codeHash": "0x22818496ed85629596372dcbe81fbc48c729489bdf829e198040b0f06fc4f58f"
+        }
+      ],
+      "attestationName": "aave.eth"
+    },
+    {
+      "host": "app.compound.finance",
+      "chainId": 11155111,
+      "trustedContracts": [
+        "0xaec1f48e02cfb822be958b68c7957156eb3f0b6e"
+      ],
+      "evidence": [
+        {
+          "address": "0xaec1f48e02cfb822be958b68c7957156eb3f0b6e",
+          "kind": "contract",
+          "sourceUrl": "https://docs.compound.finance/#networks",
+          "codeHash": "0x64952234eab8f3aed74355c49119f627965640b1efeb6b28430b5a31b0d3b192"
+        }
+      ],
+      "attestationName": "compound.eth"
+    },
+    {
+      "host": "app.ens.domains",
+      "chainId": 11155111,
+      "trustedContracts": [
+        "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e",
+        "0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16"
+      ],
+      "evidence": [
+        {
+          "address": "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e",
+          "kind": "contract",
+          "sourceUrl": "https://docs.ens.domains/learn/deployments",
+          "codeHash": "0x8ea75f170914f04bc7c03e47eac3d7f5763f40fd5337cad69011bc7245fcf4a0"
+        },
+        {
+          "address": "0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16",
+          "kind": "contract",
+          "sourceUrl": "https://docs.ens.domains/learn/deployments",
+          "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+        }
+      ],
+      "attestationName": "ens.eth"
+    },
+    {
+      "host": "opensea.io",
+      "chainId": 11155111,
+      "trustedContracts": [
+        "0x00000000000000adc04c56bf30ac9d3c0aaf14dc"
+      ],
+      "evidence": [
+        {
+          "address": "0x00000000000000adc04c56bf30ac9d3c0aaf14dc",
+          "kind": "contract",
+          "sourceUrl": "https://docs.opensea.io/docs/seaport",
+          "codeHash": "0x2a160680862a3f76cc8882c93965bb9a42b7c5e026ec434b6bef8c6ac41be2e5"
+        }
+      ],
+      "attestationName": "opensea.eth"
+    }
+  ],
+  "shared": [
+    {
+      "chainId": 11155111,
+      "contracts": [
+        "0x000000000022d473030f116ddee9f6b43ac78ba3"
+      ],
+      "evidence": [
+        {
+          "address": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+          "kind": "shared",
+          "sourceUrl": "https://docs.uniswap.org/contracts/permit2/reference/deployments",
+          "codeHash": "0x96d9f5c3f0fb0423426b7f970186235b7347027f4e5c19c40c412b7d97fc3751"
+        }
+      ]
+    }
+  ]
+}

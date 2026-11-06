@@ -1,0 +1,7 @@
+# Proposed Arkiv schema
+
+The payload contracts are defined by `packages/contracts/index.js` and examples in `fixtures/contracts/records.json`. Version 1 proposes observation, baseline, drift, incident and status records. Incident payloads contain a report digest and plain unencrypted Swarm reference. The proposed entity contains an indexed `arkiv.schema` string, an indexed `bound.operation` key for retry deduplication, and a `payload` bytes attribute holding UTF-8 JSON. The `writer.js` boundary requires the operation lookup to find and verify a prior write; actual signed create, receipt parsing, indexes and lifetimes still need a live writer and cross-lane agreement. Arkiv documents a 128-byte string limit and 128-KiB bytes limit; see [write transactions](https://docs.arkiv.network/json-rpc/mutating-entities/) and [limits](https://docs.arkiv.network/reference/limits/).
+
+Arkiv owner, entity key and expiry are metadata. The reader filters on the configured owner and rechecks the returned metadata. A schema tag is not proof of ownership. Observations are not seed trust and do not lift a score cap. Local schema tests are not a live protocol proof.
+
+A proposed incident status may carry a null incident reference while the report is unavailable; clients must retain the warning and disable the report link. This clarification requires shared acceptance. Status writes need idempotent ordering so a retried pending status cannot overwrite the final status.

@@ -1,0 +1,18 @@
+<<<<<<< HEAD
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Workspace outputs
+node_modules/
+coverage/
+dist/
+
+# Local watcher journals may contain pseudonymous observation data.
+.bound/
+=======
+node_modules
+*/.env
+.env
+>>>>>>> 72047d9 (feat: add packages and package.json)

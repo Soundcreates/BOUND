@@ -1,0 +1,16 @@
+[
+  {"case":"no baseline", "baseline":false, "expectedVerdict":"grey"},
+  {"case":"seeded untrusted rights", "baseline":true, "seeded":true, "role":"rights", "trusted":false, "expectedMax":35},
+  {"case":"seeded rights with corroborated drift", "baseline":true, "seeded":true, "role":"rights", "trusted":false, "drift":true, "expectedMax":15},
+  {"case":"seeded untrusted destination", "baseline":true, "seeded":true, "role":"destination", "trusted":false, "ownAccount":false, "expectedMax":65},
+  {"case":"uncurated witnessed", "baseline":true, "seeded":false, "witnessed":true, "expectedMax":65},
+  {"case":"uncurated unwitnessed", "baseline":true, "seeded":false, "witnessed":false, "expectedMax":35},
+  {"case":"uncurated unwitnessed drift", "baseline":true, "seeded":false, "witnessed":false, "drift":true, "expectedMax":15},
+  {"case":"opaque with unverified hit", "payload":"opaque", "unverifiedHit":true, "expectedMax":65},
+  {"case":"malformed", "payload":"malformed", "expectedMax":35},
+  {"case":"mixed rights and destination", "caps":[35,65], "expectedMax":35},
+  {"case":"normal DEX router false-hold control", "payload":"opaque", "calledContractTrusted":true, "unverifiedHit":false, "expectedOpaqueCap":null, "note":"Other rules and coverage still apply."},
+  {"case":"Permit2 signature transfer", "payload":"signatureTransfer", "destinationFixed":false, "expectedMax":65},
+  {"case":"eth_sign", "method":"eth_sign", "expectedScore":0, "expectedVerdict":"escalated"},
+  {"case":"unknown method", "coverage":"unsupported", "expectedVerdict":null}
+]

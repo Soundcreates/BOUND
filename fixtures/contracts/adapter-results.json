@@ -1,0 +1,12 @@
+[
+  {"valid":true,"value":{"service":"snapshot","status":"ok","source":"live","data":{"epoch":1}}},
+  {"valid":true,"value":{"service":"snapshot","status":"stale","source":"cache","data":{"epoch":1}}},
+  {"valid":true,"value":{"service":"arkiv","status":"stale","source":"cache","data":{"schemaVersion":1}}},
+  {"valid":true,"value":{"service":"anon-rpc","status":"timeout","source":null,"data":null}},
+  {"valid":true,"value":{"service":"swarm","status":"unavailable","source":null,"data":null}},
+  {"valid":false,"value":{"service":"anon-rpc","status":"timeout","source":"live","data":{"trusted":true}}},
+  {"valid":false,"value":{"service":"anon-rpc","status":"stale","source":"cache","data":{"trusted":true}}},
+  {"valid":false,"value":{"service":"snapshot","status":"invalid","source":"live","data":{"epoch":1}}},
+  {"valid":false,"value":{"service":"arkiv","status":"ok","source":"cache","data":{"schemaVersion":1}}},
+  {"valid":false,"value":{"service":"swarm","status":"timeout","source":null,"data":null}}
+]
