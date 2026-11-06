@@ -1,4 +1,11 @@
 @font-face {
+  font-family: "Instrument Serif";
+  src: url("fonts/InstrumentSerif-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
   font-family: "Source Sans 3";
   src: url("fonts/SourceSans3VF-Upright.woff2") format("woff2");
   font-style: normal;
@@ -16,7 +23,7 @@
 }
 * { box-sizing: border-box; }
 html { font-size: 100%; }
-body { margin: 0; background: var(--a11y-white); color: var(--a11y-ink); font: 1.125rem/1.6 "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { margin: 0; background: var(--a11y-white); color: var(--a11y-ink); font: 1.125rem/1.6 "Instrument Serif", "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { width: min(100%, 540px); margin: auto; padding: 24px 24px 32px; }
 h1, h2, p { margin: 0; }
 h1 { font-size: 1.75rem; line-height: 1.25; font-weight: 700; }

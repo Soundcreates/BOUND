@@ -79,8 +79,8 @@ try {
   }
   const popup = await connect(warning.webSocketDebuggerUrl);
   await until(async () => (await popup.call('Runtime.evaluate', { expression: "document.querySelector('#method')?.textContent" })).result.value === 'eth_sendTransaction', 'warning details');
-  const font = await popup.call('Runtime.evaluate', { expression: "document.fonts.load('400 18px \\\"Source Sans 3\\\"').then(faces => faces.length > 0 && faces.every(face => face.status === 'loaded'))", awaitPromise: true, returnByValue: true });
-  if (font.result.value !== true) throw new Error('Source Sans 3 did not load from the extension');
+  const font = await popup.call('Runtime.evaluate', { expression: "document.fonts.load('400 18px \\\"Instrument Serif\\\"').then(faces => faces.length > 0 && faces.every(face => face.status === 'loaded'))", awaitPromise: true, returnByValue: true });
+  if (font.result.value !== true) throw new Error('Instrument Serif did not load from the extension');
   if ((await popup.call('Runtime.evaluate', { expression: "document.querySelectorAll('#verdict').length" })).result.value !== 1) throw new Error('Warning must show exactly one verdict');
   const revoke = (await popup.call('Runtime.evaluate', { expression: "({hidden: document.querySelector('#approval-links').hidden, href: document.querySelector('.approval-link')?.href, guidance: document.querySelector('#approval-links').textContent, pairs: document.querySelectorAll('.approval-pair').length})", returnByValue: true })).result.value;
   if (revoke.hidden || revoke.pairs !== 1 || revoke.href !== 'https://revoke.cash/?chainId=31337' || !revoke.guidance.includes('Find the same pair')) throw new Error('Revocation guidance is missing or misleading');
