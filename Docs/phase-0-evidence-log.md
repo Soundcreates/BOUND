@@ -261,6 +261,32 @@ Epoch is 3 because the live root sits at epoch 2 from the disposable probe recor
 `assertMonotonicEpoch` refuses anything at or below the published epoch, so a compile at
 the seed's original epoch 1 would have been rejected at publish time.
 
+### First live snapshot publish (compile -> Swarm -> ENS root, 2026-11-06)
+
+The full curator publish path, which had never run end to end before this. One command
+does all three steps and each failure mode is distinct, so a problem names itself.
+
+| Step | Value |
+|---|---|
+| Epoch | 3 (previous: 2) |
+| Digest | `0x88ae59882c453ec380342218716b1c5452caf4aaaadff660c157ad663ffeba6b` |
+| Swarm reference | `39676f980759bc0b9f6c8592a9a5f2be6b2bd3fa560ccb34d1e5e5288b289e0d` |
+| ENS root tx | `0x904e2da49ee6cafae312415fe01c8d622c5e6e0f6fb1bfddc4a7324135f14956` |
+| Size | 3898 bytes |
+| Upload | unstamped `POST /bytes`, gateway-stamped — no Bee node, no postage batch, no xBZZ/xDAI |
+
+The published digest equals the one computed by two independent local compiles, so the
+reproducible-build gate holds across compile *and* publish rather than only across local
+runs.
+
+Anyone can fetch the bytes without our tooling:
+`https://api.gateway.ethswarm.org/bytes/39676f980759bc0b9f6c8592a9a5f2be6b2bd3fa560ccb34d1e5e5288b289e0d`
+
+**Key note.** This publish was signed by `0x081D48D`, the bring-up key that was pasted in
+plaintext (G3) and should be treated as burned. It also remains both curator and resolver
+owner (G2). Neither gap is closed by this publish succeeding, and the rotation still has
+to happen before any grant that matters.
+
 ### Open gaps — must be disclosed, not claimed as passing
 
 **G1 — the write was not made by the scoped protocol account.**
