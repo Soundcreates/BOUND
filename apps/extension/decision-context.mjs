@@ -170,6 +170,8 @@ export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, ad
     }
   }
   if (active) return result("active", earliestExpiry(snapshotExpiry, activeRecords));
+  const driftRecords=[...byChain.values()].flat().filter(record=>record.status==="drift");
+  if(driftRecords.length)return result("drift",earliestExpiry(snapshotExpiry,driftRecords));
   const normalRecords = [];
   const normal = expectedChains.every((chain) => {
     const current = byChain.get(chain);

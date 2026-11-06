@@ -34,7 +34,7 @@ export function observationCandidates({ site, chain, classification, request, ac
     if (!value || privateAddresses.has(value) || entry.verified === false) continue;
     const key = `${site}:${chain}:${value}`;
     if (lastSeen[key] !== undefined && now - lastSeen[key] < WEEK) continue;
-    output.push({ site, kind: "observation", value, chain });
+    output.push({ site, kind: "observation", value, chain, ...(entry.role === "called" || entry.role === "token" ? { observationKind: "called-contract" } : {}) });
   }
   return output;
 }

@@ -2,6 +2,7 @@ const siteNode = document.querySelector("#site");
 const coverageNode = document.querySelector("#coverage");
 const framesNode = document.querySelector("#frames");
 const historyNode = document.querySelector("#history");
+document.querySelector("#settings").addEventListener("click", () => chrome.runtime.openOptionsPage());
 
 (async () => {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -26,7 +27,7 @@ const historyNode = document.querySelector("#history");
     const incident = document.querySelector("#incident");
     incident.hidden = false;
     const current = Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now() ? siteStatus.status : "unknown";
-    incident.textContent = current === "active" ? "The watcher reports an active incident for this site." : current === "normal" ? "No active incident is reported for this site." : "Current incident status is unavailable.";
+    incident.textContent = current === "active" ? "The watcher reports an active incident for this site." : current === "drift" ? "The watcher reports an infrastructure change for this site." : current === "normal" ? "No active incident is reported for this site." : "Current incident status is unavailable.";
   }
   const statuses = Object.values(boundCoverage).filter((item) => item.tabId === tab.id);
   const worst = statuses.some((item) => item.bypassPossible) ? "Bypass possible: a provider path may avoid BOUND."

@@ -32,6 +32,10 @@ test("only decoded first sightings are eligible for an observation", () => {
   ]);
   assert.deepEqual(observationCandidates({ site: "swap.example", chain: "1", classification: { kind: "opaque", entries: [entry] } }), []);
 });
+test("called contracts retain their observation subtype",()=>{
+ const entry={address:"0x"+"1".repeat(40),role:"called"};
+ assert.deepEqual(observationCandidates({site:"swap.example",chain:"1",classification:{kind:"decoded",entries:[entry]}}),[{site:"swap.example",kind:"observation",value:entry.address,chain:"1",observationKind:"called-contract"}]);
+});
 
 test("only continued green or amber requests with normal incident status can be observed", () => {
   for (const verdict of ["green", "amber", "red", "escalated", "grey"]) for (const incidentStatus of ["normal", "active", "unknown"]) for (const action of ["continue", "cancel"]) {

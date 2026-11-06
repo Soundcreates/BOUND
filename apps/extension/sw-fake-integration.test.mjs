@@ -38,13 +38,14 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     }
 
     await writeFile(path.join(extensionRoot, "trust-adapter.mjs"), `
-      export const watcherOwner = "${OWNER}";
+      export async function getWatcherOwner() { return "${OWNER}"; }
       export const decisionAdapters = {
         async readVerifiedSnapshot() { return globalThis.__boundFake.adapters.snapshot; },
         async readWatcherBundle() { return globalThis.__boundFake.adapters.records; }
       };
     `);
     await writeFile(path.join(extensionRoot, "watcher-adapter.mjs"), `
+      export async function isObservationConfigured() { return true; }
       export async function sendObservationBatch(records, { signal } = {}) {
         if (signal?.aborted) throw new Error("aborted");
         globalThis.__boundFake.sent.push(structuredClone(records));
