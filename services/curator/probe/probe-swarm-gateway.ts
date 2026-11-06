@@ -10,8 +10,10 @@
  *   - gateway.ethswarm.org (the WEB host) answers 200 with a small HTML shell for any
  *     address, including one that was never uploaded. A retrieval that failed is
  *     indistinguishable from one that succeeded unless you compare bytes.
- *   - /bzz/<ref> resolves manifests, not raw uploads. A /bytes upload read back through
- *     /bzz 404s even though the data is there.
+ *   - /bzz/<ref> is documented as resolving manifests rather than raw uploads. Measured
+ *     2026-11-06 it served a /bytes upload with 200 anyway, so the documented behaviour
+ *     and the live behaviour disagree. Nothing depends on it either way — the extension
+ *     reads /bytes — but the probe keeps checking it so a change gets noticed.
  *
  * Independence note: bzz.link, api.gateway.ethswarm.org and download.gateway.ethswarm.org
  * are all operated by ethswarm.org and are blocked and unblocked together, so reading
@@ -89,10 +91,10 @@ async function main(): Promise<void> {
   }
 
   // 3. the /bzz trap: manifests only, raw uploads are not here
-  process.stdout.write("\n3. GET /bzz/<ref> on the API gateway (expected to fail — manifests only)\n");
+  process.stdout.write("\n3. GET /bzz/<ref> on the API gateway (docs say manifests only; measured otherwise)\n");
   const viaBzz = await tryGet(`${API}/bzz/${reference}`);
   line("status", String(viaBzz.status));
-  line("note", viaBzz.status === 200 ? "unexpectedly served" : "as documented: raw uploads live at /bytes");
+  line("note", viaBzz.status === 200 ? "served (contradicts the docs; 200 on 2026-11-06)" : "as documented: raw uploads live at /bytes");
 
   // 4. the web-host trap: 200 for anything, including data never uploaded
   process.stdout.write("\n4. Web host gateway.ethswarm.org — does a miss look like a hit?\n");
