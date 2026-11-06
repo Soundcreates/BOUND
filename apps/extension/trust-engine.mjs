@@ -1,6 +1,6 @@
 import {decodeSnapshotBytes} from "../../packages/snapshot/src/digest.ts";
 import {parseRootRecord,encodeRootRecord} from "../../packages/snapshot/src/root-record.ts";
-import {makePublicClient,readRootRecord,readAttestation} from "../../integrations/ens/src/resolver-client.ts";
+import {readRootRecord,readAttestation} from "../../integrations/ens/src/resolver-client.ts";
 import {createPublicClient,custom} from "viem";
 import {sepolia} from "viem/chains";
 import {normalizeSettings} from "./settings.mjs";
@@ -11,7 +11,7 @@ const exact=(value,keys)=>value&&typeof value==="object"&&!Array.isArray(value)&
 const rootKeys=["digest","epoch","network","schemaVersion","swarmRef"];
 function validRoot(value){if(!exact(value,rootKeys))throw new Error("Invalid root");return parseRootRecord(encodeRootRecord(value));}
 function scope(settings){
- if(!settings.ensRootName||!settings.ensResolver||!settings.ensRpcUrl||settings.swarmGateways.length<2)throw new Error("Trust settings incomplete");
+ if(!settings.ensRootName||!settings.ensResolver||settings.swarmGateways.length<2)throw new Error("Trust settings incomplete");
  return {chainId:settings.ensChainId,name:settings.ensRootName,resolver:settings.ensResolver,network:settings.network,recordKey:"bound.root.v1"};
 }
 async function bytesFrom(response){
@@ -37,8 +37,14 @@ function decisionSnapshot(snapshot){
  const sites=Object.fromEntries(Object.entries(snapshot.sites).map(([site,chains])=>[site,Object.fromEntries(Object.entries(chains).map(([chain,value])=>[chain,{trustedCounterparties:value.trustedCounterparties,trustedContracts:value.trustedContracts,deployers:value.deployers,source:"Verified curator snapshot"}]))]));
  return {schemaVersion:snapshot.schemaVersion,epoch:snapshot.epoch,generatedAt:snapshot.generatedAt,expiresAt:snapshot.expiresAt,network:snapshot.network,sharedContracts,sites};
 }
-async function defaultReadRoot(settings){
- const client=makePublicClient(settings.ensRpcUrl);if(await client.getChainId()!==settings.ensChainId)throw new Error("Unexpected ENS chain");
+async function defaultReadRoot(settings,anonymousRequest){
+ if(typeof anonymousRequest!=="function")throw new Error("Anonymous ENS reads are unavailable");
+ const client=createPublicClient({chain:sepolia,transport:custom({request:async({method,params})=>{
+  const response=await anonymousRequest({method,params:params??[]});
+  if(response?.error||!Object.hasOwn(response??{},"result"))throw new Error("Anonymous ENS read unavailable");
+  return response.result;
+ }})});
+ if(await client.getChainId()!==settings.ensChainId)throw new Error("Unexpected ENS chain");
  return readRootRecord(client,{chainId:settings.ensChainId,rootName:settings.ensRootName,resolverAddress:settings.ensResolver});
 }
 export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,fetchImpl=fetch,now=Date.now,refreshMs=REFRESH_MS,anonymousRequest,readProtocolAttestation=readAttestation}){
@@ -58,7 +64,7 @@ export function createTrustEngine({getSettings,storage,readRoot=defaultReadRoot,
   const asResult=value=>issue({root:value.root,snapshot:decisionSnapshot(value.snapshot),sourceSnapshot:value.snapshot,cached:true,verifiedAt:value.verifiedAt});
   if(cached&&time-cached.verifiedAt<refreshMs&&Date.parse(cached.snapshot.expiresAt)>time)return asResult(cached);
   try{
-   const root=validRoot(await readRoot(settings));
+   const root=validRoot(await (readRoot===defaultReadRoot?defaultReadRoot(settings,anonymousRequest):readRoot(settings)));
    if(root.network!==anchor.network)throw new Error("Wrong network");
    if(cached&&(root.epoch<cached.root.epoch||(root.epoch===cached.root.epoch&&JSON.stringify(root)!==JSON.stringify(cached.root))))throw new Error("Snapshot rollback or equivocation");
    const bytes=await fetchSnapshot(settings.swarmGateways,root.swarmRef,fetchImpl),snapshot=checkSnapshot(root,bytes,anchor,time);

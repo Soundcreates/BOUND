@@ -1,4 +1,4 @@
-const URL_FIELDS=["ensRpcUrl","arkivRpcUrl","watcherUrl","anonBootstrapUrl","anonRpcUrl"];
+const URL_FIELDS=["arkivRpcUrl","watcherUrl","anonBootstrapUrl","anonRpcUrl"];
 function cleanUrl(value,{local=false}={}){
  if(value==="")return "";
  let url;try{url=new URL(value);}catch{throw new Error("Enter a valid endpoint URL.");}
