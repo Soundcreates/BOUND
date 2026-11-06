@@ -44,18 +44,58 @@ BOUND_UNAUTHORIZED_PRIVATE_KEY=   # optional but recommended
 
 | Check | Status | Evidence |
 |---|---|---|
-| BeeClient unit tests | ✅ | 22/22 pass |
-| Gateway unit tests | ✅ | included in 22/22 |
-| Upload snapshot bytes to Bee node | Pending live probe | Run `probe-swarm.ts` |
-| Read back via second gateway | Pending live probe | Run `probe-swarm.ts` |
-| Postage batch usable | Pending live probe | Run `probe-swarm.ts` |
+| BeeClient unit tests | ✅ | now 26/26 (4 added for the host-stamped path) |
+| Gateway unit tests | ✅ | included |
+| Upload snapshot bytes | ✅ live | `probe-swarm-gateway.ts` 2026-11-06 — no node, no postage batch |
+| Read back, byte-compared | ✅ live | round trip MATCH on sha256 |
+| Two distinct origins agree | ⚠️ live, same operator | mechanism proven; independence **not** proven — see below |
+| Postage batch usable | n/a — not used | gateway stamps with its own batch |
 
-**Live probe env vars needed:**
-```
-BOUND_BEE_API_URL=
-BOUND_POSTAGE_BATCH_ID=
-BOUND_GATEWAY_URLS=<url1>,<url2>
-```
+### Live Swarm round trip (`probe-swarm-gateway.ts`, 2026-11-06)
+
+Run from an unrestricted machine: this repo's sandbox and the desktop VM are both
+proxy-blocked (403 at CONNECT) for `*.ethswarm.org` and Infura.
+
+| Step | Result |
+|---|---|
+| `POST /bytes`, no stamp headers | **201** — reference `dd187ff794bb9d574d88bebc06b8150c6b57c52f2cbc36663f139a4fd5f6cc32` |
+| `GET /bytes/<ref>` on api.gateway | 200, 3384 bytes, sha256 **MATCH** |
+| `uploadAndSelfVerify` + `stampedByHost` | ✅ `55e70eb6e42837471b18b0d3552108c84d8d3ec339d0bf165819e2862e3b7244`, canonical ref |
+| `fetchFromGateways` across 2 origins, `minAgree: 2` | ✅ 3384 bytes, **MATCH** |
+
+The last two rows matter more than the first two: they run `@bound/integrations-swarm`,
+which is the code `publishSnapshot` and the extension's `fetchSnapshot` actually call. The
+first two only characterise the gateway.
+
+**Two traps confirmed, not assumed:**
+
+- `gateway.ethswarm.org` (the **web** host) answered **200 with 960 bytes for an all-zeros
+  reference that was never uploaded** — byte-for-byte the same shape as the real response.
+  A hash check against that host proves nothing. Only `api.gateway`/`download.gateway`
+  `/bytes` paths are usable.
+- `/bzz/<ref>` served the raw upload with 200, contradicting the documented
+  manifests-only behaviour. Nothing depends on it — the extension reads `/bytes` — but the
+  probe keeps checking so a change gets noticed.
+
+**What this does NOT show.** `api.gateway.ethswarm.org`, `download.gateway.ethswarm.org`
+and `bzz.link` are all operated by ethswarm.org and are blocked and unblocked together.
+Two of them agreeing demonstrates the two-origin *mechanism* in
+`trust-engine.mjs:fetchSnapshot`; it does not demonstrate operator independence, which is
+what plan §5's "an independent Swarm gateway returns bytes whose digest matches" asks for.
+`dev1-test-guide.md` is explicit that a pass elsewhere does not substitute for this case.
+Closing it needs a gateway run by someone else, or our own Bee node for the second read.
+
+**Accepted limitation — persistence.** A gateway-stamped upload sits on *the gateway's*
+postage batch. We cannot renew it and cannot prevent its collection, so a published root
+can in principle outlive its snapshot bytes. Integrity is unaffected: the root record's
+digest is what makes served bytes unforgeable, so what is given up is availability, never
+trust. The extension already fails closed on this — `fetchSnapshot` throws, and `read()`
+falls back to a cached snapshot only while unexpired, else surfaces the error.
+
+**No env vars needed for the free path.** `BOUND_BEE_API_URL` and
+`BOUND_POSTAGE_BATCH_ID` are now optional and must be set together; leaving both unset
+selects an unstamped gateway upload. `BOUND_SWARM_GATEWAYS` (≥2, distinct origins) is
+still required, and `BOUND_SWARM_UPLOAD_URL` optionally overrides the upload host.
 
 ---
 
