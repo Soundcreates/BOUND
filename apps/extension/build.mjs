@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const output = path.join(root, "dist");
 await mkdir(output, { recursive: true });
-for (const file of ["manifest.json", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "anon-rpc-host.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "watcher-adapter.mjs", "trust-adapter.mjs"]) {
+for (const file of ["manifest.json", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "anon-rpc-host.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "watcher-adapter.mjs", "trust-adapter.mjs", "ens-cache.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
   await copyFile(path.join(root, file), path.join(output, file));
 }
 for (const [pkg, files] of [["decoder", ["index.mjs"]], ["policy-core", ["index.mjs", "observations.mjs"]]]) {
@@ -22,6 +22,7 @@ for (const file of ["sw.js", "decision-context.mjs"]) {
 await build({entryPoints:[path.join(root,"anon-rpc-engine.mjs")],outfile:path.join(output,"anon-rpc-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome116"});
 await build({entryPoints:[path.join(root,"trust-engine.mjs")],outfile:path.join(output,"trust-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome116"});
 await build({entryPoints:[path.join(root,"arkiv-reader.mjs")],outfile:path.join(output,"arkiv-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome116"});
+await build({entryPoints:[path.join(root,"frontend-collector.mjs")],outfile:path.join(output,"frontend-collector.js"),bundle:true,format:"iife",platform:"browser",target:"chrome116"});
 const require=createRequire(import.meta.url);
 const harness=path.dirname(require.resolve("@anon-rpc/browser-extension-harness/package.json"));
 await cp(path.join(harness,"dist/static/anon-rpc"),path.join(output,"anon-rpc"),{recursive:true});

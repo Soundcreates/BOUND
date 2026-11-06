@@ -13,8 +13,8 @@ export async function createConfig(){
  const config=parseUniqueJSON(await readFile(file,'utf8'));
  if(!config||!config.arkiv||!Array.isArray(config.baselines))throw new Error('invalid watcher configuration');
  const {baselines,recoveryApprovalFile,...deployment}=config;
- const rpc=new FetchRequest(config.arkiv.url);
- if(config.arkiv.accessKey)rpc.setHeader('x-api-key',config.arkiv.accessKey);
+ const rpc=new FetchRequest(config.arkiv.url),accessKey=config.arkiv.accessKey??process.env.ARKIV_ACCESS_KEY;
+ if(accessKey)rpc.setHeader('x-api-key',accessKey);
  const wallet=new Wallet(key),provider=new JsonRpcProvider(rpc,config.arkiv.chainId);
  const signer=createArkivSigner({wallet,provider,owner:config.arkiv.owner,target:config.arkiv.target,chainId:config.arkiv.chainId});
  const references=new Map();
@@ -24,5 +24,5 @@ export async function createConfig(){
   references.set(id,structuredClone(entry.sample));
  }
  const canRecover=recoveryApprovalFile?createRecoveryApprovalPolicy({path:recoveryApprovalFile}):async()=>false;
- return {...deployment,arkiv:{...config.arkiv,...signer},readBaseline:async(site,chainId)=>structuredClone(references.get(JSON.stringify([site,chainId]))),canRecover};
+ return {...deployment,arkiv:{...config.arkiv,...(accessKey?{accessKey}:{}),...signer},readBaseline:async(site,chainId)=>structuredClone(references.get(JSON.stringify([site,chainId]))),canRecover};
 }

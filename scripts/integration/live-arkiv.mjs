@@ -71,7 +71,9 @@ try {
   await writeFile(manifestPath,JSON.stringify(scenario,null,2),{encoding:'utf8',mode:0o600,flag:'wx'});
  }
  const {site,base,baselineId,updated,patchId,observation,observationId}=scenario;
- const senderJournal=JSON.parse(await readFile(resolve(stateDir,'sender.json'),'utf8'));
+ let senderJournal;
+ try{senderJournal=JSON.parse(await readFile(resolve(stateDir,'sender.json'),'utf8'));}
+ catch(error){if(error.code!=='ENOENT')throw new Error('invalid live Arkiv sender journal',{cause:error});senderJournal={entries:[]};}
  const transactionFor=id=>senderJournal.entries.find(entry=>entry.id===id)?.transactionHash;
  const first=await archive.writeBaseline(base,baselineId);
  confirmations.push({kind:'baseline-create',key:first.key,owner:configuredOwner,transactionHash:transactionFor(baselineId)});

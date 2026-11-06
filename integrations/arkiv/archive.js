@@ -24,7 +24,11 @@ export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,cha
  if(!Number.isSafeInteger(renewalThreshold)||renewalThreshold<1||renewalThreshold>=Math.min(lifetimes.baseline,lifetimes.status))throw new Error('invalid expiry renewal threshold');
  const journalLocks=await acquireJournalLocks([resolve(senderJournal),resolve(registryJournal),renewalJournal]);
  try {
- const recordLifetimes=Object.fromEntries(kinds.map(kind=>[kind,lifetimes[kind]]));
+ // New immutable payload kinds inherit a bounded lifetime when older config files
+ // omit explicit values. Trust snapshots should set trust_snapshot explicitly.
+ if(lifetimes.ens_record!==undefined&&(!Number.isSafeInteger(lifetimes.ens_record)||lifetimes.ens_record<=renewalThreshold||lifetimes.ens_record>7884000))throw new Error('invalid ENS cache lifetime');
+ for(const kind of ['evidence','trust_snapshot'])if(lifetimes[kind]!==undefined&&(!Number.isSafeInteger(lifetimes[kind])||lifetimes[kind]<1||lifetimes[kind]>7884000))throw new Error(`invalid ${kind} lifetime`);
+ const recordLifetimes={...Object.fromEntries(kinds.map(kind=>[kind,lifetimes[kind]])),ens_record:lifetimes.ens_record??lifetimes.status,evidence:lifetimes.evidence??lifetimes.drift,trust_snapshot:lifetimes.trust_snapshot??lifetimes.baseline};
  const transport=createArkivTransport({url,accessKey,fetchImpl});
  const reader=createArkivRpcReader({url,accessKey,fetchImpl,schemaTag,expectedChainId:chainId});
  const entities=createArkivEntityReader({rpc:transport.rpc,owner,schemaTag,chainId});
@@ -44,8 +48,11 @@ export async function openArkivArchive({url,accessKey,fetchImpl,owner,target,cha
   writeObservation(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'observation');return writer.write(captured,id);});},
   writeDrift(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'drift');return writer.write(captured,id);});},
   writeIncident(record,id){const captured=structuredClone(record);return write(async()=>{requireKind(captured,'incident');return (await writer.write(captured,id)).key;});},
+  writeEvidence(record,id){const captured=structuredClone(record);return write(async()=>{requireKind(captured,'evidence');return writer.write(captured,id);});},
+  writeTrustSnapshot(record,id){const captured=structuredClone(record);return write(async()=>{requireKind(captured,'trust_snapshot');return writer.write(captured,id);});},
   writeBaseline(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'baseline');return upsert.write(captured,id);});},
   writeStatus(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'status');return upsert.write(captured,id);});},
+  writeEnsRecord(record,id){const captured=structuredClone(record);return write(()=>{requireKind(captured,'ens_record');return upsert.write(captured,id);});},
   getStatusVersion:(site,chainId)=>serial(async()=>(await upsert.latestStatus(site,chainId))?.id??null),
   // Recovery must use a version captured by the guarded caller when it made
   // the decision, so a delayed call cannot clear a newer committed incident.

@@ -5,13 +5,14 @@ const MAX_UINT256 = (1n << 256n) - 1n;
 const TRUST_SOURCES = new Set(["snapshot", "ens_attestation", "shared_contract", "deployer_lineage"]);
 const BULK_READ_TIMEOUT_MS = 5_000;
 const ANON_READ_TIMEOUT_MS = 1_500;
+const ENS_SOURCES = new Set(["live", "memory", "arkiv_unconfirmed", "unavailable", "not_configured"]);
 
 /**
  * Compose extension-owned trust and watcher data for policy-core.evaluate.
  *
  * Adapter contract (all functions are extension-owned):
  * - readVerifiedSnapshot() returns { snapshot, root: { epoch } }. The adapter
- *   verifies ENS/root coherence and the Swarm byte digest before returning.
+ *   verifies ENS/root coherence and the Arkiv snapshot digest before returning.
  * - readWatcherBundle() returns the complete cached seeded-site record bundle
  *   with {owner, kind, site, chain, expiresAt}; records are filtered locally.
  * - readUncuratedViaAnonRpc({site, chain}) optionally returns exact-scope
@@ -62,9 +63,11 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
       : Promise.resolve(null);
   const [watcherResult, attestationsResult, deploymentsResult] = await Promise.allSettled([
     baselineRead,
-    typeof adapters.readProtocolAttestationsViaAnonRpc === "function"
-      ? withTimeout(() => adapters.readProtocolAttestationsViaAnonRpc({ site, chain, verifiedSource }), ANON_READ_TIMEOUT_MS)
-      : Promise.resolve([]),
+    typeof adapters.readProtocolAttestations === "function"
+      ? withTimeout(() => adapters.readProtocolAttestations({ site, chain, verifiedSource }), ANON_READ_TIMEOUT_MS)
+      : typeof adapters.readProtocolAttestationsViaAnonRpc === "function"
+        ? withTimeout(() => adapters.readProtocolAttestationsViaAnonRpc({ site, chain, verifiedSource }), ANON_READ_TIMEOUT_MS)
+        : Promise.resolve([]),
     typeof adapters.readVerifiedDeploymentsViaAnonRpc === "function"
       ? withTimeout(() => adapters.readVerifiedDeploymentsViaAnonRpc({ site, chain, verifiedSource }), ANON_READ_TIMEOUT_MS)
       : Promise.resolve([])
@@ -80,8 +83,18 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
     for (const address of siteEntry.trustedContracts) addSource(policy, address, "snapshot", ["called", "token"]);
   }
 
-  if (attestationsResult.status === "fulfilled" && Array.isArray(attestationsResult.value)) {
-    for (const attestation of attestationsResult.value) {
+  // {rows, source} from the cached reader, or a bare row array from the legacy one.
+  // Only rows are trust input; `source` is reported for the warning and never scored.
+  const attestationValue = attestationsResult.status === "fulfilled" ? attestationsResult.value : null;
+  const attestationRows = Array.isArray(attestationValue) ? attestationValue : Array.isArray(attestationValue?.rows) ? attestationValue.rows : null;
+  const ensLookup = {
+    attestation: attestationsResult.status === "rejected"
+      ? (attestationsResult.reason?.message === "Adapter timeout" ? "timeout" : "unavailable")
+      : Array.isArray(attestationValue) ? "live" : ENS_SOURCES.has(attestationValue?.source) ? attestationValue.source : "unavailable",
+    ...(attestationValue?.inconsistent === true ? { inconsistent: true } : {})
+  };
+  if (attestationRows) {
+    for (const attestation of attestationRows) {
       const address = normalizeAddress(attestation?.address);
       if (address && attestation.site === site && normalizeChain(attestation.chain) === chain) addSource(policy, address, "ens_attestation", ["rights", "destination", "called", "token"]);
     }
@@ -134,6 +147,7 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
     snapshotAvailable: true,
     watcherBaselineAvailable: baselinePresent,
     incidentStatus: usable ? incidentStatus : "unknown",
+    ensLookup,
     status: usable ? "ready" : "watcher_baseline_unavailable"
   };
 }

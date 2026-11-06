@@ -7,6 +7,7 @@ import { sendObservationBatch, isObservationConfigured } from "./watcher-adapter
 import { createDecisionContext, readPreconnectionSiteStatus } from "./decision-context.mjs";
 import { decisionAdapters, getWatcherOwner } from "./trust-adapter.mjs";
 import { anonRpc } from "./anon-rpc-host.mjs";
+import { createNetworkCapture, isCapturePage } from "./network-capture.mjs";
 
 const pending = new Map();
 const pendingObservations = new Map();
@@ -14,6 +15,7 @@ const rate = new Map();
 const tabRevisions = new Map();
 const frameRevisions = new Map();
 const statusRequests = new Map();
+const networkCapture = chrome.debugger ? createNetworkCapture({ api: chrome.debugger }) : null;
 const MAX_PENDING_PER_FRAME = 8;
 const DEADLINE_MS = 45_000;
 const STATUS_ALARM = "bound-site-status-refresh";
@@ -49,6 +51,18 @@ if (decisionAdapters) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "BOUND_CAPTURE_V1" && sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("popup.html")) {
+    (async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (!networkCapture || !Number.isInteger(tab?.id)) return { ok: false, error: "Capture unavailable" };
+      if (message.action === "start" && !isCapturePage(tab.url)) return { ok: false, error: "Open an HTTPS website or a local test page first. Chrome internal pages such as chrome://newtab cannot be captured." };
+      if (message.action === "start") await networkCapture.start(tab.id);
+      else if (message.action === "stop") await networkCapture.stop(tab.id);
+      else if (message.action !== "status") return { ok: false, error: "Invalid action" };
+      return { ok: true, capture: networkCapture.snapshot(tab.id) };
+    })().then(sendResponse, () => sendResponse({ ok: false, error: "Unable to attach to this page. Close DevTools or another debugger and try again; Chrome may also restrict this page." }));
+    return true;
+  }
   if (message?.type === "BOUND_SETTINGS_CHANGED_V1" && sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("options.html")) {
     settingsRevision++;invalidate(()=>true);
     refreshPublicData().then(()=>sendResponse({ok:true}),()=>sendResponse({ok:false}));return true;
@@ -95,6 +109,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (change.status === "loading" || change.url) {
+    networkCapture?.reset(tabId);
     tabRevisions.set(tabId, (tabRevisions.get(tabId) || 0) + 1);
     invalidate((item) => item.tabId === tabId);
     clearCoverage(tabId).catch(() => {});
@@ -104,6 +119,7 @@ chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   }
 });
 chrome.tabs.onRemoved.addListener((tabId) => {
+  networkCapture?.stop(tabId).catch(() => {});
   tabRevisions.set(tabId, (tabRevisions.get(tabId) || 0) + 1);
   statusRequests.delete(tabId);
   invalidate((item) => item.tabId === tabId);
@@ -159,11 +175,13 @@ async function handleRequest(message, sender, sendResponse) {
   const locked = !validProviderState(message.state);
   const bypass = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id);
   const coverage = locked || classification.kind === "unsupported" ? "unsupported" : bypass ? "bypass_possible" : "mediated";
+  const frontendPromise = readFrontendEvidence(sender);
   let context = { baseline: null, incidentStatus: "unknown" };
   if (!locked && decisionAdapters) {
     try { const watcherOwner=await getWatcherOwner();context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
     catch { /* Unavailable policy data leaves the request grey. */ }
   }
+  const frontend = await frontendPromise;
   if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
   const evaluated = evaluate({ classification, ...context, signerAccounts: locked ? [] : message.state.accounts, coverage });
   const id = crypto.randomUUID();
@@ -176,6 +194,8 @@ async function handleRequest(message, sender, sendResponse) {
     score: evaluated.score,
     reasons: locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons,
     entries: classification.entries,
+    frontend,
+    networkCapture: networkCapture?.snapshot(sender.tab?.id) || { active: false, rows: [], missing: 0 },
     observedAddresses: [...new Set(classification.entries.filter(entry => entry.verified !== false && typeof entry.address === "string" && context.observed?.has(entry.address.toLowerCase())).map(entry => entry.address.toLowerCase()))],
     approvals: classification.approvals || [],
     tabId: sender.tab?.id,
@@ -185,6 +205,8 @@ async function handleRequest(message, sender, sendResponse) {
     frameOrigin: originOf(sender.url),
     chainId: locked ? null : message.state.chainId,
     incidentStatus: context.incidentStatus || "unknown",
+    ensLookup: context.ensLookup?.attestation || null,
+    ensInconsistent: context.ensLookup?.inconsistent === true,
   };
   details.coverage = coverage;
   details.locked = locked;
@@ -209,6 +231,20 @@ async function handleRequest(message, sender, sendResponse) {
     }
     sendResponse({ action: locked ? "cancel" : action, digest, stateDigest, readOnly: false, ...(receiptToken ? { receiptToken } : {}) });
   });
+}
+
+async function readFrontendEvidence(sender) {
+  if (!Number.isInteger(sender.tab?.id) || typeof sender.documentId !== "string" || typeof chrome.tabs.sendMessage !== "function") return null;
+  let timer;
+  try {
+    const evidence = await Promise.race([
+      chrome.tabs.sendMessage(sender.tab.id, { type: "BOUND_COLLECT_FRONTEND_V1" }, { documentId: sender.documentId }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("frontend collection timeout")), 1200); })
+    ]);
+    if (!evidence || !Array.isArray(evidence.scripts) || evidence.scripts.length > 32 || !Number.isSafeInteger(evidence.unavailable) || evidence.unavailable < 0) return null;
+    if (!evidence.scripts.every(item => item && typeof item.label === "string" && item.label.length <= 256 && /^sha256-[A-Za-z0-9+/]{43}=$/.test(item.hash) && ["inline DOM", "browser cache"].includes(item.source))) return null;
+    return evidence;
+  } catch { return null; } finally { clearTimeout(timer); }
 }
 
 async function confirmForwarded(message, sender) {

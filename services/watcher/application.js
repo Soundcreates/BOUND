@@ -9,20 +9,20 @@ import {createWatcherService} from './service.js';
 
 // One application instance owns all four journals and serializes every status
 // transition for a site. Network, signing and recovery policy remain explicit.
-export async function openWatcherApplication({paths,feeds,archive,hash,upload,readBaseline,poll,canRecover,now=Date.now,maxDriftAgeMs,renewalWindowMs,windowMs,retentionMs,k,allowedOrigins,intervals,onFailure}) {
+export async function openWatcherApplication({paths,feeds,archive,hash,writeEvidence,readBaseline,poll,canRecover,now=Date.now,maxDriftAgeMs,renewalWindowMs,windowMs,retentionMs,k,allowedOrigins,intervals,onFailure}) {
  const names=['watcher','drift','publication','incidents'];
  if(!paths||names.some(name=>typeof paths[name]!=='string'||!paths[name])||typeof canRecover!=='function')throw new Error('watcher application configuration required');
  const journals=names.map(name=>resolve(paths[name]));
  if(new Set(journals).size!==journals.length)throw new Error('watcher journal paths must be distinct');
- if(!Array.isArray(feeds)||!feeds.length||!archive||typeof archive.writeDrift!=='function')throw new Error('watcher feeds and archive required');
+ if(!Array.isArray(feeds)||!feeds.length||!archive||typeof archive.writeDrift!=='function'||typeof archive.writeEvidence!=='function')throw new Error('watcher feeds and Arkiv evidence archive required');
  feeds=structuredClone(feeds);
  const locks=await acquireJournalLocks(journals);
  try {
   const sites=feeds.map(({site,chainId})=>({site,chainId}));
-  const publisher=await openDriftPublisher({path:journals[2],now,renewalWindowMs,feeds:feeds.map(({site,chainId,feedReference})=>({site,chainId,feedReference})),hash,upload,writeDrift:(record,id)=>archive.writeDrift(record,id),writeDriftStatusIfNoIncident:guardedDriftStatus});
+  const publisher=await openDriftPublisher({path:journals[2],now,renewalWindowMs,feeds:feeds.map(({site,chainId,feedReference})=>({site,chainId,feedReference})),hash,writeEvidence,writeDrift:(record,id)=>archive.writeDrift(record,id),writeDriftStatusIfNoIncident:guardedDriftStatus});
   const drift=await openWatchedDrift({path:journals[1],now,maxAgeMs:maxDriftAgeMs,readBaseline,poll,publish:publisher.publish});
   let service;
-  const incidents=await openWatcherIncidents({path:journals[3],now,feeds,hash,upload,archive,canRecover:async(site,chainId,episode)=>{
+  const incidents=await openWatcherIncidents({path:journals[3],now,feeds,hash,writeEvidence,archive,canRecover:async(site,chainId,episode)=>{
    const status=await drift.readStatus(site,chainId);
    if(status.stale||status.state!=='normal')return false;
    if(!service||!(await service.watcher.recoveryQuiet(site,chainId)))return false;

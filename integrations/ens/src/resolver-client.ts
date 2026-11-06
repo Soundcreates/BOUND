@@ -111,7 +111,7 @@ export async function readRootRecord(client: PublicClient, cfg: BoundEnsConfig):
 
 /**
  * Publish a new root record. Caller's wallet must hold ROLE_SET_TEXT on the
- * `textResource("bound.root.v1")` resource (least-privilege; see `grantCuratorRole` below)
+ * `textResource("bound.root.v2")` resource (least-privilege; see `grantCuratorRole` below)
  * or a root role. One call = one record update (plan §3).
  *
  * setText takes a DNS-encoded `bytes name` (post-audit-2), not the bytes32 node — reads

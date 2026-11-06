@@ -17,8 +17,8 @@ function validEntry(entry,feeds){
  return exact(entry,['event','episodeId','window','publicationHour','feedReference','done'])&&validInput(entry.event)&&typeof entry.episodeId==='string'&&hex.test(entry.episodeId)&&Number.isSafeInteger(entry.window)&&entry.window>=0&&typeof entry.publicationHour==='string'&&/^\d{4}-\d\d-\d\dT\d\d:00:00\.000Z$/.test(entry.publicationHour)&&typeof entry.feedReference==='string'&&hash32.test(entry.feedReference)&&feeds.get(scope(entry.event.site,entry.event.chainId))===entry.feedReference&&typeof entry.done==='boolean';
 }
 // The status callback must serialize with incident state updates and must never downgrade an active incident.
-export async function openDriftPublisher({path,now=Date.now,renewalWindowMs,feeds,hash:hashBytes,upload,writeDrift,writeDriftStatusIfNoIncident}) {
- if(typeof path!=='string'||!path||typeof now!=='function'||!Number.isSafeInteger(renewalWindowMs)||renewalWindowMs<1||!Array.isArray(feeds)||!feeds.length||[hashBytes,upload,writeDrift,writeDriftStatusIfNoIncident].some(fn=>typeof fn!=='function'))throw new Error('invalid drift publisher configuration');
+export async function openDriftPublisher({path,now=Date.now,renewalWindowMs,feeds,hash:hashBytes,writeEvidence,writeDrift,writeDriftStatusIfNoIncident}) {
+ if(typeof path!=='string'||!path||typeof now!=='function'||!Number.isSafeInteger(renewalWindowMs)||renewalWindowMs<1||!Array.isArray(feeds)||!feeds.length||[hashBytes,writeEvidence,writeDrift,writeDriftStatusIfNoIncident].some(fn=>typeof fn!=='function'))throw new Error('invalid drift publisher configuration');
  const byScope=new Map();for(const source of feeds){const feed=structuredClone(source);if(!validFeed(feed)||byScope.has(scope(feed.site,feed.chainId)))throw new Error('invalid drift feed');byScope.set(scope(feed.site,feed.chainId),feed.feedReference);}
  let state;try{state=parseUniqueJSON(await readFile(path,'utf8'));}catch(error){if(error.code==='ENOENT')state={version:2,renewalWindowMs,lastNow:0,entries:[]};else throw new Error('invalid drift publication journal',{cause:error});}
  if(!exact(state,['version','renewalWindowMs','lastNow','entries'])||state.version!==2||state.renewalWindowMs!==renewalWindowMs||!Number.isSafeInteger(state.lastNow)||state.lastNow<0||!Array.isArray(state.entries)||!state.entries.every(entry=>validEntry(entry,byScope))||new Set(state.entries.map(entry=>JSON.stringify([entry.event.id,entry.episodeId,entry.window]))).size!==state.entries.length)throw new Error('invalid drift publication journal or configuration');
@@ -34,9 +34,11 @@ export async function openDriftPublisher({path,now=Date.now,renewalWindowMs,feed
   const report={schemaVersion:1,site:event.site,chainId:event.chainId,changes:event.changes,corroborated:event.corroborated};
   const bytes=Buffer.from(JSON.stringify(report),'utf8'),expected=await hashBytes(Buffer.from(bytes));
   if(typeof expected!=='string'||!hash32.test(expected))throw new Error('invalid drift evidence digest');
-  const stored=await upload(Buffer.from(bytes),{operationId});
-  if(!stored||typeof stored.reference!=='string'||!hex.test(stored.reference)||stored.digest!==expected)throw new Error('invalid drift evidence reference or digest');
-  const record={schemaVersion:1,kind:'drift',...evidenceOf(event),evidenceReference:stored.reference,detectedAt:entry.publicationHour};
+  const evidence={schemaVersion:1,kind:'evidence',site:event.site,chainId:event.chainId,digest:expected,payload:bytes.toString('utf8'),createdAt:entry.publicationHour};
+  if(!validateRecord(evidence))throw new Error('invalid drift evidence payload');
+  const stored=await writeEvidence(evidence,operationId);
+  if(!stored||typeof stored.key!=='string'||!/^0x[0-9a-f]{64}$/.test(stored.key)||typeof stored.owner!=='string')throw new Error('invalid Arkiv evidence entity');
+  const record={schemaVersion:1,kind:'drift',...evidenceOf(event),evidenceReference:stored.key.slice(2),detectedAt:entry.publicationHour};
   if(!validateRecord(record))throw new Error('invalid drift record');
   await writeDrift(record,operationId);
   const status={schemaVersion:1,kind:'status',site:event.site,chainId:event.chainId,state:'drift',feedReference:entry.feedReference,incidentReference:null,updatedAt:entry.publicationHour};

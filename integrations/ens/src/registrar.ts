@@ -117,7 +117,7 @@ function encodeInitialize(admin: Address): Hex {
   // (0x33cc44a0 for initialize((address,uint256)[],bytes[])). Grant every root role (and
   // its admin counterpart) to `admin`, the curator's operational key during setup. The
   // day-to-day curator key is scoped down afterward via grantCuratorRole(), which grants
-  // only ROLE_SET_TEXT on the single bound.root.v1 key resource — this broad grant is
+  // only ROLE_SET_TEXT on the single bound.root.v2 key resource — this broad grant is
   // never used again once that scoping is in place.
   return encodeFunctionData({
     abi: permissionedResolverAbi,

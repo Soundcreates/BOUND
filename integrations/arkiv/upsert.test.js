@@ -137,3 +137,12 @@ test('legacy journal upgrades safely when the current entity remains live',async
  const migrated=await openArkivUpsert(options);await migrated.write({...baseline,counterparties:['0x'+'1'.repeat(40)]},'second');
  assert.deepEqual(counts(),{creates:1,patches:1});assert.equal(JSON.parse(await readFile(options.path,'utf8')).version,2);
 });
+test('ENS cache records upsert per site and refuse an older resolution',async t=>{
+ const {options,counts}=await setup(t),registry=await openArkivUpsert(options);
+ const record={schemaVersion:1,kind:'ens_record',site,chainId:1,name:'example.eth',resolver:'0x'+'d'.repeat(40),records:{'bound.attest.v1':''},resolvedAt:'2026-01-01T01:00:00.000Z'};
+ await registry.write(record,'ens-first');
+ const later={...record,records:{'bound.attest.v1':'{"x":1}'},resolvedAt:'2026-01-01T02:00:00.000Z'};
+ assert.equal((await registry.write(later,'ens-second')).state,'current');
+ await assert.rejects(registry.write({...record,resolvedAt:'2026-01-01T00:00:00.000Z'},'ens-old'),/stale ENS cache record/);
+ assert.deepEqual(counts(),{creates:1,patches:1});
+});
