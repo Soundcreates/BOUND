@@ -8,6 +8,7 @@ const demo = await createDemoCutover({
   port: Number(portText),
   token: process.env.BOUND_DEMO_TOKEN,
   spender: process.env.BOUND_DEMO_SPENDER,
+  scannerClean: process.env.BOUND_DEMO_SCANNER_CLEAN === '1',
 });
 process.stdout.write('Local demo origin: ' + demo.origin + ' (normal page)\n');
 process.stdout.write('Type hijack, normal, or quit. The switch is local stdin control.\n');

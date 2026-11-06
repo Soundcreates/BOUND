@@ -8,4 +8,8 @@ Open the printed local origin. Type hijack in the terminal to serve the second b
 
 The normal and attack pages run on separate local HTTP servers behind a loopback-only proxy. The attack page requests an unlimited test-token approval only after a button click and only when the wallet is connected to chain 31337. Mode changes happen through stdin, so pages cannot switch the fixture. The tests check that the visible origin stays the same while the backend changes, and then returns to the normal page.
 
+For the selective-content fixture, set `BOUND_DEMO_SCANNER_CLEAN=1` before starting. In hijack mode a request whose user agent contains `HeadlessChrome` gets the clean page, while a normal browser gets the attack page at the same origin. This deliberately simple, spoofable classifier demonstrates why inspecting the browser's actual request matters; it is not a general scanner detector. The default is disabled.
+
 This is a local HTTP harness only. It does not change public DNS, establish HTTPS, exercise certificate changes or ASN corroboration, or pass the controlled-domain watcher gate. Replace the temporary page with Developer 1's test dApp when it is available.
+
+On 2026-11-06, a browser diagnostic manually installed a fake provider in the local attack page. On chain `0x7a69`, clicking the button produced chain/account checks followed by an `eth_sendTransaction` request containing the synthetic approval calldata. With the fake provider reporting `0x1`, the page stopped after the chain check. The fake provider and manual injection make this a local diagnostic only: it does not prove wallet mediation, an extension warning, a real wallet transaction, HTTPS, or the Phase 2 gate.

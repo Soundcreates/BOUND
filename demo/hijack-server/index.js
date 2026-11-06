@@ -51,11 +51,11 @@ function createProxy(mode, backends) {
 }
 
 // Local HTTP-only switch for rehearsing a backend cutover without changing the visible origin.
-export async function createDemoCutover({port = 4173, token, spender} = {}) {
+export async function createDemoCutover({port = 4173, token, spender, scannerClean=false} = {}) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError('port must be an integer between 0 and 65535');
   const mode = {value: 'normal'};
   const normalServer = createBackend({mode: 'clean', token, spender});
-  const hijackServer = createBackend({mode: 'attack', token, spender});
+  const hijackServer = createBackend({mode: 'attack', token, spender, scannerClean});
   let proxyServer;
 
   try {

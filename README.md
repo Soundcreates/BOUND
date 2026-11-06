@@ -4,9 +4,10 @@ BOUND is a work-in-progress browser-side warning system for mediated wallet requ
 
 ## Local checks
 
-Use Node.js 22 or newer. No package installation is needed for the current local fixtures:
+Use Node.js 22 or newer and install the locked dependencies before running the local suite:
 
 ```sh
+npm ci
 npm test
 ```
 
@@ -14,7 +15,7 @@ This runs contract, watcher, Arkiv boundary, local hijack-server and fake integr
 
 ## Status
 
-Dev3's local watcher, HTTP intake boundary, Arkiv read checks and transaction journal, durable retry path, fake observation-to-hourly-baseline-to-bundle flow, drift/incident composition, and same-origin cutover harness are implemented and covered by `npm test` (73 tests). These local fakes do not pass live gates. Arkiv write/owner/expiry and controlled-domain DNS/TLS checks remain open; the supplied public test-wallet address is configured and its Rabdi balance is nonzero, but no signing credential is set. The required ENSv2, Swarm, Anon-RPC, and browser evidence depends on the other project lanes. See [Arkiv integration status](arkiv/README.md) and [the implementation plan](Docs/plan.md).
+Dev3's local watcher, HTTP intake, durable retry, Arkiv read/write path, drift/incident composition, and cutover harness are implemented. The Rabdi Arkiv create, patch, owner-query, and expiry gate passed with synthetic test records; controlled-domain DNS/TLS and Developer 1/2 browser, ENSv2, Swarm, and Anon-RPC gates remain open. See [Arkiv integration status](integrations/arkiv/README.md) and [the implementation plan](Docs/plan.md).
 
 BOUND uses AI-assisted development; generated changes require human review and tests. There has been no independent security audit.
 

@@ -18,3 +18,12 @@ test('pending, reorged, forged and expired receipts never confirm',async()=>{
   const result=await confirm(tx).catch(()=>({state:'rejected'}));assert.notEqual(result.state,'confirmed');
  }
 });
+test('extension confirmation validates owner, key, expiry event and current entity',async()=>{
+ const extended='0x10dc3526654c9ba4e2370b1bfcbc0de087d141a5694b3d3305d37df7e6705d4b';
+ const extension={...log,topics:[extended,entityKey,log.topics[2]],data:'0x'+(100n).toString(16).padStart(64,'0')};
+ const check=event=>createArkivConfirmation({rpc:fixture({eth_getTransactionReceipt:{...receipt,logs:[event]}}),owner,target,chainId:7794095,schemaTag:'bound.record.v1'})(tx);
+ assert.equal((await check(extension)).state,'confirmed');
+ await assert.rejects(check({...extension,data:'0x'+(102n).toString(16).padStart(64,'0')}),/expiry/);
+ await assert.rejects(check({...extension,data:'0x01'}),/extension event/);
+ await assert.rejects(check({...extension,topics:[extended,entityKey,'0x'+'0'.repeat(64)]}),/entity event/);
+});

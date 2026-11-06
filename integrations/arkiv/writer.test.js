@@ -36,3 +36,11 @@ test('readback comparison is independent of object key order',async()=>{
  const reordered=Object.fromEntries(Object.entries(record).reverse());
  await fixture.writer.write(reordered,id);assert.equal(fixture.creates,1);
 });
+
+test('an already indexed operation reconciles its signed transaction journal',async()=>{
+ const entity={key,owner,expiresAt:200,record};let reconciled=0;
+ const writer=createArkivWriter({owner,schemaTag:'bound.record.v1',currentBlock:async()=>100,
+  findByOperationId:async()=>entity,submitOnce:async()=>{throw Error('must not submit');},
+  reconcileExisting:async({operationId,record:source,entity:existing})=>{reconciled++;assert.equal(operationId,id);assert.deepEqual(source,entity.record);assert.equal(existing.key,entity.key);}});
+ await writer.write(record,id);assert.equal(reconciled,1);
+});

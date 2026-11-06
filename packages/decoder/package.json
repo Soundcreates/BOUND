@@ -1,1 +1,16 @@
-{"name":"@bound/decoder","private":true,"type":"module","scripts":{"test":"node --test"}}
+{
+  "name": "@bound/decoder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./browser": "./index.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}
