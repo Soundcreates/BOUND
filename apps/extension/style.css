@@ -68,7 +68,9 @@ button:disabled { cursor: not-allowed; background: #e5e7eb; border-color: #4b556
 .approval-addresses code { display: block; }
 .approval-pair .approval-link { display: inline-block; margin-top: 10px; }
 .approval-note, #approval-links > span:last-child { display: block; margin-top: 8px; color: var(--a11y-text); font-size: 1rem; line-height: 1.6; }
-.popup { width: 360px; max-width: 100%; padding: 20px; }
+.popup-body { width: 440px; }
+html.detached .popup-body { width: auto; }
+.popup { width: 100%; max-width: 100%; padding: 20px; }
 html.detached .popup { width: min(100%, 720px); padding: clamp(16px, 4vw, 32px); }
 .popup .intro h1 { font-size: 1.625rem; }
 .popup #site { margin-top: 12px; font-size: 1rem; }
@@ -96,5 +98,5 @@ legend { padding: 0 6px; font-size: 1.125rem; font-weight: 700; }
 .settings .primary { margin-top: 24px; }
 .settings #status { min-height: 24px; margin-top: 12px; }
 .settings .footnote { margin-top: 24px; color: var(--a11y-text); font-size: 1rem; }
-@media (max-width: 380px) { main { padding: 20px 16px 28px; } .popup { width: 100%; } .header { flex-wrap: wrap; } }
+@media (max-width: 480px) { main { padding: 20px 16px 28px; } .popup { width: 100%; } .header { flex-wrap: wrap; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
