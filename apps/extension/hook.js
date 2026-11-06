@@ -85,6 +85,12 @@
     return freeze(result);
   }
 
+  function rejectUser(item) {
+    const error = new NativeError("User rejected the request.");
+    error.code = 4001;
+    item.reject(error);
+  }
+
   function gate(provider, forward, request, state, readState, revision) {
     // BOUND never refuses a request: anything it cannot check goes to the wallet as sent.
     if (revisionOf(provider) !== revision) return forward(request);
@@ -110,8 +116,10 @@
         }
         mapSetValue(waiting, id, { provider, forward, frozen, resolve, reject, state, readState, revision, digest, stateDigest });
         const timer = setTimeoutNative(() => {
-          if (!mapDeleteValue(waiting, id)) return;
-          promise(forward(frozen), resolve, reject);
+          const item = mapGetValue(waiting, id);
+          if (!item || !mapDeleteValue(waiting, id)) return;
+          if (item.guarded) rejectUser(item);
+          else promise(forward(frozen), resolve, reject);
         }, 11 * 60_000);
         mapGetValue(waiting, id).timer = timer;
         postMessage({ type: "BOUND_REQUEST_V1", id, request: frozen, state, digest, stateDigest }, location.origin);
@@ -441,14 +449,39 @@
   });
   addEvent("message", (event) => {
     if (event.source !== window || event.origin !== location.origin) return;
-    if (event.data?.type !== "BOUND_DECISION_V1" || event.data?.channel !== channel) return;
+    const data = event.data;
+    if (!channel || data?.channel !== channel) return;
+    if (data.type === "BOUND_RETRY_GUARD_V1") {
+      if (keys(data).length !== 6 || typeof data.id !== "string" || typeof data.digest !== "string" || typeof data.stateDigest !== "string" || typeof data.nonce !== "string" || !/^[0-9]+:[0-9a-f-]{36}$/i.test(data.id) ||
+          !/^[0-9a-f]{64}$/.test(data.digest) || !/^[0-9a-f]{64}$/.test(data.stateDigest) ||
+          !/^[0-9a-f]{32}$/.test(data.nonce)) return;
+      const item = mapGetValue(waiting, data.id);
+      if (!item || item.guarded || data.digest !== item.digest || data.stateDigest !== item.stateDigest) return;
+      item.guarded = true;
+      apply(stopImmediate, event, []);
+      postMessage({ type: "BOUND_RETRY_GUARDED_V1", channel, id: data.id, digest: data.digest, stateDigest: data.stateDigest, nonce: data.nonce }, location.origin);
+      return;
+    }
+    if (data.type !== "BOUND_DECISION_V1") return;
     apply(stopImmediate, event, []);
     const item = mapGetValue(waiting, event.data.id);
     if (!item || event.data.digest !== item.digest) return;
     if (event.data.stateDigest !== item.stateDigest) return;
+    const safeCancel = event.data.action === "cancel" && event.data.safePage === true;
+    if (event.data.safePage !== undefined && !safeCancel) return;
+    if (safeCancel && (keys(event.data).length !== 9 || typeof event.data.ticket !== "string" || typeof event.data.cancelNonce !== "string" || !/^[0-9a-f]{32}$/.test(event.data.ticket) || !/^[0-9a-f]{32}$/.test(event.data.cancelNonce))) return;
     mapDeleteValue(waiting, event.data.id);
     clearTimeoutNative(item.timer);
-    if (revisionOf(item.provider) !== item.revision && event.data.action !== "cancel") {
+    if (safeCancel) {
+      rejectUser(item);
+      postMessage({ type: "BOUND_CANCEL_DELIVERED_V1", channel, id: event.data.id, digest: item.digest, stateDigest: item.stateDigest, ticket: event.data.ticket, cancelNonce: event.data.cancelNonce }, location.origin);
+      return;
+    }
+    if (item.guarded && (event.data.action !== "continue" || event.data.typedApproved !== true)) {
+      rejectUser(item);
+      return;
+    }
+    if (!item.guarded && revisionOf(item.provider) !== item.revision && event.data.action !== "cancel") {
       promise(item.forward(item.frozen), item.resolve, item.reject);
       return;
     }
@@ -468,9 +501,7 @@
       }
     } else {
       // Only the user's own Cancel gets here: BOUND itself never refuses a request.
-      const error = new NativeError("User rejected the request.");
-      error.code = 4001;
-      item.reject(error);
+      rejectUser(item);
     }
   });
 

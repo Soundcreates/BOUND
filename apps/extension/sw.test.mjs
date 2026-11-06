@@ -35,7 +35,7 @@ globalThis.chrome = {
 };
 await import("./sw.js");
 
-const page = { tab: { id: 1, url: "https://top.example/" }, frameId: 2, documentId: "doc-1", url: "https://frame.example/" };
+const page = { id: "extension", tab: { id: 1, url: "https://top.example/" }, frameId: 2, documentId: "doc-1", url: "https://frame.example/" };
 const request = { method: "eth_sendTransaction", params: [{ to: "0x0000000000000000000000000000000000000001", data: "0x" }] };
 const state = { chainId: "0x1", accounts: ["0x0000000000000000000000000000000000000002"] };
 async function hash(value) {
@@ -97,6 +97,12 @@ test("popup data diagnostic reports missing saved settings without starting a ne
   assert.deepEqual(result, { configured: false });
 });
 
+test("popup data diagnostic reports missing saved settings without starting a network lookup", async () => {
+  delete data.boundSettings;
+  const result = await send({ type: "BOUND_DATA_DIAGNOSTIC_V1" }, { id: "extension", url: "chrome-extension://extension/popup.html" });
+  assert.deepEqual(result, { configured: false });
+});
+
 test("warning decisions require the matching browser window and extension page", async () => {
   const index = windows.length;
   const pending = send(await message({ topOrigin: "https://attacker.example", frameOrigin: "https://attacker.example" }), page);
@@ -127,11 +133,11 @@ test("state changes only invalidate requests from their browser frame and docume
   const pending = send(await message(), page);
   const window = await untilWindow(index);
   const id = new URL(window.url).searchParams.get("request");
-  listener({ type: "BOUND_STATE_CHANGE_V1" }, { ...page, frameId: 3 }, () => {});
+  listener({ type: "BOUND_STATE_CHANGE_V1", event: "chainChanged" }, { ...page, frameId: 3 }, () => {});
   assert.ok(await send({ type: "BOUND_GET_V1", id }, warningSender(window)));
-  listener({ type: "BOUND_STATE_CHANGE_V1" }, { ...page, documentId: "other" }, () => {});
+  listener({ type: "BOUND_STATE_CHANGE_V1", event: "chainChanged" }, { ...page, documentId: "other" }, () => {});
   assert.ok(await send({ type: "BOUND_GET_V1", id }, warningSender(window)));
-  listener({ type: "BOUND_STATE_CHANGE_V1" }, page, () => {});
+  listener({ type: "BOUND_STATE_CHANGE_V1", event: "chainChanged" }, page, () => {});
   assert.equal((await pending).action, "cancel");
   assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id, action: "continue" }, warningSender(window)), { ok: false });
 });
@@ -165,15 +171,15 @@ test("warned events are queued after opening and before a decision, without the 
   assert.equal(data.boundObservationQueue.length, 1);
 });
 
-test("a failed warning window forwards to the wallet without a warned event", async () => {
+test("a failed warning window cancels a typed-confirmation request without a warned event", async () => {
   data.boundObservationQueue = [];
   data.boundObservationSeen = {};
   const signed = { method: "eth_sign", params: [state.accounts[0], "0x00"] };
   failCreate = true;
   try {
     const result = await send(await message({ request: signed, digest: await hash(JSON.stringify(signed)) }), page);
-    // The warning could not be shown: the request goes to the wallet, and nothing is reported.
-    assert.equal(result.action, "continue");
+    // Required confirmation cannot be bypassed when the warning cannot open.
+    assert.equal(result.action, "cancel");
     assert.equal(data.boundObservationQueue.length, 0);
   } finally { failCreate = false; }
 });
@@ -236,7 +242,7 @@ test("state changes and navigation during preparation cancel before opening a wa
     const count = windows.length;
     const pending = send(await message(), sender);
     await entered;
-    if (change === "state") listener({ type: "BOUND_STATE_CHANGE_V1" }, sender, () => {});
+    if (change === "state") listener({ type: "BOUND_STATE_CHANGE_V1", event: "chainChanged" }, sender, () => {});
     else tabUpdated(tab.id, { status: "loading" }, tab);
     release();
     assert.equal((await pending).action, "cancel");
