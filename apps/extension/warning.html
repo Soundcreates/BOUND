@@ -6,39 +6,32 @@
   <title>BOUND request warning</title>
   <link rel="stylesheet" href="ui.css">
 </head>
-<body class="warning">
+<body class="warning warning-timeline">
   <main>
-    <p class="label">BOUND wallet request</p>
-    <h1>Wallet request</h1>
-    <p class="notice" id="notice">No live trust snapshot or baseline is connected yet. This screen shows decoding and coverage only; it cannot mark a request safe.</p>
-    <p class="notice" id="incident" hidden></p>
-    <p class="field"><span class="label">Verdict</span><br><strong id="verdict">Loading…</strong></p>
-    <section class="field" id="connection-field" hidden>
-      <span class="label">How this connection score was calculated</span>
-      <div id="connection-calc"></div>
-      <span class="label" id="connection-formula"></span>
+    <section class="request-timeline" aria-label="Wallet request">
+      <h1 class="timeline-heading">BOUND</h1>
+      <ol class="timeline">
+        <li class="timeline-step timeline-domain"><span class="timeline-dot" aria-hidden="true"></span><span>Your report of <strong id="report-domain">loading site…</strong></span></li>
+        <li class="timeline-step timeline-time"><span class="timeline-dot" aria-hidden="true"></span><span id="request-time">Waiting for request details…</span></li>
+        <li class="timeline-step timeline-actions"><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-controls">
+          <label id="confirmation-label" for="confirmation" hidden>Type <code>I UNDERSTAND</code> to continue this escalated request</label>
+          <input id="confirmation" autocomplete="off" hidden>
+          <button id="continue" disabled>Continue transaction</button>
+          <button id="cancel">Cancel transaction</button>
+          <p id="request-status" role="status" hidden></p>
+        </div></li>
+      </ol>
     </section>
-    <p class="field"><span class="label">Coverage</span><br><code id="coverage">Loading…</code></p>
-    <p class="field"><span class="label">Top-level site</span><br><code id="top">Loading…</code></p>
-    <p class="field"><span class="label">Requesting frame</span><br><code id="frame">Loading…</code></p>
-    <p class="field"><span class="label">Method</span><br><code id="method">Loading…</code></p>
-    <p class="field"><span class="label">Chain</span><br><code id="chain">Loading…</code></p>
-    <p class="field"><span class="label">Target</span><br><code id="target">Loading…</code></p>
-    <p class="field"><span class="label">Decoded addresses</span><br><span id="entries">Loading…</span></p>
-    <section class="field"><span class="label">Frontend script hashes</span><div id="frontend">Unavailable for this frame.</div><span class="label">Scripts present in this frame at the time of the request; removed scripts and other code paths may not be included. These hashes are not verified release evidence and do not affect the score.</span></section>
-    <section class="field"><span class="label">Captured network hashes</span><div id="network-capture">Capture is off. Start it in the BOUND popup and reload the page.</div><span class="label">Network hashes cover method, origin, resource type, status and selected response headers. Request bodies, credentials and URL paths are excluded. Capture may be incomplete and does not affect the score.</span></section>
-    <p class="field" id="observed-field" hidden><span class="label">Previously observed on this site</span><br><span id="observed"></span><br><span class="label">Observation does not establish trust or change this score.</span></p>
-    <section class="field" id="approval-links" hidden>
-      <span class="label">Token approval pairs</span>
-      <div id="approval-pairs"></div>
-      <span class="label">The link selects the chain when available, but does not select a token or spender. Find the same pair there manually before revoking.</span>
+    <section class="warning-data" hidden>
+      <p id="notice"></p><p id="incident" hidden></p>
+      <h1>Wallet request</h1><span id="verdict"></span>
+      <section id="connection-field" hidden><div id="connection-calc"></div><span id="connection-formula"></span></section>
+      <span id="coverage"></span><span id="top"></span><span id="frame"></span><span id="method"></span><span id="chain"></span><span id="target"></span><span id="entries"></span>
+      <div id="frontend"></div><div id="network-capture"></div>
+      <span id="observed-field" hidden><span id="observed"></span></span>
+      <section id="approval-links" hidden><div id="approval-pairs"></div></section>
+      <span id="ens-field" hidden><span id="ens"></span></span><span id="reasons"></span>
     </section>
-    <p class="field" id="ens-field" hidden><span class="label">Protocol ENS attestation</span><br><span id="ens"></span></p>
-    <p class="field"><span class="label">Why</span><br><span id="reasons">Loading…</span></p>
-    <label id="confirmation-label" for="confirmation" hidden>Type <code>I UNDERSTAND</code> to continue this escalated request</label>
-    <input id="confirmation" autocomplete="off" hidden>
-    <button id="continue" disabled>Continue to wallet</button>
-    <button id="cancel">Cancel request</button>
   </main>
   <script src="warning.js"></script>
 </body>

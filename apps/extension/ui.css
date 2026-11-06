@@ -69,6 +69,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .popup-home button { min-width: 200px; font-size: 20px; font-weight: 400; }
 .popup-home button.is-active { color: #e59a9a; }
 .popup-home #status { color: #8b2525; font-size: 13px; }
+.warning-timeline { min-height: 520px; display: grid; place-items: center; font-family: "Instrument Serif", Georgia, serif; }
+.warning-timeline main { width: min(100%, 460px); }
+.request-timeline { padding: 32px; }
+.timeline-heading { margin: 0 0 38px; text-align: center; font-size: 42px; font-weight: 400; }
+.timeline { position: relative; display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.timeline::before { content: ""; position: absolute; top: 10px; bottom: 24px; left: 8px; width: 2px; background: var(--border); transform: scaleY(0); transform-origin: top; animation: timeline-line 2.8s ease-out forwards; }
+.timeline-step { position: relative; display: flex; align-items: flex-start; gap: 20px; padding-bottom: 42px; opacity: 0; transform: translateY(8px); animation: timeline-arrive .5s ease-out forwards; }
+.timeline-domain { animation-delay: .45s; }
+.timeline-time { animation-delay: 1.55s; }
+.timeline-actions { padding-bottom: 0; animation-delay: 2.65s; }
+.timeline-dot { z-index: 1; flex: 0 0 18px; width: 18px; height: 18px; margin-top: 3px; border: 2px solid var(--text); border-radius: 50%; background: var(--surface); }
+.timeline-step > span:last-child { font-size: 21px; line-height: 1.4; }
+.timeline-domain strong { overflow-wrap: anywhere; }
+.timeline-controls { display: grid; width: 100%; gap: 12px; }
+.timeline-controls button { width: 100%; min-height: 48px; font-size: 20px; font-weight: 400; }
+.timeline-controls #cancel { color: var(--text); background: transparent; border-color: var(--border); }
+.timeline-controls label, .timeline-controls code { font-size: 16px; }
+.timeline-controls input { font-family: "Instrument Serif", Georgia, serif; font-size: 20px; }
+.timeline-controls #request-status { color: #8b2525; font-size: 16px; }
+@keyframes timeline-line { to { transform: scaleY(1); } }
+@keyframes timeline-arrive { to { opacity: 1; transform: translateY(0); } }
+.warning-data { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .timeline::before { transform: scaleY(1); animation: none; }
+  .timeline-step { opacity: 1; transform: none; animation: none; }
+}
 .popup-header {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
   padding: 12px 16px; border-bottom: 1px solid var(--border);

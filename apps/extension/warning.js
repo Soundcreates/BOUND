@@ -12,6 +12,8 @@ async function awaitDetails() {
     main.textContent = "This request expired or was invalidated. Return to the site and try again.";
     return null;
   }
+  document.querySelector("#report-domain").textContent = data.topOrigin || "unknown site";
+  document.querySelector("#request-time").textContent = new Date().toLocaleString();
   document.querySelector("#top").textContent = data.topOrigin;
   document.querySelector("#frame").textContent = data.frameOrigin;
   document.querySelector("#method").textContent = data.method;
@@ -30,7 +32,8 @@ async function awaitDetails() {
   else if (data.score !== null) document.querySelector("#notice").textContent = "BOUND compared the request with available information. A score cannot guarantee that a request is safe.";
   if (data.locked) document.querySelector("#notice").textContent = "Wallet chain or account state could not be verified, so BOUND could not score this request. Review it carefully before continuing.";
   if (data.malformed) {
-    document.querySelector("#notice").textContent = "This request could not be frozen safely and has been cancelled. BOUND did not forward it.";
+    document.querySelector("#request-status").textContent = "This request could not be frozen safely and has been cancelled.";
+    document.querySelector("#request-status").hidden = false;
     continueButton.hidden = true;
     cancelButton.textContent = "Close";
   }
@@ -103,7 +106,7 @@ async function awaitDetails() {
 function renderConnection(data) {
   const tier = data.tier || "warning";
   document.body.classList.add(`tier-${tier}`);
-  document.querySelector("h1").textContent = { pass: "Connection request: site checks passed", warning: "Connection request: some checks unavailable", huge: "Warning: low confidence in this site", firewall: "Stop: BOUND found a serious problem" }[tier];
+  document.querySelector(".warning-data h1").textContent = { pass: "Connection request: site checks passed", warning: "Connection request: some checks unavailable", huge: "Warning: low confidence in this site", firewall: "Stop: BOUND found a serious problem" }[tier];
   const score = data.connectionScore || {};
   document.querySelector("#verdict").textContent = `Policy confidence ${data.score}% (${data.score} of 100 heuristic points). This is BOUND's configured check score, not a measured probability that the site is safe.`;
   document.querySelector("#notice").textContent = {
