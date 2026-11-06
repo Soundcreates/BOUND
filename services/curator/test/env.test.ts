@@ -6,8 +6,7 @@ const REQUIRED_VARS = [
   "BOUND_SEPOLIA_RPC_URL",
   "BOUND_CURATOR_PRIVATE_KEY",
   "BOUND_ROOT_NAME",
-  "BOUND_BEE_API_URL",
-  "BOUND_POSTAGE_BATCH_ID",
+  "BOUND_RESOLVER_ADDRESS",
   "BOUND_SWARM_GATEWAYS",
 ] as const;
 
@@ -15,8 +14,7 @@ const VALID_ENV: Record<string, string> = {
   BOUND_SEPOLIA_RPC_URL: "https://sepolia.example/rpc",
   BOUND_CURATOR_PRIVATE_KEY: "0x" + "ab".repeat(32),
   BOUND_ROOT_NAME: "bound-demo.eth",
-  BOUND_BEE_API_URL: "http://localhost:1633",
-  BOUND_POSTAGE_BATCH_ID: "cd".repeat(32),
+  BOUND_RESOLVER_ADDRESS: "0x" + "ef".repeat(20),
   BOUND_SWARM_GATEWAYS: "https://gw1.example,https://gw2.example",
 };
 
@@ -76,7 +74,56 @@ test("loadCuratorConfig trims and drops empty entries from the gateway list", ()
   assert.deepEqual(config.gatewayUrls, ["https://gw1.example", "https://gw2.example", "https://gw3.example"]);
 });
 
-test("loadCuratorConfig defaults the resolver address when BOUND_RESOLVER_ADDRESS is unset", () => {
-  const config = withEnv({ ...VALID_ENV, BOUND_RESOLVER_ADDRESS: undefined }, () => loadCuratorConfig());
-  assert.match(config.ens.resolverAddress, /^0x[0-9a-fA-F]{40}$/);
+// BOUND_RESOLVER_ADDRESS is covered by the REQUIRED_VARS loop above. It is deliberately
+// required: the old default was ENS's shared PermissionedResolver implementation, which
+// holds none of this deployment's grants and reverts MissingRole on every write.
+
+test("no Bee vars means the upload goes unstamped to a public gateway", () => {
+  const config = withEnv(
+    { ...VALID_ENV, BOUND_BEE_API_URL: undefined, BOUND_POSTAGE_BATCH_ID: undefined },
+    () => loadCuratorConfig(),
+  );
+  assert.equal(config.swarmUpload.mode, "gateway");
+  // Defaults to the first read gateway so the common free path needs no extra var.
+  assert.equal(config.swarmUpload.apiUrl, "https://gw1.example");
 });
+
+test("BOUND_SWARM_UPLOAD_URL overrides the gateway upload host", () => {
+  const config = withEnv(
+    {
+      ...VALID_ENV,
+      BOUND_BEE_API_URL: undefined,
+      BOUND_POSTAGE_BATCH_ID: undefined,
+      BOUND_SWARM_UPLOAD_URL: "https://upload.example",
+    },
+    () => loadCuratorConfig(),
+  );
+  assert.equal(config.swarmUpload.mode, "gateway");
+  assert.equal(config.swarmUpload.apiUrl, "https://upload.example");
+});
+
+test("both Bee vars set means the upload goes through our own node and batch", () => {
+  const batchId = "cd".repeat(32);
+  const config = withEnv(
+    { ...VALID_ENV, BOUND_BEE_API_URL: "http://localhost:1633", BOUND_POSTAGE_BATCH_ID: batchId },
+    () => loadCuratorConfig(),
+  );
+  assert.equal(config.swarmUpload.mode, "bee");
+  assert.deepEqual(config.swarmUpload, { mode: "bee", apiUrl: "http://localhost:1633", batchId });
+});
+
+for (const [set, unset] of [
+  ["BOUND_BEE_API_URL", "BOUND_POSTAGE_BATCH_ID"],
+  ["BOUND_POSTAGE_BATCH_ID", "BOUND_BEE_API_URL"],
+] as const) {
+  test(`loadCuratorConfig refuses ${set} without ${unset}`, () => {
+    assert.throws(
+      () =>
+        withEnv(
+          { ...VALID_ENV, [set]: set === "BOUND_BEE_API_URL" ? "http://localhost:1633" : "cd".repeat(32), [unset]: undefined },
+          () => loadCuratorConfig(),
+        ),
+      TypeError,
+    );
+  });
+}
