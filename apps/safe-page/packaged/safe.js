@@ -110,8 +110,11 @@
         return baseRecord(v, ["counterparties", "calledContracts", "updatedAt"]) && addresses(v.counterparties) && addresses(v.calledContracts) && timestamp2(v.updatedAt);
       case "drift":
         return baseRecord(v, ["changes", "corroborated", "evidenceReference", "detectedAt"]) && Array.isArray(v.changes) && v.changes.length > 0 && v.changes.every((item, i) => change(item) && (!i || v.changes[i - 1].kind < item.kind)) && typeof v.corroborated === "boolean" && isArkivEntityReference(v.evidenceReference) && timestamp2(v.detectedAt);
-      case "incident":
-        return baseRecord(v, ["trigger", "severity", "counterparty", "reportDigest", "reportReference", "createdAt"]) && ["drift+warned", "K-same-counterparty-warned"].includes(v.trigger) && v.severity === "high" && isAddress(v.counterparty) && isDigest(v.reportDigest) && /^[0-9a-f]{64}$/.test(v.reportReference) && timestamp2(v.createdAt);
+      case "incident": {
+        const isReportRef = baseRecord(v, ["trigger", "severity", "counterparty", "reportDigest", "reportReference", "createdAt"]) && typeof v.reportReference === "string" && /^[0-9a-f]{64}$/.test(v.reportReference);
+        const isSwarmRef = baseRecord(v, ["trigger", "severity", "counterparty", "reportDigest", "swarmReference", "createdAt"]) && typeof v.swarmReference === "string" && /^[0-9a-f]{64}$/.test(v.swarmReference);
+        return (isReportRef || isSwarmRef) && ["drift+warned", "K-same-counterparty-warned"].includes(v.trigger) && v.severity === "high" && isAddress(v.counterparty) && isDigest(v.reportDigest) && timestamp2(v.createdAt);
+      }
       case "evidence":
         return baseRecord(v, ["digest", "payload", "createdAt"]) && isDigest(v.digest) && typeof v.payload === "string" && v.payload.length > 0 && new TextEncoder().encode(v.payload).length <= 61440 && timestamp2(v.createdAt);
       case "trust_snapshot":

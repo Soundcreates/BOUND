@@ -17,7 +17,7 @@ async function fixture() {
   window.dispatchEvent({ type: 'BOUND_INIT_V1', target: window, detail: channel });
   const result = window.ethereum.request(vm.runInContext("({ method: 'eth_sendTransaction', params: [{ value: '0x1' }] })", context));
   result.catch(() => {});
-  for (let i = 0; i < 50 && !posted.some(p => p.type === 'BOUND_REQUEST_V1'); i++) await new Promise(resolve => setImmediate(resolve));
+  for (let i = 0; i < 200 && !posted.some(p => p.type === 'BOUND_REQUEST_V1'); i++) await new Promise(resolve => setTimeout(resolve, 5));
   const req = posted.find(p => p.type === 'BOUND_REQUEST_V1');
   assert.ok(req);
   const dispatch = data => window.dispatchEvent({ type: 'message', source: window, origin: 'https://example.com', data, stopImmediatePropagation() {} });

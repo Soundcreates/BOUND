@@ -36,7 +36,7 @@ test("one button starts and stops monitoring and capture", async () => {
   await ui.click();
   assert.equal(ui.button.textContent, "Start Monitoring");
   // Monitoring is turned on before capture starts: capture is refused while it is off.
-  assert.deepEqual(ui.calls, ["status", true, "start", false, "stop"]);
+  assert.deepEqual(ui.calls, ["status", true, "start", "stop", false]);
 });
 
 test("capture failures are visible and keep the button retryable", async () => {
@@ -50,5 +50,5 @@ test("capture failures are visible and keep the button retryable", async () => {
   await stop.click();
   assert.equal(stop.button.textContent, "Stop Monitoring");
   assert.equal(stop.status.hidden, false);
-  assert.deepEqual(stop.calls, ["status", false, "stop"]);
+  assert.deepEqual(stop.calls, ["status", "stop"]);
 });

@@ -47,6 +47,10 @@ const siteChain = v => exact(v, ['trustedCounterparties', 'trustedCalledContract
   [...v.trustedCounterparties, ...v.trustedCalledContracts, ...v.deployerLineage.map(x => x.address)].every(a => v.sourceEvidence.some(e => e.address === a));
 
 export function validateRoot(v) {
+  if (exact(v, ['schemaVersion', 'network', 'epoch', 'digest', 'swarmReference'])) {
+    return v.schemaVersion === 1 && network(v.network) && integer(v.epoch) && v.epoch > 0 &&
+      isDigest(v.digest) && typeof v.swarmReference === 'string' && /^[0-9a-f]{64}$/.test(v.swarmReference);
+  }
   return exact(v, ['schemaVersion', 'network', 'epoch', 'digest', 'arkivKey', 'arkivOwner']) &&
     v.schemaVersion === 1 && network(v.network) && integer(v.epoch) && v.epoch > 0 &&
     isDigest(v.digest) && isDigest(v.arkivKey) && isAddress(v.arkivOwner);
@@ -107,11 +111,16 @@ export function validateRecord(v) {
         Array.isArray(v.changes) && v.changes.length > 0 &&
         v.changes.every((item, i) => change(item) && (!i || v.changes[i - 1].kind < item.kind)) &&
         typeof v.corroborated === 'boolean' && isArkivEntityReference(v.evidenceReference) && timestamp(v.detectedAt);
-    case 'incident':
-      return baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'reportReference', 'createdAt']) &&
+    case 'incident': {
+      const isReportRef = baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'reportReference', 'createdAt']) &&
+        typeof v.reportReference === 'string' && /^[0-9a-f]{64}$/.test(v.reportReference);
+      const isSwarmRef = baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'swarmReference', 'createdAt']) &&
+        typeof v.swarmReference === 'string' && /^[0-9a-f]{64}$/.test(v.swarmReference);
+      return (isReportRef || isSwarmRef) &&
         ['drift+warned', 'K-same-counterparty-warned'].includes(v.trigger) &&
         v.severity === 'high' && isAddress(v.counterparty) && isDigest(v.reportDigest) &&
-        /^[0-9a-f]{64}$/.test(v.reportReference) && timestamp(v.createdAt);
+        timestamp(v.createdAt);
+    }
     case 'evidence':
       return baseRecord(v, ['digest', 'payload', 'createdAt']) && isDigest(v.digest) &&
         typeof v.payload === 'string' && v.payload.length > 0 && new TextEncoder().encode(v.payload).length <= 61_440 && timestamp(v.createdAt);

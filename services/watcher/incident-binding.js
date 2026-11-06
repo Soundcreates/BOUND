@@ -5,7 +5,7 @@ const hash=/^0x[0-9a-f]{64}$/,ref=/^[0-9a-f]{64}$/;
 const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
 
 // Static feeds are trusted watcher configuration, not supplied by the page.
-export async function openWatcherIncidents({path,now=Date.now,feeds,canRecover,hash:hashBytes,writeEvidence,archive}) {
+export async function openWatcherIncidents({path,now=Date.now,feeds,canRecover,hash:hashBytes,upload,writeEvidence,archive}) {
  if(!Array.isArray(feeds)||!feeds.length||!archive||typeof archive.writeIncident!=='function'||typeof archive.writeStatus!=='function')throw new Error('incident binding configuration required');
  const byScope=new Map();
  for(const source of feeds){
@@ -28,7 +28,7 @@ export async function openWatcherIncidents({path,now=Date.now,feeds,canRecover,h
   }
   throw new Error('incident status superseded or unverified');
  };
- const composer=createIncidentComposer({hash:hashBytes,writeEvidence,markActive:async({site,chainId})=>{if(!lifecycle?.isActive(site,chainId))throw new Error('incident state not durable');},writeIncident:(record,id)=>archive.writeIncident(record,id),writeStatus});
+ const composer=createIncidentComposer({hash:hashBytes,upload,writeEvidence,markActive:async({site,chainId})=>{if(!lifecycle?.isActive(site,chainId))throw new Error('incident state not durable');},writeIncident:(record,id)=>archive.writeIncident(record,id),writeStatus});
  lifecycle=await openIncidentLifecycle({path,now,canRecover,publishIncident:(input,options)=>composer.publish(input,options),writeNormalStatus:writeStatus});
  const handleTriggers=(site,chainId,triggers)=>{
   const feed=byScope.get(JSON.stringify([site,chainId]));if(!feed)throw new Error('incident feed unavailable');

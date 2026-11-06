@@ -23,8 +23,15 @@ export function createNetworkCapture({ api, now = Date.now }) {
     try { await send(tabId, "Network.enable", { maxTotalBufferSize: 5 * 1024 * 1024, maxResourceBufferSize: MAX_BYTES }); }
     catch (error) { tabs.delete(tabId); await api.detach({ tabId }).catch(() => {}); throw error; }
   }
-  async function stop(tabId) { tabs.delete(tabId); await api.detach({ tabId }).catch(() => {}); }
-  async function stopAll() { for (const tabId of [...tabs.keys()]) await stop(tabId); }
+  async function stop(tabId) {
+    if (!tabs.has(tabId)) return;
+    await api.detach({ tabId });
+    tabs.delete(tabId);
+  }
+  async function stopAll() {
+    const results = await Promise.allSettled([...tabs.keys()].map(stop));
+    if (results.some(result => result.status === "rejected")) throw new Error("Could not detach BOUND from every captured tab.");
+  }
   function snapshot(tabId) {
     const state = tabs.get(tabId);
     return state ? { active: true, startedAt: state.startedAt, missing: state.missing, rows: structuredClone(state.rows) } : { active: false, rows: [], missing: 0 };

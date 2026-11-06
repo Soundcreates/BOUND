@@ -23,8 +23,9 @@ if (intakePublicKey) {
 } else console.warn('BOUND_INTAKE_PUBLIC_KEY is not set: this build will not send observation reports.');
 await writeFile(path.join(output, 'score-settings.mjs'), `// Generated from validated build environment; no secrets are included.\nexport const SCORE_SETTINGS = ${JSON.stringify(scoreConfig)};\nexport const INTAKE_KEY = ${JSON.stringify(intakeKey)};\n`);
 await copyFile(path.join(root, "connection-score.mjs"), path.join(output, "connection-score.mjs"));
-// The watcher adapter and observation queue are bundled below.
-for (const file of ["BOUND.jpeg", "ui.css", "manifest.json", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "observation-dispatcher.mjs", "ens-cache.mjs", "network-capture.mjs", "frontend-integrity.mjs", "frontend-routing.mjs", "warning-integrity.mjs", "confirm.html", "confirm.mjs"]) {
+
+// watcher-adapter.mjs is bundled below (it needs @hpke/core), so it is not copied here.
+for (const file of ["logo.png", "BOUND.jpeg", "ui.css", "manifest.json", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "observation-queue.mjs", "observation-dispatcher.mjs", "ens-cache.mjs", "network-capture.mjs", "frontend-integrity.mjs", "frontend-routing.mjs", "warning-integrity.mjs", "confirm.html", "confirm.mjs"]) {
   await copyFile(path.join(root, file), path.join(output, file));
 }
 for (const [file, replacements] of [

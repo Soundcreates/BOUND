@@ -2,7 +2,7 @@
  * Loads curation input from a JSON file and compiles it into a canonical, digested
  * snapshot. Separated from `publish.ts` so `bound-curator compile` can be run and
  * inspected (e.g. to hand the digest to someone else for review) without ever touching a
- * private key, an RPC, or Arkiv — compiling is pure, local, and offline by construction.
+ * private key, an RPC, or Swarm — compiling is pure, local, and offline by construction.
  */
 import { readFile } from "node:fs/promises";
 import { compileSnapshot, type CompileInput, type SiteChainInput, type SharedChainInput, type Evidence } from "@bound/snapshot";

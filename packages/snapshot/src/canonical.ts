@@ -2,7 +2,7 @@
  * RFC 8785 JSON Canonicalization Scheme (JCS) and the BOUND root digest.
  *
  * Digest rule (plan §3, frozen): rootDigest = keccak256( UTF-8( JCS(snapshot) ) ).
- * The bytes stored in Arkiv ARE the canonical bytes. Verifiers hash the raw bytes they
+ * The bytes stored on Swarm ARE the canonical bytes. Verifiers hash the raw bytes they
  * received and additionally require that those bytes are already canonical, so nobody
  * ever hashes a re-serialized object.
  */
