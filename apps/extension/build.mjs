@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const output = path.join(root, "dist");
 await mkdir(output, { recursive: true });
+await cp(path.join(root, "fonts"), path.join(output, "fonts"), { recursive: true });
 for (const file of ["manifest.json", "style.css", "alert-icon.png", "hook.js", "relay.js", "warning.html", "warning.js", "popup.html", "popup.js", "options.html", "options.mjs", "settings.mjs", "offscreen.html", "offscreen.js", "anon-rpc-worker.js", "anon-rpc-host.mjs", "observation-queue.mjs", "observation-dispatcher.mjs", "watcher-adapter.mjs", "trust-adapter.mjs"]) {
   await copyFile(path.join(root, file), path.join(output, file));
 }
