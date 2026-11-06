@@ -3,15 +3,40 @@ const coverageNode = document.querySelector("#coverage");
 const framesNode = document.querySelector("#frames");
 const historyNode = document.querySelector("#history");
 document.querySelector("#settings").addEventListener("click", () => chrome.runtime.openOptionsPage());
+const windowButton = document.querySelector("#open-window");
+const tabParameter = new URLSearchParams(location.search).get("tabId");
+const detachedTabId = tabParameter !== null && /^(0|[1-9]\d*)$/.test(tabParameter) && Number.isSafeInteger(Number(tabParameter)) ? Number(tabParameter) : null;
+let sourceTabId = null;
+if (detachedTabId !== null) {
+  document.documentElement.classList.add("detached");
+  windowButton.hidden = true;
+  chrome.tabs.onUpdated.addListener((id, change) => { if (id === detachedTabId && change.url) location.reload(); });
+  chrome.tabs.onRemoved.addListener((id) => { if (id === detachedTabId) location.reload(); });
+}
+windowButton.addEventListener("click", async () => {
+  if (sourceTabId === null) return;
+  try {
+    const url = new URL(chrome.runtime.getURL("popup.html"));
+    url.searchParams.set("tabId", String(sourceTabId));
+    await chrome.windows.create({ url: url.href, type: "popup", width: 560, height: 760 });
+  } catch {
+    const error = document.querySelector("#window-error");
+    error.textContent = "Could not open a separate window. Please try again.";
+    error.hidden = false;
+  }
+});
 
 (async () => {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const tab = detachedTabId !== null
+    ? await chrome.tabs.get(detachedTabId).catch(() => null)
+    : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
   if (!tab) {
-    siteNode.textContent = "No active tab";
+    siteNode.textContent = detachedTabId !== null ? "The selected tab is no longer available." : "No active tab";
     coverageNode.textContent = "No coverage state available.";
     historyNode.textContent = "No warning history available.";
     return;
   }
+  sourceTabId = tab.id;
   let currentOrigin = "";
   try { currentOrigin = new URL(tab.url).origin; } catch { /* browser pages have no site origin */ }
   siteNode.textContent = currentOrigin || "No supported site in this tab";
