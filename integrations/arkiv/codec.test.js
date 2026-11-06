@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import {strict as assert} from 'node:assert';
-import {encodeCreateRecord,encodePatchRecord,encodeExtendEntity} from './codec.js';
+import {encodeCreateRecord,encodePatchRecord,encodeExtendEntity,encodeDeleteEntity} from './codec.js';
+import {Interface,AbiCoder} from 'ethers';
 const record={schemaVersion:1,kind:'observation',site:'example.org',chainId:1,value:'0x'+'1'.repeat(40),reporterKey:'key',event:'warned'};
 const word=(b,i)=>Number(BigInt('0x'+b.subarray(i,i+32).toString('hex')));
 const bytes=(b,i)=>b.subarray(i+32,i+32+word(b,i));
@@ -40,4 +41,12 @@ test('expiry extension uses the provided entity and bounded block lifetime',()=>
  const encoded=bytes(outer,operation+word(outer,operation+32));
  assert.equal('0x'+encoded.subarray(0,32).toString('hex'),key);assert.equal(word(encoded,32),0);assert.equal(word(encoded,64),300);
  assert.throws(()=>encodeExtendEntity({entityKey:key,lifetimeBlocks:7884001}),/configuration/);
+});
+
+test('delete calldata matches an independent ABI encoding of execute((uint8,bytes)[]) with operation 5',()=>{
+ const entityKey='0x'+'ab'.repeat(32);
+ const iface=new Interface(['function execute((uint8 operation, bytes operationData)[] ops) returns (bytes32[] keys)']);
+ const expected=iface.encodeFunctionData('execute',[[[5,AbiCoder.defaultAbiCoder().encode(['tuple(bytes32 entityKey)'],[[entityKey]])]]]);
+ assert.equal(encodeDeleteEntity({entityKey}),expected);
+ for(const bad of [undefined,'0x1234','0x'+'AB'.repeat(32),'ab'.repeat(32)])assert.throws(()=>encodeDeleteEntity({entityKey:bad}));
 });

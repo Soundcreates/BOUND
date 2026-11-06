@@ -28,5 +28,11 @@ export function scoreConnection({ origins, providerValid, now = Date.now(), conf
   });
   const score = scopes.length ? Math.min(...scopes.map(scope => scope.score)) : 0;
   const blockers = [...new Set(scopes.flatMap(scope => scope.blockers))];
-  return { version: 1, score, threshold: config.connectionThreshold, allowed: scopes.length > 0 && blockers.length === 0 && score >= config.connectionThreshold, blockers, scopes };
+  // Only positive evidence of a problem refuses a connection: an unsupported origin,
+  // unusable wallet state, or an active incident or drift. A low score from missing
+  // data (a new site, or trust data that is not published) still connects, marked
+  // unverified, and the transaction checks keep warning on what they cannot verify.
+  const allowed = scopes.length > 0 && blockers.length === 0;
+  const verified = allowed && score >= config.connectionThreshold;
+  return { version: 1, score, threshold: config.connectionThreshold, allowed, verified, blockers, scopes };
 }

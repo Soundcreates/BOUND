@@ -77,8 +77,17 @@ test("a request from a replaced browser document cannot open a warning", async (
   assert.equal(windows.length, count);
 });
 
+test("first run seeds the default settings so requests are checked and reported", async () => {
+  assert.equal(data.boundSettings?.watcherOwner, "0xe63393558e36df643347326e7e03ad5fb0e6c867");
+  assert.equal(data.boundSettings?.watcherUrl, "http://127.0.0.1:8787/v1/observations");
+  assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "extension" }), { observationReporting: true });
+});
+
 test("extension reports that observation transport is not configured", async () => {
-  assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "extension" }), { observationReporting: false });
+  const saved = data.boundSettings;
+  data.boundSettings = { ...saved, watcherUrl: "" };
+  try { assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "extension" }), { observationReporting: false }); }
+  finally { data.boundSettings = saved; }
 });
 
 test("popup data diagnostic reports missing saved settings without starting a network lookup", async () => {
@@ -155,14 +164,15 @@ test("warned events are queued after opening and before a decision, without the 
   assert.equal(data.boundObservationQueue.length, 1);
 });
 
-test("a failed warning window does not produce a warned event", async () => {
+test("a failed warning window forwards to the wallet without a warned event", async () => {
   data.boundObservationQueue = [];
   data.boundObservationSeen = {};
   const signed = { method: "eth_sign", params: [state.accounts[0], "0x00"] };
   failCreate = true;
   try {
     const result = await send(await message({ request: signed, digest: await hash(JSON.stringify(signed)) }), page);
-    assert.equal(result.action, "cancel");
+    // The warning could not be shown: the request goes to the wallet, and nothing is reported.
+    assert.equal(result.action, "continue");
     assert.equal(data.boundObservationQueue.length, 0);
   } finally { failCreate = false; }
 });

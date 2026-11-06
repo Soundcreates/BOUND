@@ -10,6 +10,7 @@ import { anonRpc } from "./anon-rpc-host.mjs";
 import { createNetworkCapture, isCapturePage } from "./network-capture.mjs";
 import { scoreConnection } from "./connection-score.mjs";
 import { SCORE_SETTINGS } from "./score-settings.mjs";
+import { ensureDefaultSettings } from "./settings.mjs";
 
 const pending = new Map();
 const pendingObservations = new Map();
@@ -19,7 +20,8 @@ const frameRevisions = new Map();
 const statusRequests = new Map();
 const networkCapture = chrome.debugger ? createNetworkCapture({ api: chrome.debugger }) : null;
 const MAX_PENDING_PER_FRAME = 8;
-const DEADLINE_MS = 45_000;
+// The user decides; BOUND only gives up on a warning nobody answers for this long.
+const DEADLINE_MS = 10 * 60_000;
 const STATUS_ALARM = "bound-site-status-refresh";
 const STATUS_EXPIRY_PREFIX = "bound-site-status-expiry:";
 let coverageOperation = Promise.resolve();
@@ -27,16 +29,56 @@ let coverageUncertain = false;
 let settingsRevision = 0;
 const dispatcher = typeof sendObservationBatch === "function" ? createObservationDispatcher({ send: sendObservationBatch }) : null;
 async function enqueueReports(records) {
-  if (!records.length) return;
+  if (!records.length || !(await monitoringEnabled())) return;
   try { await (dispatcher ? dispatcher.enqueue(records) : enqueue(records)); }
   catch { await chrome.storage.local.set({ boundObservationQueueError: true }).catch(() => {}); }
 }
 
+// Monitoring is opt-in. Until the user clicks Start monitoring in the popup, BOUND
+// checks no request, records nothing, reads no trust data and sends no report:
+// every wallet request goes straight to the wallet as the page sent it.
+let monitoringCache = null;
+async function monitoringEnabled() {
+  if (monitoringCache === null) {
+    const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring");
+    monitoringCache = boundMonitoring !== false;
+  }
+  return monitoringCache;
+}
+chrome.storage.onChanged?.addListener((changes, area) => {
+  if (area !== "local" || !changes.boundMonitoring) return;
+  monitoringCache = changes.boundMonitoring.newValue !== false;
+  if (monitoringCache) {
+    refreshPublicData().catch(() => {});
+    dispatcher?.resume().catch(() => {});
+  } else {
+    // Stopping hands any open warning's request to the wallet rather than dropping it.
+    for (const id of [...pending.keys()]) finish(id, "forward");
+  }
+});
+
 if (dispatcher) {
   chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === dispatcher.alarmName) dispatcher.dispatch().catch(() => {});
+    if (alarm.name === dispatcher.alarmName) monitoringEnabled().then((on) => on && dispatcher.dispatch()).catch(() => {});
   });
-  dispatcher.resume().catch(() => {});
+  monitoringEnabled().then((on) => on && dispatcher.resume()).catch(() => {});
+}
+
+// Seed the defaults on first run so requests are checked instead of all scoring
+// grey. Decisions wait for this; a failure leaves the extension unconfigured.
+const settingsReady = ensureDefaultSettings(chrome.storage.local)
+  .then((seeded) => { if (seeded) { settingsRevision++; refreshPublicData().catch(() => {}); } })
+  .catch(() => {});
+
+// A grey verdict means nothing was checked. Say why, so it never reads as safe.
+const UNCHECKED_REASONS = {
+  invalid_context: "Not checked: BOUND has no watcher owner for this site and chain. Open BOUND Options and save the settings.",
+  snapshot_unavailable: "Not checked: the verified trust snapshot could not be read (ENS or Arkiv unreachable).",
+  watcher_baseline_unavailable: "Not checked: no watcher baseline is published for this site and chain.",
+  unavailable: "Not checked: BOUND's trust data could not be read.",
+};
+function uncheckedReason(context) {
+  return context.baseline ? null : UNCHECKED_REASONS[context.status] || UNCHECKED_REASONS.unavailable;
 }
 if (decisionAdapters) {
   chrome.alarms.onAlarm.addListener((alarm) => {
@@ -78,15 +120,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "BOUND_REQUEST_V1") {
-    handleRequest(message, sender, sendResponse).catch(() => sendResponse({ action: "cancel", digest: message.digest, stateDigest: message.stateDigest }));
+    monitoringEnabled()
+      .then((on) => on ? handleRequest(message, sender, sendResponse) : passThrough(message, sendResponse))
+      .catch(() => passThrough(message, sendResponse));
     return true;
   }
   if (message?.type === "BOUND_FORWARDED_V1") {
-    confirmForwarded(message, sender).then(sendResponse, () => sendResponse({ ok: false }));
+    monitoringEnabled().then((on) => on ? confirmForwarded(message, sender) : { ok: false }).then(sendResponse, () => sendResponse({ ok: false }));
     return true;
   }
   if (message?.type === "BOUND_MALFORMED_V1") {
-    handleMalformed(message, sender);
+    monitoringEnabled().then((on) => on && handleMalformed(message, sender)).catch(() => {});
     return;
   }
   if (message?.type === "BOUND_ANON_RPC_V1") {
@@ -109,7 +153,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   }
   if (message?.type === "BOUND_COVERAGE_V1" && message.coverage === "bypass_possible" && sender.tab?.id !== undefined) {
-    setCoverage(sender.tab.id, sender.frameId, sender.documentId, "bypass_possible").catch(() => {});
+    monitoringEnabled().then((on) => on && setCoverage(sender.tab.id, sender.frameId, sender.documentId, "bypass_possible")).catch(() => {});
   }
 });
 
@@ -151,6 +195,12 @@ chrome.windows.onRemoved.addListener((windowId) => {
   for (const [id, entry] of pending) if (entry.windowId === windowId) finish(id, "cancel");
 });
 
+// Hand the page's request to the wallet unscored. BOUND never refuses a request;
+// when it cannot score one it says so and lets the wallet and the user decide.
+function passThrough(message, sendResponse) {
+  sendResponse({ action: "continue", digest: message.digest, stateDigest: message.stateDigest, readOnly: true });
+}
+
 async function handleRequest(message, sender, sendResponse) {
   const frameKey = `${sender.tab?.id}:${sender.frameId}:${sender.documentId || sender.url}`;
   const tabRevision = tabRevisions.get(sender.tab?.id) || 0;
@@ -160,7 +210,8 @@ async function handleRequest(message, sender, sendResponse) {
   const now = Date.now();
   const recent = (rate.get(frameKey) || []).filter((at) => now - at < 10_000);
   if (recent.length >= MAX_PENDING_PER_FRAME || pending.size >= 128) {
-    sendResponse({ action: "cancel" });
+    // Too many requests to score: pass them to the wallet unscored rather than refuse them.
+    sendResponse({ action: "continue", digest: message.digest, stateDigest: message.stateDigest, readOnly: true });
     return;
   }
   recent.push(now);
@@ -208,13 +259,18 @@ async function handleRequest(message, sender, sendResponse) {
     const connectionStatus = statuses.some(item => item.status === "active") ? "active" : statuses.some(item => item.status === "drift") ? "drift" : "unknown";
     const connectionCoverage = await bypassPossible(sender.tab.id) ? "bypass_possible" : "mediated";
     await setCoverage(sender.tab.id, sender.frameId, sender.documentId, connectionCoverage).catch(() => {});
-    const reason = `Connection score ${connectionScore.score}/100; requires ${connectionScore.threshold}. ${connectionScore.blockers.join('; ') || (allowed ? 'Connection checks passed.' : 'Some checks failed or are unavailable.')}`;
-    await recordWarning({ topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), method: request.method, chainId: message.state.chainId, verdict: allowed ? "connection allowed" : "connection blocked", score: connectionScore.score, connectionScore, reasons: [reason], entries: [] }).catch(() => {});
+    const reason = connectionScore.blockers.length
+      ? `Connection score ${connectionScore.score}/100. Connected despite: ${connectionScore.blockers.join('; ')}.`
+      : connectionScore.verified
+        ? `Connection score ${connectionScore.score}/100; verified at ${connectionScore.threshold}. Connection checks passed.`
+        : `Connection score ${connectionScore.score}/100, below the ${connectionScore.threshold} needed to verify. BOUND has no trust data for this site yet; connected unverified.`;
+    await recordWarning({ topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), method: request.method, chainId: message.state.chainId, verdict: !allowed ? "connection risky" : connectionScore.verified ? "connection allowed" : "connection unverified", score: connectionScore.score, connectionScore, reasons: [reason], entries: [] }).catch(() => {});
     if (!valid() || !(await currentDocument(sender)) || !valid()) {
       sendResponse({ action: "cancel", digest, stateDigest, connectionStatus: "unknown" });
       return;
     }
-    sendResponse({ action: allowed ? "continue" : "cancel", digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(allowed ? {} : { connectionStatus }) });
+    // BOUND scores connections; it never refuses one. The user and wallet decide.
+    sendResponse({ action: "continue", digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(allowed ? {} : { connectionStatus }) });
     return;
   }
   if (classification.kind === "read_only") {
@@ -227,7 +283,7 @@ async function handleRequest(message, sender, sendResponse) {
   const frontendPromise = readFrontendEvidence(sender);
   let context = { baseline: null, incidentStatus: "unknown" };
   if (!locked && decisionAdapters) {
-    try { const watcherOwner=await getWatcherOwner();context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
+    try { await settingsReady; const watcherOwner=await getWatcherOwner();context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
     catch { /* Unavailable policy data leaves the request grey. */ }
   }
   const frontend = await frontendPromise;
@@ -241,7 +297,7 @@ async function handleRequest(message, sender, sendResponse) {
     kind: classification.kind,
     verdict: evaluated.verdict,
     score: evaluated.score,
-    reasons: locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons,
+    reasons: [...(locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons), ...(!locked && evaluated.verdict === "grey" && evaluated.coverage !== "unsupported" && uncheckedReason(context) ? [uncheckedReason(context)] : [])],
     entries: classification.entries,
     frontend,
     networkCapture: networkCapture?.snapshot(sender.tab?.id) || { active: false, rows: [], missing: 0 },
@@ -261,9 +317,11 @@ async function handleRequest(message, sender, sendResponse) {
   details.locked = locked;
   if (sender.tab?.id !== undefined) setCoverage(sender.tab.id, sender.frameId, sender.documentId, coverage).catch(() => {});
   await recordWarning(details).catch(() => {});
-  if (!valid() || pending.size >= 128 || !(await currentDocument(sender)) || !valid() || pending.size >= 128) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
+  if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
+  if (pending.size >= 128) { sendResponse({ action: "continue", digest, stateDigest, readOnly: true }); return; }
   const result = new Promise((resolve) => {
-    const timer = setTimeout(() => finish(id, "cancel"), DEADLINE_MS);
+    // Unanswered for the whole deadline: hand it to the wallet, which still asks the user.
+    const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
     pending.set(id, { details, resolve, timer, used: false });
   });
   const warnings = !locked && evaluated.score !== null && evaluated.score < SCORE_SETTINGS.transaction.amber
@@ -278,7 +336,8 @@ async function handleRequest(message, sender, sendResponse) {
         pendingObservations.set(receiptToken, { timer, sender, digest, stateDigest, valid, classification, request, state: message.state, coverage });
       }
     }
-    sendResponse({ action: locked ? "cancel" : action, digest, stateDigest, readOnly: false, ...(receiptToken ? { receiptToken } : {}) });
+    // "forward" means the warning could not be shown: hand it to the wallet, record nothing.
+    sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, ...(receiptToken ? { receiptToken } : {}) });
   });
 }
 
@@ -308,7 +367,7 @@ async function confirmForwarded(message, sender) {
 
 async function enqueueCurrentObservation({ classification, request, state, sender, coverage }) {
   if (!decisionAdapters) return;
-  const watcherOwner=await getWatcherOwner();if(!watcherOwner)return;
+  await settingsReady;const watcherOwner=await getWatcherOwner();if(!watcherOwner)return;
   const latest = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: state.chainId, watcherOwner, adapters: decisionAdapters });
   const currentCoverage = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id) ? "bypass_possible" : coverage;
   const evaluated = evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage, thresholds: SCORE_SETTINGS.transaction });
@@ -332,7 +391,7 @@ function handleMalformed(message, sender) {
     kind: "malformed",
     verdict: "red",
     score: 35,
-    reasons: ["Request could not be frozen safely; it was cancelled."],
+    reasons: ["Request could not be frozen safely; BOUND passed it to the wallet unscored."],
     entries: [],
     coverage: "mediated",
     malformed: true,
@@ -343,7 +402,7 @@ function handleMalformed(message, sender) {
     frameOrigin: originOf(sender.url),
     chainId: null
   };
-  const timer = setTimeout(() => finish(id, "cancel"), DEADLINE_MS);
+  const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
   pending.set(id, { details, resolve: () => {}, timer, used: false });
   setCoverage(sender.tab.id, sender.frameId, sender.documentId, "mediated").catch(() => {});
   recordWarning(details).catch(() => {});
@@ -359,7 +418,7 @@ function openWarning(id, warnings = []) {
     entry.windowId = window.id;
     if (pending.get(id) === entry && warnings.length) await enqueueReports(warnings).catch(() => {});
     return window;
-  }).catch(() => { finish(id, "cancel"); return null; });
+  }).catch(() => { finish(id, "forward"); return null; });
 }
 
 async function handleWarningMessage(message, sender) {
@@ -422,6 +481,7 @@ function updateBadge(tabId, coverage, statuses) {
   if (current) chrome.action.setBadgeBackgroundColor({ tabId, color: ["incident", "bypass_possible"].includes(current) ? "#a52a2a" : ["unsupported","drift"].includes(current) ? "#7c5b13" : "#1e6045" });
 }
 async function refreshSiteStatus(tabId, siteOrigin, revision) {
+  if (!(await monitoringEnabled())) return;
   const request = Symbol("status request");
   statusRequests.set(tabId, request);
   const settingsAtStart = settingsRevision;
@@ -462,6 +522,7 @@ async function refreshOpenSiteStatuses() {
   await Promise.allSettled(tabs.filter((tab) => Number.isInteger(tab.id) && typeof tab.url === "string").map((tab) => refreshSiteStatus(tab.id, tab.url, tabRevisions.get(tab.id) || 0)));
 }
 async function refreshPublicData(){
+  if (!(await monitoringEnabled())) return;
   if(typeof decisionAdapters?.refresh==="function")await decisionAdapters.refresh();
   await refreshOpenSiteStatuses();
 }

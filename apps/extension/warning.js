@@ -28,10 +28,9 @@ async function awaitDetails() {
   else if (data.kind === "malformed") document.querySelector("#notice").textContent = "BOUND could not decode this request reliably. Review the request carefully before continuing.";
   else if (data.verdict === "escalated") document.querySelector("#notice").textContent = data.method === "eth_sign" ? "This request requires extra caution. Blind signatures can grant permissions that are not visible here." : "This request has elevated risk. Review the site, addresses, and reasons before continuing.";
   else if (data.score !== null) document.querySelector("#notice").textContent = "BOUND compared the request with available information. A score cannot guarantee that a request is safe.";
-  if (data.malformed || data.locked) {
-    document.querySelector("#notice").textContent = data.malformed
-      ? "This request could not be frozen safely and has been cancelled. BOUND did not forward it."
-      : "Wallet chain or account state could not be verified. This request was cancelled and not forwarded.";
+  if (data.locked) document.querySelector("#notice").textContent = "Wallet chain or account state could not be verified, so BOUND could not score this request. Review it carefully before continuing.";
+  if (data.malformed) {
+    document.querySelector("#notice").textContent = "This request could not be frozen safely and has been cancelled. BOUND did not forward it.";
     continueButton.hidden = true;
     cancelButton.textContent = "Close";
   }

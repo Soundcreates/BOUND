@@ -19,6 +19,22 @@ document.querySelector("#diagnose-data").addEventListener("click", async () => {
   } catch { result.textContent = "Data check failed. Try again."; }
   finally { button.disabled = false; }
 });
+const monitoringButton = document.querySelector("#monitoring"), monitoringState = document.querySelector("#monitoring-state");
+function renderMonitoring(on) {
+  monitoringState.textContent = on ? "Monitoring is on." : "Monitoring is off.";
+  monitoringButton.textContent = on ? "Stop monitoring" : "Start monitoring";
+}
+monitoringButton.addEventListener("click", async () => {
+  monitoringButton.disabled = true;
+  try {
+    const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring");
+    const current = boundMonitoring !== false;
+    await chrome.storage.local.set({ boundMonitoring: !current });
+    renderMonitoring(!current);
+  } finally { monitoringButton.disabled = false; }
+});
+chrome.storage.local.get("boundMonitoring").then(({ boundMonitoring }) => renderMonitoring(boundMonitoring !== false)).catch(() => {});
+
 const captureButton = document.querySelector("#capture"), captureStatus = document.querySelector("#capture-status");
 let capturing = false;
 async function updateCapture(action) {
@@ -47,7 +63,11 @@ updateCapture("status");
     chrome.storage.local.get(["boundWarningHistory", "boundObservationQueueError"]),
     chrome.runtime.sendMessage({ type: "BOUND_STATUS_V1" }).catch(() => null)
   ]);
+  const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring");
+  const monitoringOn = boundMonitoring !== false;
+  renderMonitoring(monitoringOn);
   if (status?.observationReporting) document.querySelector("#privacy").textContent = "Warning history stays in this browser. Site observations are public, and the watcher may see your network address.";
+  else if (!monitoringOn) document.querySelector("#privacy").textContent = "Monitoring is off: nothing is checked, recorded or reported.";
   document.querySelector("#queue-error").hidden = !boundObservationQueueError;
   const siteStatus = boundSiteStatuses[tab.id];
   if (siteStatus) {
@@ -114,10 +134,6 @@ updateCapture("status");
       link.textContent = "Open Revoke.cash for this chain";
       pair.append(link);
       const note = document.createElement("div");
-      note.className = "muted approval-note";
-      note.textContent = "The link selects the chain when available, but does not preselect this token or spender. Find the same pair there manually.";
-      pair.append(note);
-      row.append(pair);
     }
     historyNode.append(row);
   }
