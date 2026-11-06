@@ -21,6 +21,7 @@ export interface PublishResult {
   readonly digest: `0x${string}`;
   readonly epoch: number;
   readonly txHash: `0x${string}`;
+  readonly blockNumber: bigint;
   readonly previousEpoch?: number;
 }
 
@@ -94,7 +95,9 @@ export async function publishSnapshot(
       network: snapshot.network,
       schemaVersion: snapshot.schemaVersion,
     });
-    return { arkivKey: stored.key, arkivOwner: stored.owner, digest: compiled.digest, epoch: snapshot.epoch, txHash, previousEpoch };
+    const receipt = await publicClient.waitForTransactionReceipt({hash: txHash});
+    if (receipt.status !== "success") throw new Error(`root publish tx ${txHash} reverted in block ${receipt.blockNumber}`);
+    return { arkivKey: stored.key, arkivOwner: stored.owner, digest: compiled.digest, epoch: snapshot.epoch, txHash, blockNumber: receipt.blockNumber, previousEpoch };
   } finally {
     await archive.close();
   }
