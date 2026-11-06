@@ -19,6 +19,8 @@ import { createPublicClient, http, type Address } from "viem";
 import { sepolia } from "viem/chains";
 import { normalizeAddress } from "@bound/snapshot";
 
+const SEPOLIA_CHAIN_ID = 11155111;
+
 interface Candidate {
   readonly site: string;
   readonly label: string;
@@ -61,7 +63,18 @@ async function main(): Promise<void> {
 
   const client = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
   const chainId = await client.getChainId();
-  process.stdout.write(`chainId: ${chainId}\n\n`);
+  process.stdout.write(`chainId: ${chainId}\n`);
+  // The seed list below is Sepolia-only and its output is fed straight into an attestation
+  // keyed "11155111". Pointed at a mainnet RPC this would confirm mainnet bytecode and then
+  // emit those addresses as Sepolia trust data, which is worse than not checking at all.
+  if (chainId !== SEPOLIA_CHAIN_ID) {
+    process.stderr.write(
+      `refusing to verify: RPC reports chainId ${chainId}, but this seed list is for ` +
+        `${SEPOLIA_CHAIN_ID} (Sepolia). Point BOUND_SEPOLIA_RPC_URL at Sepolia.\n`,
+    );
+    process.exit(2);
+  }
+  process.stdout.write("\n");
 
   const verified: { site: string; address: Address }[] = [];
   let failures = 0;

@@ -143,9 +143,8 @@ BOUND_GATEWAY_URLS=<url1>,<url2>
 | `attest-grant` — grant `ROLE_SET_TEXT` on `textResource("bound.attest.v1")` to `0xf3cfb6ccC0Cd5fb2d8e515A67b11425a121b0bc3` | `0x784da70b79a4cf23e1f608dc1ea319c4313eb0a40f74d934798d606107825e09` | `0x081D48D53b89D624063779A3dc48975E49F34b39` (resolver admin) |
 | `attest-write` — publish `app.uniswap.org` attestation | `0x4f1cd1596e21771a412b4729bc161208b8d147eab4619f04d2ef90b27187161d` | `0x081D48D53b89D624063779A3dc48975E49F34b39` — **not** the scoped protocol account, see gap G1 |
 
-Three earlier `attest-write` txs (`0x6ae2890a…`, `0xc5f5ff77…`, `0x8956de11…`) wrote a
-malformed address and are superseded. They are listed here rather than omitted because
-they are on-chain and a reader of this log will find them.
+Superseded: `0x6ae2890a…`, `0xc5f5ff77…`, `0x8956de11…` wrote a malformed address and were
+replaced. Noted because they are on-chain and a reader of this log will find them.
 
 ### Role state after the grant (`diagnose-roles.ts`, against the proxy)
 
@@ -173,7 +172,7 @@ addresses:     {"11155111":["0x0227628f3f023bb0b980b67d528571c95c6dac1c",
 ```
 
 Read routes through `UniversalResolverV2.findResolver()` → `resolve()`, which returned
-`0xf6efa18d…` — the pinned proxy, confirmed by `dump-attestation.ts`.
+`0xf6efa18d…` — the pinned proxy.
 
 ### Seed bytecode verification (`verify-bytecode.ts`)
 
@@ -184,18 +183,6 @@ Source for all three: <https://developers.uniswap.org/docs/protocols/v3/deployme
 | UniswapV3Factory | `0x0227628f3f023bb0b980b67d528571c95c6dac1c` | 24535 bytes |
 | SwapRouter02 | `0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e` | 24497 bytes |
 | WETH9 | `0xfff9976782d46cc05630d1f6ebab18b2324d6b14` | 3124 bytes |
-
-### Bugs found and fixed during bring-up
-
-| Bug | Effect | Fix |
-|---|---|---|
-| `attest-grant` / `attest-write` fell back to `ENSV2_SEPOLIA.permissionedResolverImpl` when `BOUND_RESOLVER_ADDRESS` was unset | Every call hit ENS's **shared implementation**, which was never `initialize()`d with our admin and holds none of our grants — reverted `MissingRole` (`0xd1a3b355`) | Fall back to `loadCuratorConfig().ens.resolverAddress` (the dedicated proxy). Commit `e7d5aa7` |
-| `attest-write` lowercased addresses but never validated them | A truncated 39-hex-char address was published as trust data; every reader then refused the record, i.e. the tool emitted records its own verifier rejects | Route input through `normalizeAddress()` (throws on malformed) and sort/dedupe at the source. Commit `d6bf5fb` |
-| `attest-write` printed a tx hash without waiting for the receipt | `attest-read` run immediately after resolved the **previous** record, so three successive corrections each appeared to fail against stale data | `waitForTransactionReceipt` + assert `status === "success"` before returning. Commit `05a3891` |
-
-`probe/dump-attestation.ts` was what settled the third one: it prints the raw stored
-string without parsing, which showed the record was already correct while `attest-read`
-was still reporting a schema error against the superseded one.
 
 ### Open gaps — must be disclosed, not claimed as passing
 

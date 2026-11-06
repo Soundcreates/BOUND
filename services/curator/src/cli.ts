@@ -119,6 +119,15 @@ async function cmdAttestGrant(protocolAddress: `0x${string}`): Promise<void> {
 
   const txHash = await grantProtocolRole(walletClient, resolverAddress, protocolAddress);
   process.stdout.write(`  tx: ${txHash}\n`);
+
+  // Same reason attest-write waits: writeContract() resolves on mempool acceptance, so
+  // without this the command exits before the grant exists. A `diagnose-roles` run straight
+  // afterwards then reports the account as holding no role, which reads as a failed grant.
+  const receipt = await makePublicClient(rpcUrl).waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    throw new Error(`attest-grant: tx ${txHash} reverted (block ${receipt.blockNumber})`);
+  }
+  process.stdout.write(`  mined in block ${receipt.blockNumber} — role is live\n`);
 }
 
 /**
