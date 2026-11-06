@@ -1,0 +1,16 @@
+/* ─── The idea: one yellow statement band ─── */
+.idea { position: relative; overflow: hidden; background: var(--accent, #ffd500); color: var(--ink, #0b0b0c); font-family: var(--serif, "Instrument Serif", Georgia, serif); }
+.idea-inner { position: relative; z-index: 1; width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: clamp(96px, 18vh, 220px) 0; }
+.idea h2 { margin: 0; font-size: clamp(48px, 8.2vw, 132px); font-weight: 400; line-height: 0.95; letter-spacing: -0.03em; }
+.idea h2 em { font-style: italic; }
+.idea p { margin: clamp(32px, 6vh, 64px) 0 0 auto; max-width: 32ch; font-size: clamp(20px, 1.7vw, 27px); line-height: 1.35; }
+/* the logo's four squares, huge and faint, turning behind the text */
+.idea-mark { position: absolute; right: -8vw; top: 50%; width: min(52vw, 700px); margin-top: calc(min(52vw, 700px) / -2); opacity: 0.2; pointer-events: none; }
+.idea-mark rect { fill: none; stroke: var(--ink, #0b0b0c); stroke-width: 3; }
+.idea-mark .solid { fill: var(--ink, #0b0b0c); }
+
+@media (max-width: 900px) {
+  .idea-inner { width: calc(100% - 32px); padding: 96px 0 104px; }
+  .idea p { margin-left: 0; }
+  .idea-mark { right: -30vw; width: 90vw; margin-top: -45vw; }
+}

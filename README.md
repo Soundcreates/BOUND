@@ -98,6 +98,28 @@ BOUND/
 
 ## Development & Security Notes
 
+BOUND was built from scratch during ETHGlobal Mumbai, according to the team. The team used Claude and OpenAI Codex as AI coding assistants for development, debugging, and documentation; generated changes require human review and tests. There has been no independent security audit.
+
+The GitHub Actions workflow is configured for local tests and Gitleaks but has not yet run on a hosted runner. Gitleaks Action requires a license for organization-owned repositories; no license or other secret has been provisioned here. Real-wallet and testnet runs are not part of the local suite. Browser end-to-end suites and the required metric reports remain to be integrated.
+
+## Arkiv submission evidence
+
+The testnet writer used for recorded entities is `0xe63393558e36df643347326e7e03ad5fb0e6c867` on Rabdi (chain 7794095). To query its unexpired BOUND records, run from the repository root after `npm ci`:
+
+```sh
+node --input-type=module <<'JS'
+import {createArkivRpcReader} from './integrations/arkiv/rpc.js';
+const reader = createArkivRpcReader({url:'https://rpc.rabdi.db-chain.testnet.arkiv.network',schemaTag:'bound.record.v1'});
+const records = await reader.query({owner:'0xe63393558e36df643347326e7e03ad5fb0e6c867'});
+console.log(records);
+JS
+```
+
+Results change as entities expire. A read on 2026-11-07 returned 10 records; this does not demonstrate the extension's user-facing live read. See [schema](arkiv/schema.md), [feedback](arkiv/friction.md), [reach](arkiv/reach.md), [why Arkiv](arkiv/why-arkiv.md), [how we use Arkiv](arkiv/how-you-use-arkiv.md), and [Swarm evidence and remaining gaps](arkiv/swarm.md).
+
+## License
+
+BOUND is licensed under the [MIT License](LICENSE). Third-party components may have their own licenses.
 - BOUND is developed with AI-assisted tooling. Generated code and changes require human review and testing.
 - Local integration fakes validate application behavior but do not establish that external services work correctly.
 - Never commit private keys, funded wallet credentials, or real-user secrets.
