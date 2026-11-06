@@ -93,20 +93,28 @@ async function cmdRead(): Promise<void> {
  * This is a one-time setup step; after this, the protocol account can call attest-write.
  */
 async function cmdAttestGrant(protocolAddress: `0x${string}`): Promise<void> {
-  const config = loadCuratorConfig();
+  // Must use BOUND_OWNER_PRIVATE_KEY (resolver deployer/admin), NOT the curator key.
+  // The curator only holds ROLE_SET_TEXT on textResource("bound.root.v1");
+  // granting roles requires adminOf(ROLE_SET_TEXT) = ROLE_SET_TEXT << 128 on the
+  // target resource, which only the resolver owner holds.
+  // Using the curator key causes MissingRole revert (selector 0xd1a3b355).
   const rpcUrl = process.env.BOUND_SEPOLIA_RPC_URL;
-  if (!rpcUrl) throw new MissingEnvError("BOUND_SEPOLIA_RPC_URL", "Sepolia JSON-RPC endpoint");
+  const ownerKey = process.env.BOUND_OWNER_PRIVATE_KEY;
+  const resolverAddress = (process.env.BOUND_RESOLVER_ADDRESS ?? ENSV2_SEPOLIA.permissionedResolverImpl) as `0x${string}`;
 
-  const publicClient = makePublicClient(rpcUrl);
-  const walletClient = makeWalletClient(rpcUrl, config.curatorAccount);
+  if (!rpcUrl) throw new MissingEnvError("BOUND_SEPOLIA_RPC_URL", "Sepolia JSON-RPC endpoint");
+  if (!ownerKey) throw new MissingEnvError("BOUND_OWNER_PRIVATE_KEY", "resolver admin/owner key — NOT the curator key; needed to grant roles");
+
+  const ownerAccount = privateKeyToAccount(ownerKey as `0x${string}`);
+  const walletClient = makeWalletClient(rpcUrl, ownerAccount);
 
   process.stdout.write(
     `attest-grant: granting ROLE_SET_TEXT(bound.attest.v1) to ${protocolAddress}\n` +
-      `  admin/granter:   ${config.curatorAccount.address}\n` +
-      `  resolver:        ${config.ens.resolverAddress}\n`,
+      `  admin/granter:   ${ownerAccount.address}\n` +
+      `  resolver:        ${resolverAddress}\n`,
   );
 
-  const txHash = await grantProtocolRole(walletClient, config.ens.resolverAddress as `0x${string}`, protocolAddress);
+  const txHash = await grantProtocolRole(walletClient, resolverAddress, protocolAddress);
   process.stdout.write(`  tx: ${txHash}\n`);
 }
 
