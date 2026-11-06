@@ -8,11 +8,13 @@
     "services/*"
   ],
   "scripts": {
-    "test": "node --test packages/contracts/*.test.js packages/snapshot/*.test.js packages/decoder/*.test.js packages/policy-core/*.test.js services/watcher/*.test.js services/curator/*.test.js integrations/arkiv/*.test.js integrations/swarm/*.test.js integrations/anon-rpc/*.test.js integrations/ens/*.test.js demo/hijack-server/*.test.js scripts/integration/*.test.js",
+    "test": "node --experimental-strip-types --test \"**/*.test.{js,mjs,ts}\"",
     "demo:local": "node --env-file=.env demo/hijack-server/run.mjs",
     "test-workspace": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:arkiv-live": "node --env-file=.env scripts/integration/live-arkiv.mjs",
+    "demo:arkiv:seed": "node --env-file=.env scripts/integration/seed-demo-arkiv.mjs",
+    "demo:arkiv:check": "node --env-file=.env scripts/integration/seed-demo-arkiv.mjs --check",
     "check:ens-read": "node --env-file=.env scripts/integration/ens-read-probe.mjs"
   },
   "dependencies": {

@@ -83,7 +83,7 @@ try {
   if (font.result.value !== true) throw new Error('Instrument Serif did not load from the extension');
   if ((await popup.call('Runtime.evaluate', { expression: "document.querySelectorAll('#verdict').length" })).result.value !== 1) throw new Error('Warning must show exactly one verdict');
   const revoke = (await popup.call('Runtime.evaluate', { expression: "({hidden: document.querySelector('#approval-links').hidden, href: document.querySelector('.approval-link')?.href, guidance: document.querySelector('#approval-links').textContent, pairs: document.querySelectorAll('.approval-pair').length})", returnByValue: true })).result.value;
-  if (revoke.hidden || revoke.pairs !== 1 || revoke.href !== 'https://revoke.cash/?chainId=31337' || !revoke.guidance.includes('Find the same pair')) throw new Error('Revocation guidance is missing or misleading');
+  if (revoke.hidden || revoke.pairs !== 1 || revoke.href !== 'https://revoke.cash/?chainId=11155111' || !revoke.guidance.includes('Find the same pair')) throw new Error('Revocation guidance is missing or misleading');
   await closeBy(popup, "document.querySelector('#cancel').click()");
   const result = await until(async () => { const value = (await dapp.call('Runtime.evaluate', { expression: "document.querySelector('#result').textContent" })).result.value; return value.includes('Request cancelled:') ? value : null; }, 'cancel response');
   if (!result.includes('(4001)')) throw new Error(`Unexpected result: ${result}`);

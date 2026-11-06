@@ -2,7 +2,7 @@
 /**
  * One-time Phase 0 setup: register BOUND's ENSv2 Sepolia root name, deploy a DEDICATED
  * PermissionedResolver proxy for it, and scope the curator key down to exactly
- * ROLE_SET_TEXT on the bound.root.v1 key (plan §3: "Default to a dedicated resolver").
+ * ROLE_SET_TEXT on the bound.root.v2 key (plan §3: "Default to a dedicated resolver").
  *
  * This is NOT probe-ens.ts. probe-ens.ts assumes the name/resolver/role already exist;
  * this script is what creates them, once, using the OWNER/ADMIN key (never the curator
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
   await publicClient.waitForTransactionReceipt({ hash: registerTx });
   console.log(`"${label}.eth" is registered, resolver = ${resolverAddress}`);
 
-  section("6. scope the curator down to ROLE_SET_TEXT on bound.root.v1 only");
+  section("6. scope the curator down to ROLE_SET_TEXT on bound.root.v2 only");
   const grantTx = await grantCuratorRole(walletClient, resolverAddress, curatorAddress);
   console.log(`grant tx ${grantTx} — waiting for receipt`);
   await publicClient.waitForTransactionReceipt({ hash: grantTx });

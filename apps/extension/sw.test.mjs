@@ -10,6 +10,7 @@ let blockHistory;
 const windows = [];
 const currentDocuments = new Map();
 let failCreate = false;
+const capturedTabs = [];
 const data = {};
 const storage = {
   async get(keys) {
@@ -26,7 +27,8 @@ const storage = {
 };
 globalThis.chrome = {
   runtime: { id: "extension", getURL: path => `chrome-extension://extension/${path}`, onMessage: { addListener(fn) { listener = fn; } } },
-  tabs: { onUpdated: { addListener(fn) { tabUpdated = fn; } }, onRemoved: { addListener() {} } },
+  tabs: { onUpdated: { addListener(fn) { tabUpdated = fn; } }, onRemoved: { addListener() {} }, async query() { return [{ id: 1, url: "https://top.example/" }]; }, async get(id) { return { id, url: "https://selected.example/" }; } },
+  debugger: { onEvent: { addListener() {} }, onDetach: { addListener() {} }, async attach({ tabId }) { capturedTabs.push(tabId); }, async detach() {}, async sendCommand() {} },
   webNavigation: { async getFrame({ tabId, frameId }) { return { documentId: currentDocuments.get(`${tabId}:${frameId}`) || (frameId === 2 ? "doc-1" : "top") }; } },
   alarms: { onAlarm: { addListener() {} }, async create() {}, async clear() {} },
   windows: { onRemoved: { addListener(fn) { windowRemoved = fn; } }, async create(options) { if (failCreate) throw new Error("window unavailable"); const window = { id: 100 + windows.length, url: options.url }; windows.push(window); return window; } },
@@ -53,6 +55,15 @@ async function untilWindow(index) {
 function warningSender(window, overrides = {}) {
   return { id: "extension", frameId: 0, tab: { windowId: window.id }, url: window.url, ...overrides };
 }
+
+test("capture from a separate popup window targets its original tab", async () => {
+  const sender = { id: "extension", url: "chrome-extension://extension/popup.html?tabId=42", tab: { id: 99 } };
+  assert.equal((await send({ type: "BOUND_CAPTURE_V1", action: "start" }, sender)).capture.active, true);
+  assert.deepEqual(capturedTabs, [42]);
+  assert.equal((await send({ type: "BOUND_CAPTURE_V1", action: "status" }, sender)).capture.active, true);
+  assert.equal((await send({ type: "BOUND_CAPTURE_V1", action: "stop" }, sender)).capture.active, false);
+  assert.equal((await send({ type: "BOUND_CAPTURE_V1", action: "start" }, { ...sender, url: "chrome-extension://extension/popup.html?tabId=bad" })).ok, false);
+});
 
 test("mismatched payload digest is cancelled before any warning is created", async () => {
   const count = windows.length;

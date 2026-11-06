@@ -29,7 +29,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     const decoderRoot = path.join(resolvedTemp, "packages", "decoder");
     const policyRoot = path.join(resolvedTemp, "packages", "policy-core");
     await Promise.all([mkdir(extensionRoot, { recursive: true }), mkdir(decoderRoot, { recursive: true }), mkdir(policyRoot, { recursive: true })]);
-    for (const file of ["sw.js", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "anon-rpc-host.mjs"]) {
+    for (const file of ["sw.js", "observation-queue.mjs", "observation-dispatcher.mjs", "decision-context.mjs", "anon-rpc-host.mjs", "network-capture.mjs", "frontend-integrity.mjs"]) {
       await copyFile(path.join(repoRoot, "apps", "extension", file), path.join(extensionRoot, file));
     }
     await copyFile(path.join(repoRoot, "packages", "decoder", "index.mjs"), path.join(decoderRoot, "index.mjs"));
@@ -109,7 +109,8 @@ test("service worker uses fake trust and watcher adapters for observation flows"
         onUpdated: { addListener(fn) { fake.onUpdated = fn; } },
         onRemoved: { addListener() {} },
         async query() { return [{ id: 1, url: `https://${SITE}/` }]; },
-        async get(id) { return { id, url: `https://${SITE}/` }; }
+        async get(id) { return { id, url: `https://${SITE}/` }; },
+        async sendMessage(_id, _message, options) { assert.equal(options.documentId, fake.currentDocuments.get("1:0")); return { scripts: [{ label: "Inline script", source: "inline DOM", hash: "sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=" }], unavailable: 0 }; }
       },
       webNavigation: {
         async getFrame({ tabId, frameId }) { return { documentId: fake.currentDocuments.get(`${tabId}:${frameId}`) }; }
@@ -204,7 +205,9 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     delete fake.adapters.getRecords;
 
     const trusted = await startRequest(SITE, { method: "eth_sendTransaction", params: [{ to: TRUSTED, data: "0x" }] });
-    assert.equal((await send({ type: "BOUND_GET_V1", id: trusted.id }, trusted.warningSender)).verdict, "green");
+    const trustedDetails = await send({ type: "BOUND_GET_V1", id: trusted.id }, trusted.warningSender);
+    assert.equal(trustedDetails.verdict, "green");
+    assert.equal(trustedDetails.frontend.scripts[0].hash, "sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=");
     const forwarded = await choose(trusted);
     assert.ok(forwarded.receiptToken);
     assert.equal(local.boundObservationQueue?.some(record => record.kind === "observation") ?? false, false);

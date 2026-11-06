@@ -111,7 +111,7 @@ export async function readRootRecord(client: PublicClient, cfg: BoundEnsConfig):
 
 /**
  * Publish a new root record. Caller's wallet must hold ROLE_SET_TEXT on the
- * `textResource("bound.root.v1")` resource (least-privilege; see `grantCuratorRole` below)
+ * `textResource("bound.root.v2")` resource (least-privilege; see `grantCuratorRole` below)
  * or a root role. One call = one record update (plan §3).
  *
  * setText takes a DNS-encoded `bytes name` (post-audit-2), not the bytes32 node — reads
@@ -133,6 +133,7 @@ export async function publishRootRecord(
   // refuse. Without this the writer can put a record on-chain that every reader rejects,
   // and the failure then surfaces at read time as corrupt trust data rather than here as a
   // refused write.
+  assertDedicatedResolver(cfg.resolverAddress);
   assertReadableByAnyReader(value, parseRootRecord, "root record");
   const dnsName = toHex(packetToBytes(cfg.rootName));
   return walletClient.writeContract({
@@ -204,6 +205,7 @@ export async function publishAttestation(
   if (resolver.toLowerCase() !== protocolResolver.toLowerCase()) {
     throw new RootReadError(`resolver for ${protocolName} is ${resolver}, expected ${protocolResolver}`);
   }
+  assertDedicatedResolver(protocolResolver);
   const value = encodeAttestation(attestation);
   assertReadableByAnyReader(value, parseAttestation, "attestation");
   const dnsName = toHex(packetToBytes(protocolName));

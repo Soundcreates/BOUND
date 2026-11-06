@@ -1,5 +1,5 @@
 const READS=new Set(["eth_chainId","eth_call","eth_getBalance","eth_getCode","eth_getStorageAt","eth_getTransactionCount","eth_getBlockByNumber","eth_getBlockByHash","eth_getTransactionReceipt","eth_getLogs","eth_getProof"]);
-const ARKIV_READS=new Set(["eth_chainId","eth_blockNumber","arkiv_query"]);
+const ARKIV_READS=new Set(["eth_chainId","eth_blockNumber","arkiv_query","arkiv_getEntity"]);
 export function createAnonRpcHost({getSettings,loadEngine,timeoutMs=1500}){
  if(typeof getSettings!=="function"||typeof loadEngine!=="function"||!Number.isSafeInteger(timeoutMs)||timeoutMs<1)throw new Error("Invalid anonymizing RPC host");
  let engine,loading;

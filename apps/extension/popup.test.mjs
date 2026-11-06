@@ -8,10 +8,10 @@ const source = await readFile(new URL("./popup.js", import.meta.url), "utf8");
 async function openPopup(search, selectedTab = { id: 42, url: "https://example.com/path" }) {
   const nodes = new Map();
   const node = () => ({ hidden: false, textContent: "", addEventListener(type, fn) { this[type] = fn; }, replaceChildren() {}, append() {} });
-  for (const id of ["site", "coverage", "frames", "history", "settings", "open-window", "window-error", "privacy", "queue-error", "incident"]) nodes.set(`#${id}`, node());
+  for (const id of ["site", "coverage", "frames", "history", "settings", "open-window", "window-error", "privacy", "queue-error", "incident", "capture", "capture-status"]) nodes.set(`#${id}`, node());
   const classes = new Set(), created = [], listeners = {};
   const chrome = {
-    runtime: { openOptionsPage() {}, getURL: file => `chrome-extension://test/${file}`, async sendMessage() { return {}; } },
+    runtime: { openOptionsPage() {}, getURL: file => `chrome-extension://test/${file}`, async sendMessage(message) { return message.type === "BOUND_CAPTURE_V1" ? { ok: true, capture: { active: false, rows: [] } } : {}; } },
     tabs: {
       async query() { return [selectedTab]; }, async get(id) { if (!selectedTab || selectedTab.id !== id) throw new Error("closed"); return selectedTab; },
       onUpdated: { addListener(fn) { listeners.updated = fn; } }, onRemoved: { addListener(fn) { listeners.removed = fn; } }

@@ -25,6 +25,17 @@ windowButton.addEventListener("click", async () => {
     error.hidden = false;
   }
 });
+const captureButton = document.querySelector("#capture"), captureStatus = document.querySelector("#capture-status");
+let capturing = false;
+async function updateCapture(action) {
+  const result = await chrome.runtime.sendMessage({ type: "BOUND_CAPTURE_V1", action }).catch(() => null);
+  if (!result?.ok) { captureStatus.textContent = result?.error || "Capture unavailable."; return; }
+  capturing = result.capture.active;
+  captureButton.textContent = capturing ? "Stop capture" : "Start capture";
+  captureStatus.textContent = capturing ? `Capturing this tab. Reload the page; ${result.capture.rows.length} responses recorded.` : "Capture is off.";
+}
+captureButton.addEventListener("click", () => updateCapture(capturing ? "stop" : "start"));
+updateCapture("status");
 
 (async () => {
   const tab = detachedTabId !== null

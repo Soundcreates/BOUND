@@ -5,13 +5,11 @@
 <form id="settings"><fieldset><legend>Trust and snapshot</legend>
 <label>ENS root name<input name="ensRootName" placeholder="bound-demo.eth"></label>
 <label>Pinned ENS resolver address<input name="ensResolver" placeholder="0x…"></label>
-<label>Sepolia root-read RPC URL<input name="ensRpcUrl" placeholder="https://…"></label>
-<label>Swarm gateways, one HTTPS URL per line<textarea name="swarmGateways" rows="3"></textarea></label>
 </fieldset><fieldset><legend>Watcher and Arkiv</legend><label>Arkiv RPC URL<input name="arkivRpcUrl" placeholder="https://…"></label>
 <label>Watcher public owner address<input name="watcherOwner" placeholder="0x…"></label>
 <label>Watcher intake URL<input name="watcherUrl" placeholder="https://…/v1/observations"></label>
 </fieldset><fieldset><legend>Anonymous RPC</legend><label>Anon-RPC bootstrap RPC URL<input name="anonBootstrapUrl" placeholder="https://…"></label>
 <label>Anon-RPC destination RPC URL<input name="anonRpcUrl" placeholder="https://…"></label>
 </fieldset><button class="primary" type="submit">Save settings</button><p id="status" role="status"></p></form>
-<p class="footnote">ENS root and worker bootstrap reads use the configured public RPC. Site-specific chain reads use the anonymizing worker; when it is unavailable, BOUND does not fall back to a public RPC.</p>
+<p class="footnote">ENS root, protocol attestation, and site-specific chain reads use the anonymizing worker. Its configured bootstrap endpoint is contacted directly to fetch and verify the worker; eligible reads never fall back to public RPC.</p>
 </main><script type="module" src="options.mjs"></script></body></html>

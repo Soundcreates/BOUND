@@ -1,6 +1,13 @@
 # Dev1 test guide
 
-This guide separates checks that can be run now from live acceptance work that still needs a configured deployment. Record results per check; a local pass does not establish that the live integrations or all phase gates passed. Dev1 implementation is still in progress, including witness scoring and independently verified deployer lineage.
+This guide separates the dev1 code gates from live acceptance work that still needs a configured deployment. The decoder, role-aware scoring, bridge, UI, local reporting, and adapter wiring are implemented and locally testable. Record results per check; local passes do not establish that the real wallet and external integration gates passed.
+
+## Implementation status
+
+- **Phase 0 prototype:** implemented for the fake EIP-6963 dApp and headless Chromium check. Real-wallet coverage remains unverified.
+- **Phase 1 dev1 code:** implemented; the local unit and browser checks below cover mediation, decoding, policy caps, stale decisions, provider bypass disclosure, and privacy filtering.
+- **Phase 2 dev1 wiring:** snapshot, ENS, Swarm, Arkiv, watcher, and Anon-RPC consumers are wired behind the extension adapters. Live acceptance remains open until the configured services, real wallet, transport evidence, and observation-to-baseline round trip pass.
+- **Phase 3 dev1 handoff:** settings, unsupported-state and bypass wording, typed confirmation, and local warning/history views are implemented. Cross-provider/injection-order coverage and live revocation-link behavior still need evidence.
 
 ## 1. Local checks
 
@@ -9,13 +16,13 @@ From the repository root, with Node.js 22 or later:
 ```sh
 npm ci
 npm test
-npm run test-workspace
-npm run typecheck
 node --test apps/extension/*.test.mjs
+node --test packages/decoder/*.test.mjs packages/policy-core/*.test.mjs
 node apps/extension/build.mjs
+node apps/extension/browser-check.mjs
 ```
 
-Each command must exit successfully. The root `npm test` does not include the extension suite. These checks use local fixtures and do not demonstrate live services.
+The root `npm test` does not include the extension suite. These checks use local fixtures and do not demonstrate live services. The browser check requires an installed Chromium-family browser that supports headless unpacked extensions.
 
 ## 2. Fake-wallet browser checks
 
@@ -34,7 +41,9 @@ Each command must exit successfully. The root `npm test` does not include the ex
 4. Repeat using the iframe controls. The warning must distinguish the top-level origin from the frame origin. Check that no unsupported path is shown as green. Grey is expected without a valid live snapshot and baseline.
 5. Optionally run `node apps/extension/browser-check.mjs`. Set `BOUND_CHROMIUM_PATH` if needed; the selected browser must allow headless unpacked extensions. The retained-provider bypass demonstration is an expected limitation, not a protection pass.
 
-Known open issue: the service worker can schedule a positive observation after Continue before the MAIN-world hook finishes its last chain/account check. If that final check cancels, a positive observation may still be queued even though the wallet never received the request. Do not mark the observation round-trip or state-change gate passed until this is fixed and tested. Any fix must bind a one-time completion to service-worker evaluation state; an unauthenticated page message must not be able to create an observation.
+Positive observations require a one-time receipt bound to the evaluated request, payload/state digests, tab, frame, and document. The MAIN-world hook sends the receipt only after its final state check and forwarding the frozen request to the wallet provider; the service worker rechecks the current document and policy before queueing. Unit and fake-service-worker tests cover replay, wrong-frame, stale-document, state-change, and incident cases. The live watcher round trip remains unverified.
+
+Revocation links select the chain where Revoke.cash supports it and display the exact token/spender pair beside the link. The current UI asks the user to find that pair manually; token/spender URL prefill is not claimed because a supported official deep-link contract has not been verified.
 
 ## 3. Prepare a live test deployment
 

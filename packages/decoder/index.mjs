@@ -4,8 +4,11 @@ const READ_ONLY = new Set([
   "eth_getBalance", "eth_getStorageAt", "eth_getTransactionCount", "eth_getCode",
   "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getTransactionByHash",
   "eth_getTransactionReceipt", "eth_getLogs", "eth_feeHistory", "eth_syncing",
-  "eth_mining", "eth_hashrate", "eth_protocolVersion", "wallet_getPermissions", "metamask_getProviderState",
-  "eth_sendRawTransaction"
+  "eth_mining", "eth_hashrate", "eth_protocolVersion", "wallet_getPermissions",
+  "eth_sendRawTransaction",
+  // Connect/handshake calls: no funds move and no message is signed. The wallet itself
+  // shows its own consent UI for account exposure, so a second BOUND warning is noise.
+  "eth_requestAccounts", "wallet_requestPermissions", "metamask_getProviderState"
 ]);
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const KNOWN = new Map([
