@@ -1,7 +1,7 @@
 // Phase 0 wire contract. Validation does not authenticate an Arkiv owner.
 const ADDRESS_RE = /^0x[0-9a-f]{40}$/;
 const DIGEST_RE = /^0x[0-9a-f]{64}$/;
-const SWARM_REFERENCE_RE = /^[0-9a-f]{64}$/;
+const ARKIV_ENTITY_REFERENCE_RE = /^[0-9a-f]{64}$/;
 const integer = n => Number.isSafeInteger(n) && n >= 0;
 const wellFormed = s => {
   for (let i = 0; i < s.length; i++) {
@@ -16,7 +16,7 @@ const wellFormed = s => {
 const nonempty = s => typeof s === 'string' && s.length > 0 && wellFormed(s);
 const isAddress = v => typeof v === 'string' && ADDRESS_RE.test(v);
 const isDigest = v => typeof v === 'string' && DIGEST_RE.test(v);
-const isPlainSwarmReference = v => typeof v === 'string' && SWARM_REFERENCE_RE.test(v);
+const isArkivEntityReference = v => typeof v === 'string' && ARKIV_ENTITY_REFERENCE_RE.test(v);
 const exact = (v, keys) => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
 const host = s => {
   if (!nonempty(s)) return false;
@@ -46,9 +46,9 @@ const siteChain = v => exact(v, ['trustedCounterparties', 'trustedCalledContract
   [...v.trustedCounterparties, ...v.trustedCalledContracts, ...v.deployerLineage.map(x => x.address)].every(a => v.sourceEvidence.some(e => e.address === a));
 
 export function validateRoot(v) {
-  return exact(v, ['schemaVersion', 'network', 'epoch', 'digest', 'swarmReference']) &&
+  return exact(v, ['schemaVersion', 'network', 'epoch', 'digest', 'arkivKey', 'arkivOwner']) &&
     v.schemaVersion === 1 && network(v.network) && integer(v.epoch) && v.epoch > 0 &&
-    isDigest(v.digest) && isPlainSwarmReference(v.swarmReference);
+    isDigest(v.digest) && isDigest(v.arkivKey) && isAddress(v.arkivOwner);
 }
 
 export function validateSnapshot(v) {
@@ -75,6 +75,11 @@ export const READ_ONLY_METHODS = Object.freeze(['eth_accounts', 'eth_chainId', '
 // Already signed; this broadcasts a transaction and is not a read.
 export const ALREADY_SIGNED_METHODS = Object.freeze(['eth_sendRawTransaction']);
 
+// ENS text-record keys the watcher may mirror. An empty string records a live
+// "no record" answer.
+export const ENS_CACHE_KEYS = Object.freeze(['bound.attest.v1', 'bound.frontend.v1']);
+const ENS_CACHE_VALUE_MAX = 16384;
+const ensName = s => nonempty(s) && s.length <= 255 && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(s);
 const baseRecord = (v, keys) => exact(v, ['schemaVersion', 'kind', 'site', 'chainId', ...keys]) &&
   v.schemaVersion === 1 && host(v.site) && integer(v.chainId) && v.chainId > 0;
 const change = v => exact(v, ['kind', 'before', 'after']) &&
@@ -98,17 +103,32 @@ export function validateRecord(v) {
       return baseRecord(v, ['changes', 'corroborated', 'evidenceReference', 'detectedAt']) &&
         Array.isArray(v.changes) && v.changes.length > 0 &&
         v.changes.every((item, i) => change(item) && (!i || v.changes[i - 1].kind < item.kind)) &&
-        typeof v.corroborated === 'boolean' && isPlainSwarmReference(v.evidenceReference) && timestamp(v.detectedAt);
+        typeof v.corroborated === 'boolean' && isArkivEntityReference(v.evidenceReference) && timestamp(v.detectedAt);
     case 'incident':
-      return baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'swarmReference', 'createdAt']) &&
+      return baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'reportReference', 'createdAt']) &&
         ['drift+warned', 'K-same-counterparty-warned'].includes(v.trigger) &&
         v.severity === 'high' && isAddress(v.counterparty) && isDigest(v.reportDigest) &&
-        isPlainSwarmReference(v.swarmReference) && timestamp(v.createdAt);
+        /^[0-9a-f]{64}$/.test(v.reportReference) && timestamp(v.createdAt);
+    case 'evidence':
+      return baseRecord(v, ['digest', 'payload', 'createdAt']) && isDigest(v.digest) &&
+        typeof v.payload === 'string' && v.payload.length > 0 && new TextEncoder().encode(v.payload).length <= 61_440 && timestamp(v.createdAt);
+    case 'trust_snapshot':
+      return exact(v, ['schemaVersion', 'kind', 'network', 'epoch', 'digest', 'canonical']) &&
+        v.schemaVersion === 1 && network(v.network) && integer(v.epoch) && v.epoch > 0 && isDigest(v.digest) &&
+        typeof v.canonical === 'string' && v.canonical.length > 0 && new TextEncoder().encode(v.canonical).length <= 61_440;
     case 'status':
       return baseRecord(v, ['state', 'feedReference', 'incidentReference', 'updatedAt']) &&
         ['normal', 'drift', 'incident'].includes(v.state) && isDigest(v.feedReference) &&
         (v.state === 'incident' ? v.incidentReference === null || isDigest(v.incidentReference) : v.incidentReference === null) &&
         timestamp(v.updatedAt);
+    // Watcher-asserted copy of ENS text records for one curated site. It is a
+    // cache for availability and display only; it never establishes trust.
+    case 'ens_record':
+      return baseRecord(v, ['name', 'resolver', 'records', 'resolvedAt']) &&
+        ensName(v.name) && isAddress(v.resolver) && timestamp(v.resolvedAt) &&
+        v.records !== null && typeof v.records === 'object' && !Array.isArray(v.records) &&
+        Object.keys(v.records).length > 0 &&
+        Object.entries(v.records).every(([k, text]) => ENS_CACHE_KEYS.includes(k) && typeof text === 'string' && text.length <= ENS_CACHE_VALUE_MAX && wellFormed(text));
     default: return false;
   }
 }
@@ -126,7 +146,7 @@ export function validateBundle(v, watcherAddress, currentBlock) {
         !isDigest(entry.key) || keys.has(entry.key) ||
         !isAddress(entry.owner) || entry.owner !== watcherAddress ||
         !integer(entry.expiresAt) || entry.expiresAt <= currentBlock ||
-        !validateRecord(entry.record) || !['baseline', 'drift', 'incident', 'status'].includes(entry.record.kind)) return false;
+        !validateRecord(entry.record) || !['baseline', 'drift', 'incident', 'status', 'ens_record'].includes(entry.record.kind)) return false;
     keys.add(entry.key);
   }
   return true;

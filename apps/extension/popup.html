@@ -25,6 +25,10 @@
     <p id="incident" hidden></p>
     <p class="muted">A saved wallet reference or an unobserved wallet path can bypass BOUND. Not every bypass can be detected.</p>
   </section>
+  <h2>Page source and network capture</h2>
+  <p class="muted">Capture uses Chrome debugging for this tab. Start it, then reload the page. It stays local and records only selected response headers, origins and source hashes.</p>
+  <button id="capture" type="button">Loading capture status…</button>
+  <p id="capture-status" class="muted" role="status"></p>
   <h2>Recent warnings on this site</h2>
   <div id="history" class="panel">Loading…</div>
   <p id="privacy" class="muted">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p>

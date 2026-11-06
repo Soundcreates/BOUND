@@ -1,7 +1,7 @@
 import {parseUniqueJSON,validateRecord} from "../../packages/contracts/index.js";
 import {normalizeSettings} from "./settings.mjs";
 const ADDRESS=/^0x[0-9a-f]{40}$/,KEY=/^0x[0-9a-f]{64}$/,QUANTITY=/^0x(?:0|[1-9a-f][0-9a-f]*)$/;
-const CACHE_MS=5*60_000,DECISION_MS=30_000,LIMIT=5,MAX_PAGES=1000,MAX_RESPONSE=1_000_000;
+const CACHE_MS=5*60_000,DECISION_MS=30_000,ENS_BUNDLE_MS=60*60_000,ENS_RECORD_MS=24*60*60_000,LIMIT=5,MAX_PAGES=1000,MAX_RESPONSE=1_000_000;
 function quantity(value){if(typeof value!=="string"||!QUANTITY.test(value))throw new Error("Invalid Arkiv quantity");const n=Number(BigInt(value));if(!Number.isSafeInteger(n))throw new Error("Invalid Arkiv quantity");return n;}
 function decode(attributes){
  if(!Array.isArray(attributes))throw new Error("Invalid Arkiv attributes");
@@ -28,7 +28,7 @@ async function queryAll(request,owner){
    if(!row||typeof row.key!=="string"||!KEY.test(row.key)||(cursor&&row.key<=cursor))throw new Error("Invalid Arkiv pagination");cursor=row.key;
    if(typeof row.owner!=="string"||!ADDRESS.test(row.owner))throw new Error("Invalid Arkiv owner");if(row.owner!==owner)continue;
    const expiresAt=quantity(row.expiresAt);if(expiresAt<=block)continue;
-   const record=decode(row.attributes);if(["baseline","status","drift"].includes(record.kind))records.push({key:row.key,owner:row.owner,expiresAt,record});
+   const record=decode(row.attributes);if(["baseline","status","drift","ens_record"].includes(record.kind))records.push({key:row.key,owner:row.owner,expiresAt,record});
   }
   if(result.data.length<LIMIT)return {records,block};
  }
@@ -77,8 +77,29 @@ export function createArkivReader({getSettings,storage,anonymousRequest,fetchImp
   const result=await queryAll(anon,settings.watcherOwner),time=now();
   return mapRecords({owner:settings.watcherOwner,fetchedAt:time,records:result.records},result.block,time).filter(item=>item.site===site);
  }
+ // Watcher-asserted ENS text records from the already-downloaded bundle. Local
+ // lookup only (no per-site request). Display/availability data: never trust.
+ async function readEnsRecord({site,chain}){
+  const settings=checkedSettings(await getSettings()),cache=(await storage.get("boundWatcherBundle")).boundWatcherBundle,time=now();
+  if(!cache||cache.version!==1||cache.owner!==settings.watcherOwner||cache.url!==settings.arkivRpcUrl||!Number.isSafeInteger(cache.fetchedAt)||cache.fetchedAt>time||time-cache.fetchedAt>=ENS_BUNDLE_MS||!Number.isSafeInteger(cache.block)||!Array.isArray(cache.records))return null;
+  const matches=cache.records.filter(entry=>entry?.owner===cache.owner&&KEY.test(entry.key)&&Number.isSafeInteger(entry.expiresAt)&&entry.expiresAt>cache.block&&validateRecord(entry.record)&&entry.record.kind==="ens_record"&&entry.record.site===site&&String(entry.record.chainId)===chain);
+  if(matches.length!==1)return null;
+  const record=matches[0].record,resolvedAt=Date.parse(record.resolvedAt);
+  if(!Number.isFinite(resolvedAt)||resolvedAt>time||time-resolvedAt>=ENS_RECORD_MS)return null;
+  return {owner:matches[0].owner,site:record.site,chain,name:record.name,resolver:record.resolver,records:{...record.records},resolvedAt:record.resolvedAt};
+ }
+ async function readTrustSnapshot({key,owner}){
+  const settings=checkedSettings(await getSettings());
+  if(typeof key!=="string"||!KEY.test(key)||typeof owner!=="string"||!ADDRESS.test(owner))throw new Error("Invalid ENS Arkiv pointer");
+  const block=await currentBlock(settings),row=await anon("arkiv_getEntity",[key]);
+  if(!row||row.key!==key||typeof row.owner!=="string"||row.owner.toLowerCase()!==owner)throw new Error("Arkiv snapshot owner mismatch");
+  const expiresAt=quantity(row.expiresAt);if(expiresAt<=block)throw new Error("Arkiv snapshot entity expired");
+  const record=decode(row.attributes);
+  if(record.kind!=="trust_snapshot")throw new Error("Arkiv entity is not a trust snapshot");
+  return {key,owner,expiresAt,record};
+ }
  async function readUncuratedViaAnonRpc({site,chain}){
   return (await readSiteStatusViaAnonRpc({site})).filter(item=>item.chain===chain);
  }
- return {refresh,readWatcherBundle,readSiteStatusViaAnonRpc,readUncuratedViaAnonRpc};
+ return {refresh,readWatcherBundle,readSiteStatusViaAnonRpc,readUncuratedViaAnonRpc,readEnsRecord,readTrustSnapshot};
 }

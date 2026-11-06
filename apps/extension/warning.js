@@ -35,8 +35,40 @@ async function awaitDetails() {
     continueButton.hidden = true;
     cancelButton.textContent = "Close";
   }
+  const ensText = {
+    live: "Read live from ENS just now.",
+    memory: "From this browser's cache of an earlier live ENS read.",
+    arkiv_unconfirmed: "Live ENS read did not finish. A watcher-cached copy exists on Arkiv but is unconfirmed, so it did not count toward trust.",
+    timeout: "Live ENS read timed out; not counted.",
+    unavailable: "Could not be read; not counted."
+  }[data.ensLookup];
+  if (ensText) {
+    document.querySelector("#ens-field").hidden = false;
+    document.querySelector("#ens").textContent = ensText + (data.ensInconsistent ? " The watcher's cached copy differs from the live record." : "");
+  }
   const addresses = document.querySelector("#entries");
   addresses.textContent = data.entries.length ? data.entries.map((entry) => `${entry.role}: ${entry.address}${entry.verified === false ? " (unverified)" : ""}`).join(" · ") : "No counterparty decoded";
+  if (data.frontend) {
+    const node = document.querySelector("#frontend");
+    node.replaceChildren();
+    for (const item of data.frontend.scripts) {
+      const line = document.createElement("div");
+      line.textContent = `${item.label} (${item.source}): ${item.hash}`;
+      node.append(line);
+    }
+    const note = document.createElement("div");
+    note.textContent = `${data.frontend.unavailable} scripts unavailable or not inspected. Cached bytes may differ from what executed.`;
+    node.append(note);
+  }
+  if (data.networkCapture?.active) {
+    const node = document.querySelector("#network-capture"); node.replaceChildren();
+    for (const row of data.networkCapture.rows) {
+      const line = document.createElement("div");
+      line.textContent = `${row.type} ${row.method} ${row.origin} · Network: ${row.metadataHash || "hash unavailable"}${row.hash ? ` · Source: ${row.hash} (${row.hashEncoding})` : ""}`;
+      node.append(line);
+    }
+    const note = document.createElement("div"); note.textContent = `${data.networkCapture.missing} source bodies or responses unavailable or omitted.`; node.append(note);
+  }
   if (Array.isArray(data.observedAddresses) && data.observedAddresses.length) {
     document.querySelector("#observed-field").hidden = false;
     document.querySelector("#observed").textContent = data.observedAddresses.join(" · ");

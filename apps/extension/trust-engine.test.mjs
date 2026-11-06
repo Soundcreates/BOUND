@@ -55,3 +55,30 @@ test("real ENS attestation decoder receives an anonymous resolver response",asyn
  assert.deepEqual(await engine.readProtocolAttestationsViaAnonRpc({site:"app.uniswap.org",chain:"11155111",verifiedSource}),[{address,site:"app.uniswap.org",chain:"11155111"}]);
  assert.deepEqual(methods,["eth_chainId","eth_call"]);
 });
+test("cached attestation reads: memory skips Anon-RPC, Arkiv copy never grants trust, outages are not cached as absence",async()=>{
+ const {createEnsLookupCache}=await import("./ens-cache.mjs");
+ const built=await seed(),root={schemaVersion:1,network:"sepolia",epoch:1,digest:built.digest,swarmRef:"a".repeat(64)},address="0x"+"c".repeat(40);
+ const record={schemaVersion:1,site:"app.uniswap.org",expiresAt:"2026-11-08T00:00:00Z",addresses:{"11155111":[address]}};
+ let calls=0,down=false,present=true,arkiv=null;
+ const ensCache=createEnsLookupCache({storage:memory(),now:()=>clock});
+ const engine=createTrustEngine({getSettings:async()=>settings,storage:memory(),readRoot:async()=>root,fetchImpl:async()=>({ok:true,arrayBuffer:async()=>built.bytes.buffer.slice(built.bytes.byteOffset,built.bytes.byteOffset+built.bytes.byteLength)}),now:()=>clock,
+  anonymousRequest:async request=>{calls++;if(down&&request.method==="eth_call")throw new Error("anon down");return {result:request.method==="eth_chainId"?"0xaa36a7":"0x"};},
+  readProtocolAttestation:async client=>{await client.request({method:"eth_call",params:[]});if(!present)throw new Error("no attestation (resolver returned revert)");return record;},
+  ensCache,readEnsRecord:async()=>arkiv});
+ const verifiedSource=await engine.readVerifiedSnapshot(),query={site:"app.uniswap.org",chain:"11155111",verifiedSource};
+ const live=await engine.readProtocolAttestations(query);
+ assert.equal(live.source,"live");assert.deepEqual(live.rows,[{address,site:query.site,chain:query.chain}]);
+ const before=calls,hit=await engine.readProtocolAttestations(query);
+ assert.equal(hit.source,"memory");assert.deepEqual(hit.rows,live.rows);assert.equal(calls,before,"memory hit must not touch Anon-RPC");
+ await ensCache.clear();down=true;
+ arkiv={name:"uniswap.eth",records:{"bound.attest.v1":JSON.stringify(record)}};
+ const fallback=await engine.readProtocolAttestations(query);
+ assert.equal(fallback.source,"arkiv_unconfirmed");assert.deepEqual(fallback.rows,[],"watcher copy must not grant trust");
+ arkiv={name:"attacker.eth",records:{"bound.attest.v1":JSON.stringify(record)}};
+ assert.equal((await engine.readProtocolAttestations(query)).source,"unavailable","Arkiv entry for another ENS name is ignored");
+ down=false;assert.equal((await engine.readProtocolAttestations(query)).source,"live","outage was not cached as absence");
+ await ensCache.clear();present=false;
+ const absent=await engine.readProtocolAttestations(query);assert.equal(absent.source,"live");assert.deepEqual(absent.rows,[]);
+ present=true;assert.deepEqual((await engine.readProtocolAttestations(query)).rows,[],"live absence is cached for the negative TTL");
+ assert.deepEqual(await engine.readProtocolAttestationsViaAnonRpc(query),[]);
+});

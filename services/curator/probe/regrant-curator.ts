@@ -42,9 +42,9 @@ async function main() {
 
   if (oldCurator) {
     console.log(`\n--- revoking old curator ${oldCurator} ---`);
-    // textResource("bound.root.v1") resource — matches what grantCuratorRole scopes to
+    // textResource("bound.root.v2") resource — matches what grantCuratorRole scopes to
     const { keccak256, toHex } = await import("viem");
-    const resource = BigInt(keccak256(toHex("bound.root.v1")));
+    const resource = BigInt(keccak256(toHex("bound.root.v2")));
     const tx = await walletClient.writeContract({
       address: resolverAddress,
       abi: permissionedResolverAbi,

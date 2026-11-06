@@ -13,6 +13,8 @@
     "test-workspace": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:arkiv-live": "node --env-file=.env scripts/integration/live-arkiv.mjs",
+    "demo:arkiv:seed": "node --env-file=.env scripts/integration/seed-demo-arkiv.mjs",
+    "demo:arkiv:check": "node --env-file=.env scripts/integration/seed-demo-arkiv.mjs --check",
     "check:ens-read": "node --env-file=.env scripts/integration/ens-read-probe.mjs"
   },
   "dependencies": {

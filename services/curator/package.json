@@ -18,7 +18,6 @@
   "dependencies": {
     "@bound/integrations-anon-rpc": "*",
     "@bound/integrations-ens": "*",
-    "@bound/integrations-swarm": "*",
     "@bound/snapshot": "*",
     "viem": "^2.57.16"
   },

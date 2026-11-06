@@ -46,3 +46,19 @@ test("owner-checked baseline exposes observed addresses without treating them as
  const [record]=await f.reader.readWatcherBundle();
  assert.deepEqual(record.observed,[observed,called]);assert.deepEqual(record.witnessed,[]);
 });
+test("watcher ENS cache records are looked up locally, owner-checked and freshness-bounded",async()=>{
+ const ens={schemaVersion:1,kind:"ens_record",site,chainId,name:"example.eth",resolver:"0x"+"e".repeat(40),records:{"bound.attest.v1":""},resolvedAt:hour};
+ const f=fixture([row(ens,1),row({...ens,name:"forged.eth"},2,other),row({...ens,site:"other.example"},3)]);await f.reader.refresh();
+ const before=f.anonymous.length+f.direct.length;
+ const found=await f.reader.readEnsRecord({site,chain:String(chainId)});
+ assert.equal(found.name,"example.eth");assert.equal(found.owner,owner);assert.deepEqual(found.records,{"bound.attest.v1":""});
+ assert.equal(f.anonymous.length+f.direct.length,before,"lookup must not make a per-site request");
+ assert.equal(await f.reader.readEnsRecord({site,chain:"1"}),null);
+ assert.ok(!(await f.reader.readWatcherBundle()).some(item=>item.kind==="ens_record"),"ENS cache rows never enter the decision bundle");
+ const stale=fixture([row({...ens,resolvedAt:"2026-11-05T23:00:00.000Z"},1)]);await stale.reader.refresh();
+ assert.equal(await stale.reader.readEnsRecord({site,chain:String(chainId)}),null);
+ const expired=fixture([row(ens,1,owner,10)]);await expired.reader.refresh();
+ assert.equal(await expired.reader.readEnsRecord({site,chain:String(chainId)}),null);
+ const duplicate=fixture([row(ens,1),row({...ens,name:"second.eth"},2)]);await duplicate.reader.refresh();
+ assert.equal(await duplicate.reader.readEnsRecord({site,chain:String(chainId)}),null,"ambiguous rows are ignored");
+});

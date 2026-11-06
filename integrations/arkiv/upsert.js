@@ -6,7 +6,7 @@ const address=/^0x[0-9a-f]{40}$/,key=/^0x[0-9a-f]{64}$/,idPattern=/^[a-zA-Z0-9_-
 const exact=(v,ks)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===ks.length&&ks.every(k=>Object.hasOwn(v,k));
 const sort=v=>Array.isArray(v)?v.map(sort):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,sort(v[k])])):v;
 const digest=v=>createHash('sha256').update(JSON.stringify(sort(v))).digest('hex');
-const validRecord=r=>validateRecord(r)&&['baseline','status'].includes(r.kind);
+const validRecord=r=>validateRecord(r)&&['baseline','status','ens_record'].includes(r.kind);
 const scope=r=>JSON.stringify([r.kind,r.site,r.chainId]);
 const oldKeys=['id','record','fingerprint','action','entityKey','resultKey','done'];
 const validOperation=op=>exact(op,[...oldKeys,'expiresAt','rollover'])&&typeof op.id==='string'&&idPattern.test(op.id)&&validRecord(op.record)&&op.fingerprint===digest(op.record)&&['create','patch'].includes(op.action)&&(op.action==='create'?op.entityKey===null:typeof op.entityKey==='string'&&key.test(op.entityKey))&&typeof op.done==='boolean'&&(op.done?typeof op.resultKey==='string'&&key.test(op.resultKey):op.resultKey===null)&&(op.expiresAt===null||(op.done&&Number.isSafeInteger(op.expiresAt)&&op.expiresAt>=0))&&(op.rollover===null||(op.action==='create'&&exact(op.rollover,['previousKey','expiresAt','observedBlock'])&&key.test(op.rollover.previousKey)&&Number.isSafeInteger(op.rollover.expiresAt)&&op.rollover.expiresAt>=0&&Number.isSafeInteger(op.rollover.observedBlock)&&op.rollover.observedBlock>=op.rollover.expiresAt));
@@ -70,6 +70,7 @@ export async function openArkivUpsert({path,owner,currentBlock,getEntity,create,
     const recovery=record.state==='normal'&&latest.record.state!=='normal'&&recoverFrom===latest.id;
     if(now<previous||(now===previous&&statusRank(record)<statusRank(latest.record)&&!recovery)||(now===previous&&statusRank(record)===statusRank(latest.record)&&digest(record)!==latest.fingerprint))throw new Error('stale status');
    }
+   if(record.kind==='ens_record'&&Date.parse(record.resolvedAt)<Date.parse(latest.record.resolvedAt))throw new Error('stale ENS cache record');
    const entity=await getEntity(latest.resultKey,{includeExpired:true});
    const block=await currentBlock();if(!Number.isSafeInteger(block)||block<0)throw new Error('invalid Arkiv block');
    if(entity){
