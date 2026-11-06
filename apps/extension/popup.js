@@ -14,10 +14,20 @@ const historyNode = document.querySelector("#history");
   let currentOrigin = "";
   try { currentOrigin = new URL(tab.url).origin; } catch { /* browser pages have no site origin */ }
   siteNode.textContent = currentOrigin || "No supported site in this tab";
-  const [{ boundCoverage = {} }, { boundWarningHistory = [] }] = await Promise.all([
-    chrome.storage.session.get("boundCoverage"),
-    chrome.storage.local.get("boundWarningHistory")
+  const [{ boundCoverage = {}, boundSiteStatuses = {} }, { boundWarningHistory = [], boundObservationQueueError = false }, status] = await Promise.all([
+    chrome.storage.session.get(["boundCoverage", "boundSiteStatuses"]),
+    chrome.storage.local.get(["boundWarningHistory", "boundObservationQueueError"]),
+    chrome.runtime.sendMessage({ type: "BOUND_STATUS_V1" }).catch(() => null)
   ]);
+  if (status?.observationReporting) document.querySelector("#privacy").textContent = "Warning history stays in this browser. Site observations are public, and the watcher may see your network address.";
+  document.querySelector("#queue-error").hidden = !boundObservationQueueError;
+  const siteStatus = boundSiteStatuses[tab.id];
+  if (siteStatus) {
+    const incident = document.querySelector("#incident");
+    incident.hidden = false;
+    const current = Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now() ? siteStatus.status : "unknown";
+    incident.textContent = current === "active" ? "The watcher reports an active incident for this site." : current === "normal" ? "No active incident is reported for this site." : "Current incident status is unavailable.";
+  }
   const statuses = Object.values(boundCoverage).filter((item) => item.tabId === tab.id);
   const worst = statuses.some((item) => item.bypassPossible) ? "Bypass possible: a provider path may avoid BOUND."
     : statuses.some((item) => item.value === "unsupported") ? "Unsupported wallet method: no policy score was produced."
@@ -38,21 +48,47 @@ const historyNode = document.querySelector("#history");
     context.className = "muted";
     context.textContent = `${new Date(item.time).toLocaleString()} · chain ${item.chainId || "unknown"}`;
     row.append(title, context);
-    const token = item.entries.find((entry) => entry.role === "token");
-    const spender = item.entries.find((entry) => entry.role === "rights");
-    if (token && spender) {
+    for (const { token, spender } of uniqueApprovalPairs(item.approvals)) {
+      const pair = document.createElement("div");
+      pair.className = "approval-pair";
       const details = document.createElement("div");
-      details.textContent = `Token ${token.address} · spender ${spender.address}`;
-      row.append(details);
+      details.className = "approval-addresses";
+      details.textContent = `Token: ${token} · Spender: ${spender}`;
+      pair.append(details);
       const link = document.createElement("a");
-      let chainId = "";
-      try { chainId = BigInt(item.chainId).toString(10); } catch { /* chain is unavailable */ }
-      link.href = `https://revoke.cash/${chainId ? `?chainId=${encodeURIComponent(chainId)}` : ""}`;
+      link.className = "approval-link";
+      link.href = revokeUrl(item.chainId);
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "Open Revoke.cash on this chain";
-      row.append(link);
+      link.textContent = "Open Revoke.cash for this chain";
+      pair.append(link);
+      const note = document.createElement("div");
+      note.className = "muted approval-note";
+      note.textContent = "The link selects the chain when available, but does not preselect this token or spender. Find the same pair there manually.";
+      pair.append(note);
+      row.append(pair);
     }
     historyNode.append(row);
   }
 })();
+
+function uniqueApprovalPairs(approvals) {
+  if (!Array.isArray(approvals)) return [];
+  const seen = new Set();
+  return approvals.filter((pair) => {
+    if (!pair || typeof pair !== "object") return false;
+    const { token, spender } = pair;
+    if (typeof token !== "string" || typeof spender !== "string" || !/^0x[\da-f]{40}$/i.test(token) || !/^0x[\da-f]{40}$/i.test(spender)) return false;
+    const key = `${token.toLowerCase()}:${spender.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function revokeUrl(chainId) {
+  const query = new URLSearchParams();
+  try { if (chainId) query.set("chainId", BigInt(chainId).toString(10)); } catch { /* chain is unavailable */ }
+  const params = query.toString();
+  return `https://revoke.cash/${params ? `?${params}` : ""}`;
+}

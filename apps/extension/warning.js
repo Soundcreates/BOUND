@@ -18,8 +18,16 @@ async function awaitDetails() {
   document.querySelector("#chain").textContent = data.chainId || "Unknown";
   document.querySelector("#target").textContent = data.target || "Not decoded";
   document.querySelector("#coverage").textContent = `${data.coverage} · ${data.kind}`;
-  document.querySelector("#verdict").textContent = data.score === null ? `${data.verdict} · no baseline` : `${data.verdict} · score ${data.score}`;
+  document.querySelector("#verdict").textContent = data.coverage === "unsupported" ? "unsupported · no score" : data.score === null ? `${data.verdict} · no baseline` : `${data.verdict} · score ${data.score}`;
   document.querySelector("#reasons").textContent = data.reasons.join("; ") || "No policy snapshot is configured in this prototype.";
+  if (data.incidentStatus === "active") {
+    document.querySelector("#incident").hidden = false;
+    document.querySelector("#incident").textContent = "The watcher reports an active incident for this site.";
+  }
+  if (data.coverage === "unsupported") document.querySelector("#notice").textContent = "BOUND cannot assess this wallet method. Review the request carefully before continuing.";
+  else if (data.kind === "malformed") document.querySelector("#notice").textContent = "BOUND could not decode this request reliably. Review the request carefully before continuing.";
+  else if (data.verdict === "escalated") document.querySelector("#notice").textContent = data.method === "eth_sign" ? "This request requires extra caution. Blind signatures can grant permissions that are not visible here." : "This request has elevated risk. Review the site, addresses, and reasons before continuing.";
+  else if (data.score !== null) document.querySelector("#notice").textContent = "BOUND compared the request with available information. A score cannot guarantee that a request is safe.";
   if (data.malformed || data.locked) {
     document.querySelector("#notice").textContent = data.malformed
       ? "This request could not be frozen safely and has been cancelled. BOUND did not forward it."
@@ -29,14 +37,24 @@ async function awaitDetails() {
   }
   const addresses = document.querySelector("#entries");
   addresses.textContent = data.entries.length ? data.entries.map((entry) => `${entry.role}: ${entry.address}${entry.verified === false ? " (unverified)" : ""}`).join(" · ") : "No counterparty decoded";
-  const token = data.entries.find((entry) => entry.role === "token");
-  const spender = data.entries.find((entry) => entry.role === "rights");
-  if (token && spender) {
-    let chainId = "";
-    try { chainId = BigInt(data.chainId).toString(10); } catch { /* chain is unavailable */ }
-    document.querySelector("#revoke").href = `https://revoke.cash/${chainId ? `?chainId=${encodeURIComponent(chainId)}` : ""}`;
-    document.querySelector("#revoke-row").hidden = false;
+  const approvals = uniqueApprovalPairs(data.approvals);
+  const approvalPairs = document.querySelector("#approval-pairs");
+  for (const { token, spender } of approvals) {
+    const pair = document.createElement("div");
+    pair.className = "approval-pair";
+    const addresses = document.createElement("div");
+    addresses.className = "approval-addresses";
+    addresses.textContent = `Token: ${token} · Spender: ${spender}`;
+    const link = document.createElement("a");
+    link.className = "approval-link";
+    link.href = revokeUrl(data.chainId);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Open Revoke.cash for this chain";
+    pair.append(addresses, link);
+    approvalPairs.append(pair);
   }
+  document.querySelector("#approval-links").hidden = !approvals.length;
   if (data.verdict === "escalated") {
     typed.hidden = false;
     typedLabel.hidden = false;
@@ -56,3 +74,24 @@ async function decide(action) {
 
 continueButton.addEventListener("click", () => decide("continue"));
 cancelButton.addEventListener("click", () => decide("cancel"));
+
+function uniqueApprovalPairs(approvals) {
+  if (!Array.isArray(approvals)) return [];
+  const seen = new Set();
+  return approvals.filter((pair) => {
+    if (!pair || typeof pair !== "object") return false;
+    const { token, spender } = pair;
+    if (typeof token !== "string" || typeof spender !== "string" || !/^0x[\da-f]{40}$/i.test(token) || !/^0x[\da-f]{40}$/i.test(spender)) return false;
+    const key = `${token.toLowerCase()}:${spender.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function revokeUrl(chainId) {
+  const query = new URLSearchParams();
+  try { if (chainId) query.set("chainId", BigInt(chainId).toString(10)); } catch { /* chain is unavailable */ }
+  const params = query.toString();
+  return `https://revoke.cash/${params ? `?${params}` : ""}`;
+}

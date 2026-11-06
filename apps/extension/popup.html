@@ -17,13 +17,18 @@
 </head>
 <body>
   <h1>BOUND</h1>
+  <p>BOUND reviews supported wallet requests and opens a warning before they reach your wallet. A grey verdict means there is no baseline to compare.</p>
   <p id="site" class="muted">Loading current tab…</p>
   <section class="panel">
     <strong id="coverage">Checking coverage…</strong>
     <div id="frames" class="muted"></div>
+    <p id="incident" hidden></p>
+    <p class="muted">A saved wallet reference or an unobserved wallet path can bypass BOUND. Not every bypass can be detected.</p>
   </section>
   <h2>Recent warnings on this site</h2>
   <div id="history" class="panel">Loading…</div>
+  <p id="privacy" class="muted">Warning history and queued observations stay in this browser. Observation reporting is not connected yet.</p>
+  <p id="queue-error" class="muted" hidden>Some observations could not be saved or scheduled in this browser.</p>
   <script src="popup.js"></script>
 </body>
 </html>

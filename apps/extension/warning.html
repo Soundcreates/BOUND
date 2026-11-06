@@ -11,6 +11,7 @@
     code { overflow-wrap: anywhere; }
     .notice { padding: 12px; background: #fff3cd; border-radius: 8px; }
     .field { padding: 10px 0; border-bottom: 1px solid #dce2e8; }
+    .approval-pair { padding: 8px 0; border-top: 1px solid #dce2e8; }
     button, input { box-sizing: border-box; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid #aab4be; border-radius: 8px; font: inherit; }
     button { cursor: pointer; }
     #continue { color: white; background: #263b53; }
@@ -19,9 +20,10 @@
 </head>
 <body>
   <main>
-    <p class="label">BOUND Phase 0 prototype</p>
+    <p class="label">BOUND wallet request</p>
     <h1>Wallet request</h1>
     <p class="notice" id="notice">No live trust snapshot or baseline is connected yet. This screen shows decoding and coverage only; it cannot mark a request safe.</p>
+    <p class="notice" id="incident" hidden></p>
     <p class="field"><span class="label">Verdict</span><br><strong id="verdict">Loading…</strong></p>
     <p class="field"><span class="label">Coverage</span><br><code id="coverage">Loading…</code></p>
     <p class="field"><span class="label">Top-level site</span><br><code id="top">Loading…</code></p>
@@ -30,7 +32,11 @@
     <p class="field"><span class="label">Chain</span><br><code id="chain">Loading…</code></p>
     <p class="field"><span class="label">Target</span><br><code id="target">Loading…</code></p>
     <p class="field"><span class="label">Decoded addresses</span><br><span id="entries">Loading…</span></p>
-    <p class="field" id="revoke-row" hidden><a id="revoke" target="_blank" rel="noopener noreferrer">Open Revoke.cash for this chain</a><br><span class="label">Compare the token and spender above before taking action.</span></p>
+    <section class="field" id="approval-links" hidden>
+      <span class="label">Token approval pairs</span>
+      <div id="approval-pairs"></div>
+      <span class="label">The link selects the chain when available, but does not select a token or spender. Find the same pair there manually before revoking.</span>
+    </section>
     <p class="field"><span class="label">Why</span><br><span id="reasons">Loading…</span></p>
     <label id="confirmation-label" for="confirmation" hidden>Type <code>I UNDERSTAND</code> to continue this escalated request</label>
     <input id="confirmation" autocomplete="off" hidden>
