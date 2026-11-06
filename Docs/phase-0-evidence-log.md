@@ -106,3 +106,31 @@ BOUND_GATEWAY_URLS=<url1>,<url2>
 4. Confirm ENS ETHRegistrarController address on Sepolia (empty-code hash — may be stale)
 5. Developer 1 and Developer 3 Phase 0 items (not Developer 2's gate)
 
+
+---
+
+## Phase 1 Dev 2 — implementation progress (2026-11-06)
+
+| Deliverable | Status | Evidence |
+|---|---|---|
+| Schema validation, canonical serialisation, deterministic digest | ✅ | `packages/snapshot` — 480 unit tests pass |
+| Snapshot compiler (epoch, monotonic check, expiry) | ✅ | `services/curator/src/compile.ts`, `publish.ts` |
+| ENSv2 root reader/publisher | ✅ | `integrations/ens/src/resolver-client.ts` — proven in Phase 0 §1–6 |
+| Swarm upload/fetch | ✅ unit | `integrations/swarm` — live gate pending Bee node |
+| Anon-RPC transport (budget-enforced, no direct fallback) | ✅ unit | `integrations/anon-rpc/src/transport.ts` — 33 tests |
+| `bound-curator attest-grant/write/read` CLI subcommands | ✅ | commit `59e6304` — 2026-11-06 |
+| `grantProtocolRole()` in `integrations/ens` | ✅ | Scoped to `textResource("bound.attest.v1")`, separate from curator's `textResource("bound.root.v1")` |
+| `probe-attestation.ts` live probe | ✅ written | `services/curator/probe/probe-attestation.ts` — requires `BOUND_PROTOCOL_PRIVATE_KEY` with role grant, run on Mac |
+| Protocol role grant — attest.v1 role granted to protocol account | ⏳ pending | Run `attest-grant` then `probe-attestation.ts` on Mac with Infura RPC |
+| All 5 protocol seeds bytecode verified with `cast code` | ⏳ pending | Requires Sepolia RPC + official deployment sources |
+| Independent Swarm gateway hash check | ⏳ pending | Run `probe-swarm.ts` with Bee node |
+| Highest epoch survives extension restart | ✅ unit | `verifier.test.ts` — rollback, equivocation, expiry all covered |
+| Clean rebuild = same bytes/digest | ✅ unit | Deterministic `compileSnapshot` — same input → same CBOR bytes |
+| No observation/Arkiv record adds trust | ✅ by design | Trust index only updated from verified ENS attestation; Arkiv has no write path to snapshot |
+
+### Next steps for Phase 1 Dev 2 gate
+1. Run `attest-grant` from Mac to grant `BOUND_PROTOCOL_PRIVATE_KEY` role on `bound.attest.v1`
+2. Run `probe-attestation.ts` on Mac → record tx hash and round-trip output here
+3. Run `probe-swarm.ts` on Mac (needs Bee node with postage) → record Swarm reference + gateway hash
+4. Verify 5 seed bytecodes with `cast code` against official deployment sources
+
