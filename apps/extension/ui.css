@@ -81,6 +81,36 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .timeline-actions { padding-bottom: 0; animation-delay: 2.65s; }
 .timeline-dot { z-index: 1; flex: 0 0 18px; width: 18px; height: 18px; margin-top: 3px; border: 2px solid var(--text); border-radius: 50%; background: var(--surface); }
 .timeline-step > span:last-child { font-size: 21px; line-height: 1.4; }
+.timeline-evidence { display: grid; gap: 16px; width: 100%; font-size: 17px; }
+.connection-checks { display: grid; gap: 8px; margin: 0; padding: 12px; list-style: none; border: 1px solid var(--border); border-radius: 10px; background: var(--canvas); font: 13px/1.4 "Plus Jakarta Sans", system-ui, sans-serif; }
+.connection-checks li { display: flex; align-items: center; gap: 9px; }
+.check-mark { display: inline-grid; flex: 0 0 18px; width: 18px; height: 18px; place-items: center; border-radius: 50%; font: 700 13px/1 system-ui, sans-serif; }
+.check-pass { color: #fff; background: #166534; }
+.check-fail { color: #fff; background: #b42318; }
+.connection-checks li:nth-child(1) .check-mark { animation: check-appear .25s ease-out 2.1s both; }
+.connection-checks li:nth-child(2) .check-mark { animation: check-appear .25s ease-out 2.45s both; }
+.connection-checks li:nth-child(3) .check-mark { animation: check-appear .25s ease-out 2.8s both; }
+.connection-checks li:nth-child(4) .check-mark { animation: check-appear .25s ease-out 3.15s both; }
+.connection-checks li:nth-child(5) .check-mark { animation: check-appear .25s ease-out 3.5s both; }
+.connection-checks li:nth-child(6) .check-mark { animation: check-appear .25s ease-out 3.85s both; }
+.more-details { padding-top: 2px; font: 14px/1.5 "Plus Jakarta Sans", system-ui, sans-serif; }
+.more-details summary { width: fit-content; min-height: 40px; padding: 8px 2px; color: var(--text); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.more-details .warning-data { display: block; margin-top: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.warning-data h2 { margin: 0 0 8px; font: 700 15px/1.4 "Plus Jakarta Sans", system-ui, sans-serif; }
+.warning-data .label { display: inline-block; margin: 4px 0; }
+.pie-layout { display: flex; align-items: center; gap: 20px; margin-top: 10px; }
+.pie-chart { display: grid; flex: 0 0 112px; width: 112px; height: 112px; place-items: center; border-radius: 50%; background: conic-gradient(#166534 0 var(--pass-share), #b42318 var(--pass-share) 100%); color: #141414; transform: scale(.7) rotate(-45deg); opacity: 0; }
+.pie-chart span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: var(--surface); font: 700 13px/1.2 "Plus Jakarta Sans", system-ui, sans-serif; text-align: center; }
+.pie-chart.pie-animate { animation: pie-reveal 1.15s cubic-bezier(.2,.75,.25,1) forwards; }
+.pie-legend { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.pie-legend li { display: flex; align-items: center; gap: 8px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.legend-dot.passed { background: #166534; }
+.legend-dot.not-passed { background: #b42318; }
+.score-after-pie { opacity: 0; }
+.score-after-pie.reveal-score { animation: score-reveal .3s ease-out 1.15s forwards; }
+@keyframes pie-reveal { to { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes score-reveal { to { opacity: 1; } }
 .timeline-domain strong { overflow-wrap: anywhere; }
 .timeline-controls { display: grid; width: 100%; gap: 12px; }
 .timeline-controls button { width: 100%; min-height: 48px; font-size: 20px; font-weight: 400; }
@@ -90,10 +120,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .timeline-controls #request-status { color: #8b2525; font-size: 16px; }
 @keyframes timeline-line { to { transform: scaleY(1); } }
 @keyframes timeline-arrive { to { opacity: 1; transform: translateY(0); } }
-.warning-data { display: none; }
+@keyframes check-appear { from { opacity: 0; transform: scale(.65); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
   .timeline::before { transform: scaleY(1); animation: none; }
   .timeline-step { opacity: 1; transform: none; animation: none; }
+  .pie-chart { transform: none; opacity: 1; animation: none !important; }
+  .score-after-pie { opacity: 1; animation: none !important; }
+  .check-mark { animation: none !important; }
 }
 .popup-header {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
@@ -125,6 +158,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .warning h1, .options h1 { margin: 6px 0 16px; }
 .warning .notice { padding: 14px 16px; background: var(--selected); border: 1px solid var(--border); border-radius: 12px; }
 .warning .field { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.warning .verdict-field { padding-bottom: 4px; }
+.warning .verdict-field + .field { padding-top: 4px; }
+.warning .verdict-green #verdict { color: #166534; }
 .warning .approval-pair { padding: 8px 0; border-top: 1px solid var(--border); }
 .warning button, .warning input { width: 100%; margin-top: 12px; }
 .warning #cancel { background: transparent; color: var(--text); border-color: var(--border); }

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "BOUND Prototype",
+  "name": "BOUND",
   "version": "0.1.0",
   "description": "Phase 0 wallet request interception prototype.",
   "minimum_chrome_version": "119",
