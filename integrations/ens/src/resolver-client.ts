@@ -233,6 +233,7 @@ export async function grantCuratorRole(
   resolverAddress: Address,
   curator: Address,
 ): Promise<Hex> {
+  assertDedicatedResolver(resolverAddress);
   const setterCalldata = encodeFunctionData({
     abi: permissionedResolverAbi,
     functionName: "setText",
@@ -258,6 +259,7 @@ export async function grantProtocolRole(
   resolverAddress: Address,
   protocolAccount: Address,
 ): Promise<Hex> {
+  assertDedicatedResolver(resolverAddress);
   const setterCalldata = encodeFunctionData({
     abi: permissionedResolverAbi,
     functionName: "setText",
@@ -269,6 +271,30 @@ export async function grantProtocolRole(
     functionName: "grantSetterRoles",
     args: [setterCalldata, protocolAccount],
   });
+}
+
+/**
+ * Refuse ENS's shared PermissionedResolver implementation as a write target.
+ *
+ * `permissionedResolverImpl` is the implementation every dedicated proxy delegates to. It
+ * was never `initialize()`d with our admin, so it holds none of our grants and every role
+ * check against it reverts `MissingRole` (0xd1a3b355) — a revert that reads like a missing
+ * permission rather than a wrong address, which is why it cost a long debugging detour
+ * during Phase 1 bring-up.
+ *
+ * The publishers already catch this via their `findResolver` check; the grant helpers take
+ * a bare address with no name to resolve against, so they get this guard instead. It is
+ * deliberately a hard refusal and not a warning: a grant that lands on the shared
+ * implementation silently confers nothing on the account it names.
+ */
+function assertDedicatedResolver(resolverAddress: Address): void {
+  if (resolverAddress.toLowerCase() === ENSV2_SEPOLIA.permissionedResolverImpl.toLowerCase()) {
+    throw new PublishRefusedError(
+      `refusing to write to ${resolverAddress}: that is ENS's shared PermissionedResolver ` +
+        `implementation, not a dedicated proxy. It holds none of this deployment's grants. ` +
+        `Pass the proxy deployed for the name (BOUND_RESOLVER_ADDRESS / config ens.resolverAddress).`,
+    );
+  }
 }
 
 /** Proves the negative half of Phase 0's gate: an unauthorized key cannot write the root key. */
