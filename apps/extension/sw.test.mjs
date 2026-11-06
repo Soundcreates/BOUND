@@ -28,6 +28,7 @@ globalThis.chrome = {
   runtime: { id: "extension", getURL: path => `chrome-extension://extension/${path}`, onMessage: { addListener(fn) { listener = fn; } } },
   tabs: { onUpdated: { addListener(fn) { tabUpdated = fn; } }, onRemoved: { addListener() {} } },
   webNavigation: { async getFrame({ tabId, frameId }) { return { documentId: currentDocuments.get(`${tabId}:${frameId}`) || (frameId === 2 ? "doc-1" : "top") }; } },
+  alarms: { onAlarm: { addListener() {} }, async create() {}, async clear() {} },
   windows: { onRemoved: { addListener(fn) { windowRemoved = fn; } }, async create(options) { if (failCreate) throw new Error("window unavailable"); const window = { id: 100 + windows.length, url: options.url }; windows.push(window); return window; } },
   storage: { local: storage, session: storage },
   action: { setBadgeText() {}, setBadgeBackgroundColor() {} }

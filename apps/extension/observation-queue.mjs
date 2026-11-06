@@ -19,14 +19,14 @@ export async function enqueue(records, storage = chrome.storage.local, now = Dat
     const initialLength = queue.length;
     for (const record of records) {
       if (!record || !["observation", "warned"].includes(record.kind) || typeof record.site !== "string" || !record.site || record.site.length > 253 || typeof record.chain !== "string" || !record.chain || record.chain.length > 80 ||
-        (record.value !== undefined && (typeof record.value !== "string" || !/^0x[0-9a-f]{40}$/i.test(record.value))) || (record.kind === "observation" && !record.value)) throw new TypeError("Invalid observation record");
+        (record.value !== undefined && (typeof record.value !== "string" || !/^0x[0-9a-f]{40}$/i.test(record.value))) || (record.kind === "observation" && !record.value) || (record.observationKind !== undefined && (record.kind !== "observation" || record.observationKind !== "called-contract"))) throw new TypeError("Invalid observation record");
       const value = record.value?.toLowerCase();
-      const dedupeKey = JSON.stringify([record.site, record.chain, record.kind, value || null]);
+      const dedupeKey = JSON.stringify([record.site, record.chain, record.kind, value || null, ...(record.observationKind ? [record.observationKind] : [])]);
       const previous = seen[dedupeKey] ?? seen[`${record.site}:${record.chain}:${value || record.kind}`];
       if (previous !== undefined && now - previous < WEEK_MS) continue;
       if (queue.length >= MAX_QUEUE) throw new Error("Observation queue is full");
       seen[dedupeKey] = now;
-      queue.push({ site: record.site, kind: record.kind, ...(value ? { value } : {}), chain: record.chain, reporterKey: reporter.key });
+      queue.push({ site: record.site, kind: record.kind, ...(value ? { value } : {}), ...(record.observationKind ? { observationKind: record.observationKind } : {}), chain: record.chain, reporterKey: reporter.key });
     }
     await storage.set({
       boundReporter: reporter,

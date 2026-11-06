@@ -1,27 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { anonRpc } from "./anon-rpc-host.mjs";
-
-test("offscreen adapter rejects write and unsupported RPC methods without a direct fallback", async () => {
-  assert.deepEqual(await anonRpc({ method: "eth_sendTransaction", params: [] }), { error: "method_not_allowed" });
-  assert.deepEqual(await anonRpc(null), { error: "method_not_allowed" });
+import {createAnonRpcHost} from "./anon-rpc-host.mjs";
+const settings={anonWorkerId:"nox",anonBootstrapUrl:"https://bootstrap.example",anonRpcUrl:"https://rpc.example"};
+test("host rejects write methods and never falls back when unconfigured",async()=>{
+ let loads=0;const host=createAnonRpcHost({getSettings:async()=>null,loadEngine:async()=>{loads++;}});
+ assert.deepEqual(await host({method:"eth_sendTransaction"}),{error:"method_not_allowed"});
+ assert.deepEqual(await host({method:"eth_call"}),{error:"anon_rpc_not_configured"});assert.equal(loads,0);
 });
-
-test("allowed reads create the MV3 offscreen worker host and return its result", async () => {
-  const calls = [];
-  globalThis.chrome = {
-    runtime: {
-      getURL: (path) => `chrome-extension://test/${path}`,
-      getContexts: async () => [],
-      sendMessage: async (message) => ({ error: "anon_rpc_not_configured", method: message.request.method })
-    },
-    offscreen: { createDocument: async (options) => calls.push(options) }
-  };
-  try {
-    assert.deepEqual(await anonRpc({ method: "eth_call", params: [] }), { error: "anon_rpc_not_configured", method: "eth_call" });
-    assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0].reasons, ["WORKERS"]);
-  } finally {
-    delete globalThis.chrome;
-  }
+test("configured read uses only the anonymizing engine and respects the deadline",async()=>{
+ const calls=[];let loads=0;const host=createAnonRpcHost({getSettings:async()=>settings,loadEngine:async()=>{loads++;return {request:async(config,request)=>{calls.push({config,request});return "0x1";}};}});
+ assert.deepEqual(await host({method:"eth_chainId",params:[]}),{result:"0x1"});assert.equal(loads,1);assert.equal(calls[0].config.anonWorkerId,"nox");
+ const timed=createAnonRpcHost({getSettings:async()=>settings,loadEngine:async()=>({request:()=>new Promise(()=>{})}),timeoutMs:5});
+ assert.deepEqual(await timed({method:"eth_call",params:[]}),{error:"anon_rpc_unavailable"});
 });

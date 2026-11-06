@@ -3,9 +3,9 @@ import { canonicalSite, evaluate } from "../../packages/policy-core/index.mjs";
 import { mayRecordObservation, observationCandidates, warningCandidates } from "../../packages/policy-core/observations.mjs";
 import { enqueue } from "./observation-queue.mjs";
 import { createObservationDispatcher } from "./observation-dispatcher.mjs";
-import { sendObservationBatch } from "./watcher-adapter.mjs";
+import { sendObservationBatch, isObservationConfigured } from "./watcher-adapter.mjs";
 import { createDecisionContext, readPreconnectionSiteStatus } from "./decision-context.mjs";
-import { decisionAdapters, watcherOwner } from "./trust-adapter.mjs";
+import { decisionAdapters, getWatcherOwner } from "./trust-adapter.mjs";
 import { anonRpc } from "./anon-rpc-host.mjs";
 
 const pending = new Map();
@@ -18,6 +18,7 @@ const STATUS_ALARM = "bound-site-status-refresh";
 const STATUS_EXPIRY_PREFIX = "bound-site-status-expiry:";
 let coverageOperation = Promise.resolve();
 let coverageUncertain = false;
+let settingsRevision = 0;
 const dispatcher = typeof sendObservationBatch === "function" ? createObservationDispatcher({ send: sendObservationBatch }) : null;
 async function enqueueReports(records) {
   if (!records.length) return;
@@ -31,9 +32,9 @@ if (dispatcher) {
   });
   dispatcher.resume().catch(() => {});
 }
-if (decisionAdapters && watcherOwner) {
+if (decisionAdapters) {
   chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === STATUS_ALARM) refreshOpenSiteStatuses().catch(() => {});
+    if (alarm.name === STATUS_ALARM) refreshPublicData().catch(() => {});
     else if (alarm.name.startsWith(STATUS_EXPIRY_PREFIX)) {
       const tabId = Number(alarm.name.slice(STATUS_EXPIRY_PREFIX.length));
       if (Number.isInteger(tabId)) chrome.tabs.get(tabId).then((tab) => {
@@ -42,13 +43,17 @@ if (decisionAdapters && watcherOwner) {
     }
   });
   chrome.alarms.create(STATUS_ALARM, { periodInMinutes: 5 }).catch(() => {});
-  refreshOpenSiteStatuses().catch(() => {});
+  refreshPublicData().catch(() => {});
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "BOUND_SETTINGS_CHANGED_V1" && sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("options.html")) {
+    settingsRevision++;invalidate(()=>true);
+    refreshPublicData().then(()=>sendResponse({ok:true}),()=>sendResponse({ok:false}));return true;
+  }
   if (message?.type === "BOUND_STATUS_V1" && sender.id === chrome.runtime.id && !sender.tab) {
-    sendResponse({ observationReporting: Boolean(dispatcher) });
-    return;
+    isObservationConfigured().then(observationReporting=>sendResponse({ observationReporting }),()=>sendResponse({ observationReporting:false }));
+    return true;
   }
   if (message?.type === "BOUND_REQUEST_V1") {
     handleRequest(message, sender, sendResponse).catch(() => sendResponse({ action: "cancel", digest: message.digest, stateDigest: message.stateDigest }));
@@ -87,7 +92,7 @@ chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
     tabRevisions.set(tabId, (tabRevisions.get(tabId) || 0) + 1);
     invalidate((item) => item.tabId === tabId);
     clearCoverage(tabId).catch(() => {});
-    if (decisionAdapters && watcherOwner && (change.url || tab?.url)) {
+    if (decisionAdapters && (change.url || tab?.url)) {
       refreshSiteStatus(tabId, change.url || tab.url, tabRevisions.get(tabId)).catch(() => {});
     }
   }
@@ -105,7 +110,8 @@ async function handleRequest(message, sender, sendResponse) {
   const frameKey = `${sender.tab?.id}:${sender.frameId}:${sender.documentId || sender.url}`;
   const tabRevision = tabRevisions.get(sender.tab?.id) || 0;
   const frameRevision = frameRevisions.get(frameKey) || 0;
-  const valid = () => (tabRevisions.get(sender.tab?.id) || 0) === tabRevision && (frameRevisions.get(frameKey) || 0) === frameRevision;
+  const revision=settingsRevision;
+  const valid = () => settingsRevision===revision && (tabRevisions.get(sender.tab?.id) || 0) === tabRevision && (frameRevisions.get(frameKey) || 0) === frameRevision;
   const now = Date.now();
   const recent = (rate.get(frameKey) || []).filter((at) => now - at < 10_000);
   if (recent.length >= MAX_PENDING_PER_FRAME || pending.size >= 128) {
@@ -147,8 +153,8 @@ async function handleRequest(message, sender, sendResponse) {
   const bypass = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id);
   const coverage = locked || classification.kind === "unsupported" ? "unsupported" : bypass ? "bypass_possible" : "mediated";
   let context = { baseline: null, incidentStatus: "unknown" };
-  if (!locked && decisionAdapters && watcherOwner) {
-    try { context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
+  if (!locked && decisionAdapters) {
+    try { const watcherOwner=await getWatcherOwner();context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
     catch { /* Unavailable policy data leaves the request grey. */ }
   }
   if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
@@ -193,7 +199,8 @@ async function handleRequest(message, sender, sendResponse) {
 }
 
 async function enqueueCurrentObservation({ classification, request, state, sender, coverage }) {
-  if (!decisionAdapters || !watcherOwner) return;
+  if (!decisionAdapters) return;
+  const watcherOwner=await getWatcherOwner();if(!watcherOwner)return;
   const latest = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: state.chainId, watcherOwner, adapters: decisionAdapters });
   const currentCoverage = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id) ? "bypass_possible" : coverage;
   const evaluated = evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage });
@@ -292,18 +299,20 @@ function clearCoverage(tabId) {
     delete boundSiteStatuses[tabId];
     await chrome.storage.session.set({ boundCoverage, boundSiteStatuses });
     chrome.action.setBadgeText({ tabId, text: "" });
-    if (decisionAdapters && watcherOwner) chrome.alarms.clear(`${STATUS_EXPIRY_PREFIX}${tabId}`).catch(() => {});
+    if (decisionAdapters) chrome.alarms.clear(`${STATUS_EXPIRY_PREFIX}${tabId}`).catch(() => {});
   });
 }
 function updateBadge(tabId, coverage, statuses) {
   const frames = Object.values(coverage).filter((item) => item.tabId === tabId);
   const siteStatus = statuses[tabId];
   const active = siteStatus?.status === "active" && Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now();
-  const current = active ? "incident" : frames.some((item) => item.bypassPossible) ? "bypass_possible" : frames.some((item) => item.value === "unsupported") ? "unsupported" : frames.some((item) => item.value === "mediated") ? "mediated" : "";
-  chrome.action.setBadgeText({ tabId, text: current === "incident" ? "INC" : current === "bypass_possible" ? "BYP" : current === "unsupported" ? "UNS" : current === "mediated" ? "MED" : "" });
-  if (current) chrome.action.setBadgeBackgroundColor({ tabId, color: ["incident", "bypass_possible"].includes(current) ? "#a52a2a" : current === "unsupported" ? "#7c5b13" : "#1e6045" });
+  const drift = siteStatus?.status === "drift" && Number.isFinite(Date.parse(siteStatus.expiresAt)) && Date.parse(siteStatus.expiresAt) > Date.now();
+  const current = active ? "incident" : drift ? "drift" : frames.some((item) => item.bypassPossible) ? "bypass_possible" : frames.some((item) => item.value === "unsupported") ? "unsupported" : frames.some((item) => item.value === "mediated") ? "mediated" : "";
+  chrome.action.setBadgeText({ tabId, text: current === "incident" ? "INC" : current === "drift" ? "DNS" : current === "bypass_possible" ? "BYP" : current === "unsupported" ? "UNS" : current === "mediated" ? "MED" : "" });
+  if (current) chrome.action.setBadgeBackgroundColor({ tabId, color: ["incident", "bypass_possible"].includes(current) ? "#a52a2a" : ["unsupported","drift"].includes(current) ? "#7c5b13" : "#1e6045" });
 }
 async function refreshSiteStatus(tabId, siteOrigin, revision) {
+  const watcherOwner=await getWatcherOwner();
   const status = await readPreconnectionSiteStatus({ siteOrigin, watcherOwner, adapters: decisionAdapters });
   await updateCoverage(async () => {
     if ((tabRevisions.get(tabId) || 0) !== revision) return;
@@ -319,6 +328,10 @@ async function refreshSiteStatus(tabId, siteOrigin, revision) {
 async function refreshOpenSiteStatuses() {
   const tabs = await chrome.tabs.query({});
   await Promise.allSettled(tabs.filter((tab) => Number.isInteger(tab.id) && typeof tab.url === "string").map((tab) => refreshSiteStatus(tab.id, tab.url, tabRevisions.get(tab.id) || 0)));
+}
+async function refreshPublicData(){
+  if(typeof decisionAdapters?.refresh==="function")await decisionAdapters.refresh();
+  await refreshOpenSiteStatuses();
 }
 async function bypassPossible(tabId) {
   try {
