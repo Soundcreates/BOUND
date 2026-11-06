@@ -214,15 +214,52 @@ addresses:     {"11155111":["0x0227628f3f023bb0b980b67d528571c95c6dac1c",
 Read routes through `UniversalResolverV2.findResolver()` → `resolve()`, which returned
 `0xf6efa18d…` — the pinned proxy.
 
-### Seed bytecode verification (`verify-bytecode.ts`)
+### Seed bytecode verification (`npm run probe:verify-bytecode`, 2026-11-06)
 
-Source for all three: <https://developers.uniswap.org/docs/protocols/v3/deployments/v3-ethereum-deployments>, Ethereum Sepolia column.
+**11 verified, 0 mismatched, 0 with no code, 0 without recorded evidence (of 11 entries).**
+Closes the Phase 1 Dev 2 gate line "verify all five protocol seeds from official
+deployment sources; check contract bytecode and retain source URL, chain, and deployment
+provenance." Every address is sourced from the protocol's own deployment page and every
+`codeHash` is measured on Sepolia, never transcribed from the page.
 
-| Contract | Address | Deployed code |
-|---|---|---|
-| UniswapV3Factory | `0x0227628f3f023bb0b980b67d528571c95c6dac1c` | 24535 bytes |
-| SwapRouter02 | `0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e` | 24497 bytes |
-| WETH9 | `0xfff9976782d46cc05630d1f6ebab18b2324d6b14` | 3124 bytes |
+| Site | Address | Code | Source |
+|---|---|---|---|
+| app.uniswap.org | `0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e` | 24497 B | docs.uniswap.org v3 deployments |
+| app.uniswap.org | `0x000000000022d473030f116ddee9f6b43ac78ba3` | 9152 B | docs.uniswap.org permit2 |
+| app.aave.com | `0x6ae43d3271ff6888e7fc43fd7321a503ff738951` | 2333 B | docs.aave.com v3 testnet |
+| app.aave.com | `0x012bac54348c0e635dcac9d5fb99f06f24136c9a` | 9779 B | docs.aave.com v3 testnet |
+| app.compound.finance | `0xaec1f48e02cfb822be958b68c7957156eb3f0b6e` | 1878 B | docs.compound.finance |
+| app.ens.domains | `0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e` | 3174 B | docs.ens.domains (legacy ENSv1 Registry — live, but ENS marks the set no longer in use) |
+| app.ens.domains | `0x4a4c8b7cdab6b19dc2cdb417cdb53a2ccbaf5322` | 2196 B | docs.ens.domains ENSv2 — BatchRegistrar |
+| app.ens.domains | `0xdc4a563d00f5c3012b699794eb9e13a561be386f` | 14327 B | docs.ens.domains ENSv2 — PublicResolverV2 |
+| app.ens.domains | `0xf633e7fc17e2bbe0d0965d18ec1821dcb754a3d3` | 8037 B | docs.ens.domains ENSv2 — ETHRegistrar |
+| opensea.io | `0x00000000000000adc04c56bf30ac9d3c0aaf14dc` | 24367 B | docs.opensea.io seaport |
+| shared | `0x000000000022d473030f116ddee9f6b43ac78ba3` | 9152 B | docs.uniswap.org permit2 |
+
+**A bug this caught.** The seed previously vouched for
+`0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16` under app.ens.domains — an address with
+**nothing deployed at it**. Its recorded `codeHash` was `keccak256("")`, a perfectly
+valid-looking 32-byte value, so the entry passed every check that compared a recorded hash
+to an actual one. `verify-bytecode.ts` now tests emptiness *before* comparing hashes, which
+is the only ordering that catches it. `seed-codehash.ts` refuses to emit a hash for an
+empty address, so the same entry cannot be reintroduced by tooling.
+
+**Still a judgment call.** Which contracts a dapp actually *calls* is behavioural, and no
+deployment page settles it. The ENSv2 three above are the plausible user-facing
+transaction targets; confirming it means loading the extension against the live site and
+observing the requests. Recorded here as unconfirmed rather than asserted.
+
+### Snapshot compile (epoch 3)
+
+| Property | Value |
+|---|---|
+| Digest | `0x88ae59882c453ec380342218716b1c5452caf4aaaadff660c157ad663ffeba6b` |
+| Size | 3898 bytes |
+| Reproducible | ✅ byte-identical across two clean runs |
+
+Epoch is 3 because the live root sits at epoch 2 from the disposable probe record;
+`assertMonotonicEpoch` refuses anything at or below the published epoch, so a compile at
+the seed's original epoch 1 would have been rejected at publish time.
 
 ### Open gaps — must be disclosed, not claimed as passing
 
