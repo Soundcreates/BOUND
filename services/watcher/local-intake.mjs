@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseUniqueJSON, validateObservationBatch, validateIntakeResponse } from '../../packages/contracts/index.js';
@@ -8,19 +8,41 @@ import { FetchRequest, JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from 'e
 import { openDurableWatcher } from './durable.js';
 import { openArkivArchive } from '../../integrations/arkiv/archive.js';
 import { createArkivSigner } from '../../integrations/arkiv/signer.js';
-import { importPrivateKey, openReport } from '../../integrations/report-crypto/index.mjs';
+import { importPrivateKey, importPublicKey, keyId as reportKeyId, openReport } from '../../integrations/report-crypto/index.mjs';
+import { createRpc, rebuildJournal, rebuildRegistry, waitForIdleWriter } from './rebuild-from-arkiv.mjs';
 
 // Run from the repo root with: node --env-file=.env services/watcher/local-intake.mjs
-// Accepted observations are journaled first, then flushed to Arkiv in the
-// background. Set BOUND_LOCAL_INTAKE_ARKIV=off to journal only.
+// or in the container (see Dockerfile). Accepted observations are journaled, written
+// to Arkiv, and only then acknowledged. Set BOUND_LOCAL_INTAKE_ARKIV=off to journal only.
+//
+// A fresh state directory is rebuilt from Arkiv on start (rebuild-from-arkiv.mjs), so a
+// replacement container needs no disk. Run exactly one aggregator per writer key.
+
+// Secrets come from an env file mounted by the host (Render mounts secret files at
+// /etc/secrets/<name>). BOUND_ENV_FILE overrides the path. Variables already set in the
+// environment win over the file. A missing file is fine: plain env vars still work.
+const envFile = process.env.BOUND_ENV_FILE ?? '/etc/secrets/.env';
+try {
+  process.loadEnvFile(envFile);
+  console.log(`[Watcher] Loaded environment from ${envFile}`);
+} catch (error) {
+  if (error.code !== 'ENOENT') throw new Error(`cannot read ${envFile}: ${error.message}`);
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const boundDir = path.join(root, '.bound');
-await mkdir(boundDir, { recursive: true });
+const boundDir = path.resolve(process.env.BOUND_STATE_DIR ?? path.join(root, '.bound'));
+await mkdir(boundDir, { recursive: true, mode: 0o700 });
 
 const journalPath = path.join(boundDir, 'watcher-local-journal.json');
-const port = 8787;
-const host = '127.0.0.1';
+const port = Number(process.env.PORT ?? process.env.BOUND_INTAKE_PORT ?? 8787);
+const host = process.env.BOUND_INTAKE_HOST ?? '127.0.0.1';
+if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a TCP port number');
+// Behind a hosting proxy (Railway, Render) the client address is in X-Forwarded-For.
+const trustProxy = process.env.BOUND_TRUST_PROXY === '1';
+const RATE_WINDOW_MS = 10 * 60_000, RATE_MAX = Number(process.env.BOUND_INTAKE_RATE ?? 30);
+// How long a POST waits for its reports to reach Arkiv before asking the client to retry.
+const ACK_TIMEOUT_MS = 10_000;
+const SCHEMA_TAG = 'bound.record.v1';
 const FLUSH_RETRY_MS = 30000;
 // Reports stay in the baseline for 8 days. The extension re-reports a (site, address)
 // pair at most once a week, so a shorter retention would empty baselines between reports.
@@ -43,14 +65,24 @@ const declaredScopes = (process.env.BOUND_LOCAL_INTAKE_SCOPES ?? '').split(',').
   return { site, chainId };
 });
 
+const arkivOn = process.env.BOUND_LOCAL_INTAKE_ARKIV !== 'off';
+const arkivUrl = process.env.BOUND_ARKIV_RPC_URL;
+const arkivOwner = process.env.BOUND_ARKIV_OWNER?.toLowerCase();
+const arkivAccessKey = process.env.ARKIV_ACCESS_KEY || undefined;
+// Reads only. The rebuild runs even with writes off (BOUND_LOCAL_INTAKE_ARKIV=off), as a dry run.
+const arkivRpc = arkivUrl ? createRpc({ url: arkivUrl, accessKey: arkivAccessKey }) : null;
+const arkivStateDir = path.join(boundDir, 'watcher-arkiv');
+const registryPath = path.join(arkivStateDir, 'registry.json');
+const exists = file => access(file).then(() => true, () => false);
+
 async function openArchive() {
-  if (process.env.BOUND_LOCAL_INTAKE_ARKIV === 'off') return null;
-  const url = process.env.BOUND_ARKIV_RPC_URL;
-  const owner = process.env.BOUND_ARKIV_OWNER?.toLowerCase();
+  if (!arkivOn) return null;
+  const url = arkivUrl;
+  const owner = arkivOwner;
   const target = (process.env.BOUND_ARKIV_SYSTEM_ADDRESS ?? '0x4400000000000000000000000000000000000044').toLowerCase();
   const chainId = Number(process.env.BOUND_ARKIV_CHAIN_ID);
   const privateKey = process.env.BOUND_ARKIV_PRIVATE_KEY;
-  const accessKey = process.env.ARKIV_ACCESS_KEY || undefined;
+  const accessKey = arkivAccessKey;
   if (!url || !/^0x[0-9a-f]{40}$/.test(owner ?? '') || !Number.isSafeInteger(chainId) || !/^(?:0x)?[0-9a-fA-F]{64}$/.test(privateKey ?? '')) {
     throw new Error('Arkiv writer not configured: set BOUND_ARKIV_RPC_URL, BOUND_ARKIV_OWNER, BOUND_ARKIV_CHAIN_ID and BOUND_ARKIV_PRIVATE_KEY (or BOUND_LOCAL_INTAKE_ARKIV=off)');
   }
@@ -61,14 +93,14 @@ async function openArchive() {
   const provider = new JsonRpcProvider(request, chainId, { staticNetwork: true });
   if (Number((await provider.getNetwork()).chainId) !== chainId) throw new Error('unexpected Arkiv chain');
   // Dedicated journals: the curator's journals stay untouched.
-  const stateDir = path.join(boundDir, 'watcher-arkiv');
+  const stateDir = arkivStateDir;
   await mkdir(stateDir, { recursive: true, mode: 0o700 });
   // Rabdi produces a block every ~2s. Observations live 8 days (345600 blocks), matching
   // the watcher's retention. Baselines and statuses live ~24h and are republished hourly.
   const archive = await openArkivArchive({
     url, accessKey, owner, target, chainId, schemaTag: 'bound.record.v1',
     senderJournal: path.join(stateDir, 'sender.json'),
-    registryJournal: path.join(stateDir, 'registry.json'),
+    registryJournal: registryPath,
     lifetimes: { observation: 345600, baseline: 43200, drift: 43200, incident: 43200, status: 43200 },
     ...createArkivSigner({ wallet, provider, owner, target, chainId }),
     hash: keccak256, confirmTimeoutMs: 120000, confirmPollMs: 1500
@@ -79,18 +111,49 @@ async function openArchive() {
 
 // Reports arrive sealed to this key (HPKE, see integrations/report-crypto). There is
 // no plaintext path: without the key the intake does not start.
+// The private key comes from BOUND_INTAKE_PRIVATE_JWK (a hosting secret) or the key file.
+// Its id is derived from its own public coordinates, and must match the public key the
+// extension build pins when BOUND_INTAKE_PUBLIC_KEY is also set.
 async function loadReportKey() {
-  const file = path.resolve(process.env.BOUND_INTAKE_KEY_FILE ?? path.join(boundDir, 'intake-key.json'));
-  let stored;
-  try { stored = JSON.parse(await readFile(file, 'utf8')); }
-  catch { throw new Error(`report key not found at ${file}: run node scripts/integration/intake-keygen.mjs`); }
-  if (stored?.version !== 1 || typeof stored.keyId !== 'string' || !/^[0-9a-f]{16}$/.test(stored.keyId)) throw new Error(`invalid report key file ${file}`);
-  return { keyId: stored.keyId, privateKey: await importPrivateKey(stored.privateKey) };
+  let jwk;
+  if (process.env.BOUND_INTAKE_PRIVATE_JWK) {
+    try { jwk = JSON.parse(process.env.BOUND_INTAKE_PRIVATE_JWK); } catch { throw new Error('BOUND_INTAKE_PRIVATE_JWK is not valid JSON'); }
+  } else {
+    const file = path.resolve(process.env.BOUND_INTAKE_KEY_FILE ?? path.join(boundDir, 'intake-key.json'));
+    let stored;
+    try { stored = JSON.parse(await readFile(file, 'utf8')); }
+    catch { throw new Error(`report key not found: set BOUND_INTAKE_PRIVATE_JWK or run node scripts/integration/intake-keygen.mjs (looked for ${file})`); }
+    if (stored?.version !== 1) throw new Error(`invalid report key file ${file}`);
+    jwk = stored.privateKey;
+  }
+  if (typeof jwk?.x !== 'string' || typeof jwk?.y !== 'string') throw new Error('report key must be a P-256 private JWK');
+  const fromBase64Url = value => Buffer.from(value, 'base64url');
+  const raw = Buffer.concat([Buffer.from([4]), fromBase64Url(jwk.x), fromBase64Url(jwk.y)]);
+  const id = await reportKeyId(raw);
+  if (process.env.BOUND_INTAKE_PUBLIC_KEY && (await importPublicKey(process.env.BOUND_INTAKE_PUBLIC_KEY.trim())).keyId !== id) {
+    throw new Error('BOUND_INTAKE_PRIVATE_JWK does not match BOUND_INTAKE_PUBLIC_KEY: extensions would encrypt to a key this aggregator cannot open');
+  }
+  return { keyId: id, privateKey: await importPrivateKey(jwk) };
 }
 const reportKey = await loadReportKey();
 console.log(`[Watcher] Report key loaded: keyId=${reportKey.keyId}`);
 
+// A fresh state directory (a new container) is rebuilt from what this writer already
+// published, before anything is written. BOUND_REBUILD=always forces it.
+const rebuildAlways = process.env.BOUND_REBUILD === 'always';
+if (arkivRpc && /^0x[0-9a-f]{40}$/.test(arkivOwner ?? '')) {
+  if (rebuildAlways || !(await exists(journalPath))) await rebuildJournal({ rpc: arkivRpc, owner: arkivOwner, schemaTag: SCHEMA_TAG, path: journalPath, windowMs: WINDOW_MS, retentionMs: RETENTION_MS, k: corroborationK });
+  if (rebuildAlways || !(await exists(registryPath))) await rebuildRegistry({ rpc: arkivRpc, owner: arkivOwner, schemaTag: SCHEMA_TAG, path: registryPath });
+}
+
 const archive = await openArchive();
+// Let a transaction the previous container broadcast just before stopping settle first.
+if (archive && arkivRpc) await waitForIdleWriter({ rpc: arkivRpc, owner: arkivOwner });
+// Hosts with zero-downtime deploys (Render) keep the old instance running until this one
+// is healthy. Holding back the first publish keeps the two from writing at the same time;
+// the old instance stops writing as soon as it receives SIGTERM.
+const startupDelayMs = Number(process.env.BOUND_STARTUP_WRITE_DELAY_MS ?? 0);
+if (!Number.isSafeInteger(startupDelayMs) || startupDelayMs < 0) throw new Error('BOUND_STARTUP_WRITE_DELAY_MS must be a non-negative integer');
 
 // An existing journal records the retention it was opened with; widening it only keeps
 // entries longer, so the stored setting is raised in place (window and k must match).
@@ -185,11 +248,46 @@ function scheduleFlush() {
 let lastPublishedHour = hourBucket();
 const retryTimer = setInterval(async () => {
   const hour = hourBucket();
+  if (!writesAllowed) return;
   if (hour !== lastPublishedHour) { lastPublishedHour = hour; scheduleFlush(); }
   else if ((await watcher.pending()).length) scheduleFlush();
 }, FLUSH_RETRY_MS);
 if (declaredScopes.length) console.log(`[Watcher] Operator-declared scopes: ${declaredScopes.map(s => `${s.site}@${s.chainId}`).join(', ')}`);
-scheduleFlush();
+let writesAllowed = !startupDelayMs;
+if (startupDelayMs) {
+  console.log(`[Watcher] Writes held back ${startupDelayMs} ms while a previous instance shuts down`);
+  setTimeout(() => { writesAllowed = true; if (!stopping) scheduleFlush(); }, startupDelayMs).unref();
+} else scheduleFlush();
+
+let ready = false;
+
+// Fixed-window per-address limit. It only stops floods; it is not Sybil resistance.
+const rateWindows = new Map();
+function clientAddress(req) {
+  const forwarded = trustProxy ? String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() : '';
+  return forwarded || req.socket.remoteAddress || 'unknown';
+}
+function allowRequest(address) {
+  const time = Date.now();
+  const window = rateWindows.get(address);
+  if (!window || time - window.start >= RATE_WINDOW_MS) { rateWindows.set(address, { start: time, count: 1 }); return true; }
+  window.count++;
+  return window.count <= RATE_MAX;
+}
+setInterval(() => { const time = Date.now(); for (const [address, window] of rateWindows) if (time - window.start >= RATE_WINDOW_MS) rateWindows.delete(address); }, RATE_WINDOW_MS).unref();
+
+const sameEvent = (record, event) => record.site === event.site && record.chainId === event.chainId && record.value === event.value && record.reporterKey === event.reporterKey && record.event === event.kind;
+// Delivers pending observations and reports whether none of this batch is still waiting.
+async function deliveredWithin(events, timeoutMs) {
+  let timer;
+  try {
+    await Promise.race([watcher.flush(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('delivery timeout')), timeoutMs); })]);
+  } catch (error) {
+    if (error.message !== 'delivery timeout') console.error(`[Watcher] Arkiv delivery failed, client will retry: ${error.message}`);
+  } finally { clearTimeout(timer); }
+  const pending = await watcher.pending();
+  return !pending.some(({ record }) => events.some(event => sameEvent(record, event)));
+}
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin;
@@ -217,8 +315,10 @@ const server = http.createServer(async (req, res) => {
     res.end(body === undefined ? undefined : JSON.stringify(body));
   };
 
-  if (origin && !allowed) return respond(403, { error: 'Origin not allowed' });
   const url = new URL(req.url, `http://${host}:${port}`);
+  // Health check for the hosting platform: up once the rebuild and Arkiv writer are ready.
+  if (url.pathname === '/healthz' && req.method === 'GET') return respond(ready ? 200 : 503, { ok: ready });
+  if (origin && !allowed) return respond(403, { error: 'Origin not allowed' });
   if (url.pathname !== '/v1/observations') return respond(404, { error: 'Not found' });
 
   if (req.method === 'OPTIONS') {
@@ -228,6 +328,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method !== 'POST') return respond(405, { error: 'Method not allowed' });
+  // Not ready, or still inside the startup hold-back: the extension retries shortly.
+  if (!ready || !writesAllowed) return respond(503, { schemaVersion: 1, result: 'retry' });
+  if (!allowRequest(clientAddress(req))) return respond(429, { error: 'Too many requests' });
 
   const chunks = [];
   let size = 0;
@@ -268,8 +371,13 @@ const server = http.createServer(async (req, res) => {
       return respond(503, { schemaVersion: 1, result: 'retry' });
     }
 
-    if (result.result === 'accepted') scheduleFlush();
-    return respond(result.result === 'accepted' ? 202 : 400, result);
+    if (result.result !== 'accepted') return respond(400, result);
+    // Acknowledge only once these reports are on Arkiv. If the container stopped after a
+    // 202 but before writing, the reports would be lost: the extension never resends an
+    // acknowledged batch. A retry is safe, because duplicates are dropped by the journal.
+    const delivered = await deliveredWithin(batch.events, ACK_TIMEOUT_MS);
+    scheduleFlush();
+    return delivered ? respond(202, result) : respond(503, { schemaVersion: 1, result: 'retry' });
   } catch (err) {
     // Details go to the operator's own log only; the client gets a generic answer.
     console.error(`[Watcher] Intake error: ${err.message}`);
@@ -278,6 +386,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
+  ready = true;
   console.log(`Watcher intake server listening on http://${host}:${port}/v1/observations`);
 });
 

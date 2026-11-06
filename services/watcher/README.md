@@ -39,3 +39,57 @@ The extension seals every observation batch to the aggregator's public key with 
    A plaintext `schemaVersion: 1` batch is rejected with 400. The decrypted payload is the unchanged `{schemaVersion:1, events}` batch, validated as before.
 
 Without a pinned key the extension keeps reports queued and sends nothing. Batches are sealed at send time, so after a rotation and rebuild, queued reports go out under the new key; only an extension still running the old build is rejected until it is updated.
+
+## Deploy the aggregator as a container (Docker Hub image, e.g. on Render)
+
+The image (`Dockerfile` at the repo root) holds no state and no secrets. On start, `local-intake.mjs` rebuilds its state from what its writer key already published on Arkiv (`rebuild-from-arkiv.mjs`):
+
+- **Report journal:** every live `observation` entity, with its original time from its creation block, so the 1-hour incident window and the 8-day retention survive a restart.
+- **Upsert registry:** each site's current `baseline` and `status` entity, so the next publish patches it instead of creating a duplicate that readers would reject.
+
+It then waits for any transaction its predecessor left in flight to settle. A replacement container is therefore an exact copy of the one that stopped, on any host.
+
+**Run exactly one aggregator per writer key.** Two at once collide on transaction nonces.
+- Use one instance, and stop the laptop aggregator before a hosted one starts.
+- On hosts with zero-downtime deploys (Render keeps the old instance until the new one is healthy), set `BOUND_STARTUP_WRITE_DELAY_MS=60000`. The new instance then writes nothing for its first minute; `POST`s get `503 retry` and the extension resends.
+- Render's free plan sleeps idle services, which stops the hourly republish. Use an always-on instance.
+
+### Build and publish the image
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t <dockerhub-user>/bound-aggregator:<tag> --push .
+```
+
+### Environment (hosting secrets)
+
+Put these in one env file. On Render, add it under **Secret Files** with the filename `.env`; Render mounts it at `/etc/secrets/.env`, which the aggregator reads on start. `BOUND_ENV_FILE` points it elsewhere. Ordinary environment variables also work and win over the file.
+
+| Variable | Value |
+|---|---|
+| `BOUND_ARKIV_RPC_URL` | `https://rpc.rabdi.db-chain.testnet.arkiv.network` |
+| `BOUND_ARKIV_CHAIN_ID` | `7794095` |
+| `BOUND_ARKIV_OWNER` | the writer address |
+| `BOUND_ARKIV_PRIVATE_KEY` | the writer key |
+| `ARKIV_ACCESS_KEY` | an Arkiv API key. Required: the anonymous Rabdi query budget is exhausted |
+| `BOUND_INTAKE_PRIVATE_JWK` | output of `node scripts/integration/intake-keygen.mjs --print-env` (a private key: never paste it into chat or logs) |
+| `BOUND_INTAKE_PUBLIC_KEY` | same as in `.env`. Optional: the container refuses to start if the JWK doesn't match it |
+| `BOUND_LOCAL_INTAKE_SCOPES` | sites to publish before any traffic, e.g. `127.0.0.1:8005,app.uniswap.org` |
+| `BOUND_TRUST_PROXY` | `1` behind a hosting proxy, so the per-IP limit sees client addresses |
+| `BOUND_STARTUP_WRITE_DELAY_MS` | `60000` on Render (see above) |
+
+The host's `PORT` is honoured; the image binds `0.0.0.0` and defaults to 8787.
+
+### On Render
+
+1. **New → Web Service → Existing image**, `docker.io/<dockerhub-user>/bound-aggregator:<tag>`.
+2. Set **Instances: 1**, add the variables above as a secret file named `.env`, and set the **Health Check Path** to `/healthz`. No disk.
+3. After deploy, `https://<service>.onrender.com/healthz` returns `{"ok":true}`.
+4. In BOUND → Options, set **Watcher intake URL** to `https://<service>.onrender.com/v1/observations`. The extension build must pin the matching `BOUND_INTAKE_PUBLIC_KEY`.
+
+### Behaviour
+
+- `POST /v1/observations` replies `202` only once the batch's reports are on Arkiv. Otherwise it replies `503 retry`, and the extension retries; duplicates are dropped.
+- More than `BOUND_INTAKE_RATE` (default 30) batches per address in 10 minutes gets `429`.
+- `GET /healthz` reports `503` until the rebuild and Arkiv writer are ready.
+- `BOUND_REBUILD=always` forces a rebuild even when state files exist. With `BOUND_LOCAL_INTAKE_ARKIV=off` the rebuild still runs, read-only, as a dry run.
+- Duplicate baseline/status entities found during a rebuild are logged, never deleted automatically.

@@ -1,0 +1,21 @@
+# Secrets and local state never enter the image.
+.env
+.env.*
+.bound/
+**/*.key
+**/intake-key.json
+
+# Not needed by the aggregator.
+node_modules/
+**/node_modules/
+apps/
+landing/
+demo/
+Docs/
+arkiv/
+fixtures/
+scripts/
+**/*.test.js
+**/*.test.mjs
+**/test/
+.git/
