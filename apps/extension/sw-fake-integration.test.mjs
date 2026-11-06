@@ -161,30 +161,57 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       const request = { method, params: method === "wallet_requestPermissions" ? [{ eth_accounts: {} }] : [] };
       return send({ type: "BOUND_REQUEST_V1", request, state: connectionState, digest: await hash(JSON.stringify(request)), stateDigest: await hash(JSON.stringify(connectionState)) }, sender);
     };
-    for (const method of ["eth_requestAccounts", "wallet_requestPermissions", "eth_accounts", "eth_coinbase", "metamask_getProviderState"]) {
-      const connectionSender = makeSender(SITE, `connection-${method}`);
+    // Passive account reads never open UI: the wallet only discloses granted accounts.
+    for (const method of ["eth_accounts", "eth_coinbase", "metamask_getProviderState"]) {
+      const before = fake.windows.length;
+      const result = await connect(method, makeSender(SITE, `passive-${method}`));
+      assert.equal(result.action, "continue");
+      assert.equal(result.readOnly, true);
+      assert.equal(fake.windows.length, before, `${method} must not open a review`);
+    }
+    // Connection prompts always open a review and are never cancelled on score alone.
+    const review = async (method, sender, status) => {
+      fake.adapters.records = status ? scenarioRecords(status) : [];
+      const index = fake.windows.length;
+      const resultPromise = connect(method, sender);
+      await waitFor(() => fake.windows.length > index);
+      const window = fake.windows[index];
+      const id = new URL(window.url).searchParams.get("request");
+      const warningSender = { id: "fake-extension", frameId: 0, tab: { windowId: window.id }, url: window.url };
+      const details = await send({ type: "BOUND_GET_V1", id }, warningSender);
+      return { id, warningSender, resultPromise, details };
+    };
+    for (const method of ["eth_requestAccounts", "wallet_requestPermissions"]) {
       fake.site = SITE;
-      fake.adapters.records = scenarioRecords("normal");
-      assert.equal((await connect(method, connectionSender)).action, "continue");
+      const sender = makeSender(SITE, `connection-${method}`);
+      const verified = await review(method, sender, "normal");
+      assert.equal(verified.details.kind, "connection");
+      assert.equal(verified.details.tier, "pass");
+      assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: verified.id, action: "continue" }, verified.warningSender), { ok: true });
+      assert.equal((await verified.resultPromise).action, "continue");
       for (const status of ["active", "drift"]) {
-        fake.adapters.records = scenarioRecords(status);
-        // An incident or drift is reported with the score; the connection is never refused.
-        const result = await connect(method, connectionSender);
-        assert.equal(result.action, "continue");
-        assert.equal(result.connectionStatus, status);
-        assert.equal(local.boundWarningHistory.at(-1).verdict, "connection risky");
+        const danger = await review(method, sender, status);
+        assert.equal(danger.details.tier, "firewall");
+        assert.equal(danger.details.verdict, "escalated");
+        assert.equal(danger.details.connectionStatus, status);
+        assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: danger.id, action: "continue" }, danger.warningSender), { ok: false, error: "confirmation_required" });
+        assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: danger.id, action: "continue", confirmation: "I UNDERSTAND" }, danger.warningSender), { ok: true });
+        assert.equal((await danger.resultPromise).action, "continue", `${status} stays user-decidable`);
       }
-      // No watcher records is missing data, not a problem: it connects unverified.
-      fake.adapters.records = [];
-      assert.equal((await connect(method, connectionSender)).action, "continue");
+      const missing = await review(method, sender, null);
+      assert.ok(["warning", "huge"].includes(missing.details.tier));
       assert.equal(local.boundWarningHistory.at(-1).method, method);
-      assert.equal(local.boundWarningHistory.at(-1).verdict, "connection unverified");
-      assert.match(local.boundWarningHistory.at(-1).reasons[0], /connected unverified/);
+      assert.match(local.boundWarningHistory.at(-1).verdict, /^connection · /);
+      assert.match(local.boundWarningHistory.at(-1).reasons[0], /unavailable/);
+      assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: missing.id, action: "cancel" }, missing.warningSender), { ok: true });
+      assert.equal((await missing.resultPromise).action, "cancel");
     }
     const connectionSender = makeSender(SITE, "connection-cross-frame");
     fake.adapters.records = scenarioRecords("normal");
-    // A frame from a site BOUND has no data for also connects unverified.
-    assert.equal((await connect("eth_requestAccounts", { ...connectionSender, url: "https://unknown.example/" })).action, "continue");
+    const crossFrame = await review("eth_requestAccounts", { ...connectionSender, url: "https://unknown.example/" }, "normal");
+    assert.notEqual(crossFrame.details.tier, "pass", "an unverified requesting frame cannot ride on a verified top page");
+    await send({ type: "BOUND_DECISION_V1", id: crossFrame.id, action: "cancel" }, crossFrame.warningSender);
+    await crossFrame.resultPromise;
     fake.currentDocuments.set("1:0", "replacement-doc");
     assert.equal((await connect("eth_requestAccounts", connectionSender)).action, "cancel");
     const startRequest = async (site, request, status = "normal") => {

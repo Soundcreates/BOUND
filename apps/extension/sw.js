@@ -22,6 +22,19 @@ const networkCapture = chrome.debugger ? createNetworkCapture({ api: chrome.debu
 const MAX_PENDING_PER_FRAME = 8;
 // The user decides; BOUND only gives up on a warning nobody answers for this long.
 const DEADLINE_MS = 10 * 60_000;
+// Only these prompt the wallet to grant access; they always get a BOUND review.
+const CONNECTION_METHODS = new Set(["eth_requestAccounts", "wallet_requestPermissions", "wallet_createSession"]);
+const TIER_VERDICT = { pass: "green", warning: "amber", huge: "red", firewall: "escalated" };
+function connectionTier(connectionScore, allowed) {
+  const score = connectionScore.score, blockers = connectionScore.blockers || [];
+  const huge = SCORE_SETTINGS.connection?.huge ?? 40, firewall = SCORE_SETTINGS.connection?.firewall ?? 16;
+  // Detected danger is always the loudest tier, whatever the arithmetic says.
+  if (blockers.some(item => /incident|drift/i.test(item))) return "firewall";
+  if (allowed) return "pass";
+  if (score < firewall) return "firewall";
+  if (score < huge || blockers.length) return "huge";
+  return "warning";
+}
 const STATUS_ALARM = "bound-site-status-refresh";
 const STATUS_EXPIRY_PREFIX = "bound-site-status-expiry:";
 let coverageOperation = Promise.resolve();
@@ -207,16 +220,6 @@ async function handleRequest(message, sender, sendResponse) {
   const frameRevision = frameRevisions.get(frameKey) || 0;
   const revision=settingsRevision;
   const valid = () => settingsRevision===revision && (tabRevisions.get(sender.tab?.id) || 0) === tabRevision && (frameRevisions.get(frameKey) || 0) === frameRevision;
-  const now = Date.now();
-  const recent = (rate.get(frameKey) || []).filter((at) => now - at < 10_000);
-  if (recent.length >= MAX_PENDING_PER_FRAME || pending.size >= 128) {
-    // Too many requests to score: pass them to the wallet unscored rather than refuse them.
-    sendResponse({ action: "continue", digest: message.digest, stateDigest: message.stateDigest, readOnly: true });
-    return;
-  }
-  recent.push(now);
-  rate.set(frameKey, recent);
-
   let request, bytes;
   try {
     request = cloneRequest(message.request);
@@ -241,7 +244,23 @@ async function handleRequest(message, sender, sendResponse) {
     return;
   }
   const classification = classifyRequest(request);
-  if (["eth_requestAccounts", "wallet_requestPermissions", "eth_accounts", "eth_coinbase", "metamask_getProviderState"].includes(request.method)) {
+  // Passive reads (including already-granted accounts) never open UI and do not
+  // consume the interactive rate limit: real dApps poll these constantly. The
+  // wallet itself only discloses accounts the site was already granted.
+  if (classification.kind === "read_only" && !CONNECTION_METHODS.has(request.method)) {
+    sendResponse({ action: "continue", digest, stateDigest, readOnly: true });
+    return;
+  }
+  const now = Date.now();
+  const recent = (rate.get(frameKey) || []).filter((at) => now - at < 10_000);
+  if (recent.length >= MAX_PENDING_PER_FRAME || pending.size >= 128) {
+    // Under load, hand the intact request to the wallet instead of refusing it.
+    sendResponse({ action: "continue", digest, stateDigest, readOnly: true });
+    return;
+  }
+  recent.push(now);
+  rate.set(frameKey, recent);
+  if (CONNECTION_METHODS.has(request.method)) {
     let statuses = [];
     const origins = [...new Set([originOf(sender.tab?.url), originOf(sender.url)])];
     try {
@@ -259,18 +278,28 @@ async function handleRequest(message, sender, sendResponse) {
     const connectionStatus = statuses.some(item => item.status === "active") ? "active" : statuses.some(item => item.status === "drift") ? "drift" : "unknown";
     const connectionCoverage = await bypassPossible(sender.tab.id) ? "bypass_possible" : "mediated";
     await setCoverage(sender.tab.id, sender.frameId, sender.documentId, connectionCoverage).catch(() => {});
-    const reason = connectionScore.blockers.length
-      ? `Connection score ${connectionScore.score}/100. Connected despite: ${connectionScore.blockers.join('; ')}.`
-      : connectionScore.verified
-        ? `Connection score ${connectionScore.score}/100; verified at ${connectionScore.threshold}. Connection checks passed.`
-        : `Connection score ${connectionScore.score}/100, below the ${connectionScore.threshold} needed to verify. BOUND has no trust data for this site yet; connected unverified.`;
-    await recordWarning({ topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), method: request.method, chainId: message.state.chainId, verdict: !allowed ? "connection risky" : connectionScore.verified ? "connection allowed" : "connection unverified", score: connectionScore.score, connectionScore, reasons: [reason], entries: [] }).catch(() => {});
-    if (!valid() || !(await currentDocument(sender)) || !valid()) {
-      sendResponse({ action: "cancel", digest, stateDigest, connectionStatus: "unknown" });
+    // Every connection request gets a review; the score only sets its severity.
+    const tier = connectionTier(connectionScore, allowed);
+    const reason = `Connection score ${connectionScore.score}/100; silent-pass threshold ${connectionScore.threshold}. ${connectionScore.blockers.join('; ') || (allowed ? 'Connection checks passed.' : 'Some checks failed or are unavailable.')}`;
+    const id = crypto.randomUUID();
+    const details = {
+      id, kind: "connection", method: request.method, target: "", tier, verdict: TIER_VERDICT[tier], score: connectionScore.score,
+      connectionScore, connectionStatus, reasons: [reason], entries: [], approvals: [], coverage: connectionCoverage, locked: false,
+      tabId: sender.tab?.id, frameId: sender.frameId, documentId: sender.documentId,
+      topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), chainId: message.state?.chainId ?? null,
+      incidentStatus: connectionStatus === "active" ? "active" : "unknown"
+    };
+    await recordWarning({ ...details, verdict: `connection · ${tier}` }).catch(() => {});
+    if (!valid() || pending.size >= 128 || !(await currentDocument(sender)) || !valid()) {
+      sendResponse({ action: "cancel", digest, stateDigest });
       return;
     }
-    // BOUND scores connections; it never refuses one. The user and wallet decide.
-    sendResponse({ action: "continue", digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(allowed ? {} : { connectionStatus }) });
+    const result = new Promise((resolve) => {
+      const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
+      pending.set(id, { details, resolve, timer, used: false });
+    });
+    openWarning(id);
+    result.then((action) => sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(allowed ? {} : { connectionStatus }) }));
     return;
   }
   if (classification.kind === "read_only") {
@@ -402,18 +431,16 @@ function handleMalformed(message, sender) {
     frameOrigin: originOf(sender.url),
     chainId: null
   };
-  const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
-  pending.set(id, { details, resolve: () => {}, timer, used: false });
+  // The hook already forwarded it unscored; keep a local diagnostic only.
   setCoverage(sender.tab.id, sender.frameId, sender.documentId, "mediated").catch(() => {});
   recordWarning(details).catch(() => {});
-  openWarning(id);
 }
 
 function openWarning(id, warnings = []) {
   const entry = pending.get(id);
   entry.window = chrome.windows.create({
     url: chrome.runtime.getURL(`warning.html?request=${encodeURIComponent(id)}`),
-    type: "popup", width: 440, height: 600
+    type: "popup", width: entry.details.kind === "connection" ? 520 : 440, height: entry.details.kind === "connection" ? 720 : 600
   }).then(async (window) => {
     entry.windowId = window.id;
     if (pending.get(id) === entry && warnings.length) await enqueueReports(warnings).catch(() => {});

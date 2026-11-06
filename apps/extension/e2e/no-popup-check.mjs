@@ -1,0 +1,36 @@
+// Browser check: BOUND opens windows only for live wallet requests that need a decision.
+// Usage: node apps/extension/build.mjs && node apps/extension/e2e/no-popup-check.mjs <path-to-playwright-package> "$PWD"
+import http from 'node:http';
+const [,, pwPath, repo] = process.argv;
+const { chromium } = await import(pwPath + '/index.mjs');
+const html = `<!doctype html><title>plain</title><script>
+window.__log=[];
+window.ethereum = { isMetaMask:true, async request(a){ window.__log.push(a.method); return a.method==='eth_chainId'?'0xaa36a7':a.method==='eth_accounts'?[]:'0xhash'; }, on(){}, removeListener(){} };
+</script>`;
+const server = http.createServer((q, s) => { s.setHeader('content-type', 'text/html'); s.end(html); }).listen(0, '127.0.0.1');
+await new Promise(r => server.once('listening', r));
+const ext = repo + '/apps/extension/dist';
+const ctx = await chromium.launchPersistentContext('', { channel: 'chromium', headless: true, args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`] });
+let windows = 0; ctx.on('page', p => { if (p.url().includes('warning.html')) windows++; });
+const page = await ctx.newPage(); await page.goto(`http://127.0.0.1:${server.address().port}/`); await page.waitForTimeout(3000);
+let pass = 0, fail = 0; const check = (n, ok, d = '') => { ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? ' — ' + d : ''}`); };
+check('idle page opens no BOUND window', windows === 0);
+const read = await page.evaluate(() => window.ethereum.request(new (class { constructor(){ this.method='eth_chainId'; this.params=[]; } })()));
+await page.waitForTimeout(1500);
+check('non-plain eth_chainId read passes to wallet', read === '0xaa36a7');
+check('non-plain read opens no window', windows === 0);
+const write = await page.evaluate(() => window.ethereum.request(new (class { constructor(){ this.method='eth_sendTransaction'; this.params=[{to:'0x'+'1'.repeat(40)}]; } })()).then(() => 'forwarded', e => e.code));
+await page.waitForTimeout(2000);
+check('non-plain eth_sendTransaction is rejected, not forwarded', write === -32602, String(write));
+check('rejected malformed request opens no window', windows === 0);
+check('wallet never received the malformed write', !(await page.evaluate(() => window.__log.includes('eth_sendTransaction'))));
+const [sw] = ctx.serviceWorkers();
+const hist = await sw.evaluate(async () => ((await chrome.storage.local.get('boundWarningHistory')).boundWarningHistory || []).map(h => h.method + ':' + h.verdict));
+check('malformed write is recorded in history', hist.some(h => h.startsWith('eth_sendTransaction')), JSON.stringify(hist));
+const plainWrite = page.evaluate(() => window.ethereum.request({ method: 'eth_sendTransaction', params: [{ to: '0x' + '1'.repeat(40) }] }).then(() => 'forwarded', e => e.code));
+await page.waitForTimeout(4000);
+check('a real eth_sendTransaction DOES open a review window', windows === 1, `windows=${windows}`);
+for (const p of ctx.pages()) if (p.url().includes('warning.html')) await p.click('#cancel').catch(() => {});
+check('cancelled real request is rejected with 4001', (await plainWrite) === 4001);
+console.log(`${pass}/${pass + fail} checks passed`);
+await ctx.close(); server.close(); process.exit(fail ? 1 : 0);

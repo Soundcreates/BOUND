@@ -5,6 +5,14 @@ const READ_ONLY = new Set([
   "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getTransactionByHash",
   "eth_getTransactionReceipt", "eth_getLogs", "eth_feeHistory", "eth_syncing",
   "eth_mining", "eth_hashrate", "eth_protocolVersion", "wallet_getPermissions",
+  "net_listening", "web3_clientVersion", "eth_getProof", "eth_subscribe", "eth_unsubscribe",
+  "eth_getBlockTransactionCountByHash", "eth_getBlockTransactionCountByNumber",
+  "eth_getTransactionByBlockHashAndIndex", "eth_getTransactionByBlockNumberAndIndex",
+  "eth_getUncleByBlockHashAndIndex", "eth_getUncleByBlockNumberAndIndex",
+  "wallet_getCapabilities", "wallet_getCallsStatus", "wallet_revokePermissions",
+  // Wallet-prompted network switch: no signature or value; the wallet asks the user
+  // itself and BOUND re-checks chain state before any later value-moving request.
+  "wallet_switchEthereumChain",
   "eth_sendRawTransaction",
   // Connection requests receive an additional site-status gate in the service worker.
   "eth_requestAccounts", "wallet_requestPermissions", "metamask_getProviderState"
