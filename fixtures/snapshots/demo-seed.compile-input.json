@@ -8,28 +8,24 @@
     {
       "host": "app.uniswap.org",
       "chainId": 11155111,
-      "trustedCounterparties": [],
       "trustedContracts": [
-        {
-          "address": "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E",
-          "label": "Uniswap v3 SwapRouter02",
-          "chainId": 11155111,
-          "source": "https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments",
-          "notes": "Sepolia SwapRouter02 — confirmed in QuickNode guide (Nov 2025) and cobo.com recipe"
-        },
-        {
-          "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
-          "label": "Uniswap Permit2",
-          "chainId": 11155111,
-          "source": "https://github.com/Uniswap/permit2",
-          "notes": "CREATE2 canonical address — identical on all EVM chains including Sepolia"
-        }
+        "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e",
+        "0x000000000022d473030f116ddee9f6b43ac78ba3"
       ],
-      "deployers": [],
       "evidence": [
         {
-          "kind": "docs",
-          "url": "https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments"
+          "address": "0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e",
+          "kind": "contract",
+          "sourceUrl": "https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "note": "TODO: replace with keccak256(cast code 0x3bfa4769fb09eefc5a80d6e87c3b9c650f7ae48e --rpc-url sepolia)"
+        },
+        {
+          "address": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+          "kind": "contract",
+          "sourceUrl": "https://docs.uniswap.org/contracts/permit2/reference/deployments",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+          "note": "TODO: replace with keccak256(cast code 0x000000000022d473030f116ddee9f6b43ac78ba3 --rpc-url sepolia)"
         }
       ],
       "attestationName": "uniswap.eth"
@@ -37,28 +33,24 @@
     {
       "host": "app.aave.com",
       "chainId": 11155111,
-      "trustedCounterparties": [],
       "trustedContracts": [
-        {
-          "address": "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
-          "label": "Aave v3 Pool (Sepolia)",
-          "chainId": 11155111,
-          "source": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses",
-          "notes": "Aave v3 Pool on Ethereum Sepolia — confirmed via cobo.com agentic-wallet recipe"
-        },
-        {
-          "address": "0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A",
-          "label": "Aave v3 PoolAddressesProvider (Sepolia)",
-          "chainId": 11155111,
-          "source": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses",
-          "notes": "Aave v3 PoolAddressesProvider on Ethereum Sepolia"
-        }
+        "0x6ae43d3271ff6888e7fc43fd7321a503ff738951",
+        "0x012bac54348c0e635dcac9d5fb99f06f24136c9a"
       ],
-      "deployers": [],
       "evidence": [
         {
-          "kind": "docs",
-          "url": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses"
+          "address": "0x6ae43d3271ff6888e7fc43fd7321a503ff738951",
+          "kind": "contract",
+          "sourceUrl": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000003",
+          "note": "TODO: replace with keccak256(cast code 0x6ae43d3271ff6888e7fc43fd7321a503ff738951 --rpc-url sepolia)"
+        },
+        {
+          "address": "0x012bac54348c0e635dcac9d5fb99f06f24136c9a",
+          "kind": "contract",
+          "sourceUrl": "https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000004",
+          "note": "TODO: replace with keccak256(cast code 0x012bac54348c0e635dcac9d5fb99f06f24136c9a --rpc-url sepolia)"
         }
       ],
       "attestationName": "aave.eth"
@@ -66,21 +58,16 @@
     {
       "host": "app.compound.finance",
       "chainId": 11155111,
-      "trustedCounterparties": [],
       "trustedContracts": [
-        {
-          "address": "0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e",
-          "label": "Compound v3 Comet USDC (Sepolia)",
-          "chainId": 11155111,
-          "source": "https://docs.compound.finance/",
-          "notes": "Compound v3 Comet (cUSDCv3) on Ethereum Sepolia"
-        }
+        "0xaec1f48e02cfb822be958b68c7957156eb3f0b6e"
       ],
-      "deployers": [],
       "evidence": [
         {
-          "kind": "docs",
-          "url": "https://docs.compound.finance/"
+          "address": "0xaec1f48e02cfb822be958b68c7957156eb3f0b6e",
+          "kind": "contract",
+          "sourceUrl": "https://docs.compound.finance/#networks",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000005",
+          "note": "TODO: replace with keccak256(cast code 0xaec1f48e02cfb822be958b68c7957156eb3f0b6e --rpc-url sepolia)"
         }
       ],
       "attestationName": "compound.eth"
@@ -88,28 +75,24 @@
     {
       "host": "app.ens.domains",
       "chainId": 11155111,
-      "trustedCounterparties": [],
       "trustedContracts": [
-        {
-          "address": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-          "label": "ENS Registry",
-          "chainId": 11155111,
-          "source": "https://docs.ens.domains/learn/deployments",
-          "notes": "ENS Registry — CREATE2 canonical address, same on mainnet and Sepolia"
-        },
-        {
-          "address": "0xFED6a969AaA60E4961FCD3EBF1A2e8913ac65B16",
-          "label": "ENS ETHRegistrarController (Sepolia)",
-          "chainId": 11155111,
-          "source": "https://docs.ens.domains/learn/deployments",
-          "notes": "ENS .eth registrar controller on Sepolia"
-        }
+        "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e",
+        "0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16"
       ],
-      "deployers": [],
       "evidence": [
         {
-          "kind": "docs",
-          "url": "https://docs.ens.domains/learn/deployments"
+          "address": "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e",
+          "kind": "contract",
+          "sourceUrl": "https://docs.ens.domains/learn/deployments",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000006",
+          "note": "TODO: replace with keccak256(cast code 0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e --rpc-url sepolia)"
+        },
+        {
+          "address": "0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16",
+          "kind": "contract",
+          "sourceUrl": "https://docs.ens.domains/learn/deployments",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000007",
+          "note": "TODO: replace with keccak256(cast code 0xfed6a969aaa60e4961fcd3ebf1a2e8913ac65b16 --rpc-url sepolia)"
         }
       ],
       "attestationName": "ens.eth"
@@ -117,21 +100,16 @@
     {
       "host": "opensea.io",
       "chainId": 11155111,
-      "trustedCounterparties": [],
       "trustedContracts": [
-        {
-          "address": "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC",
-          "label": "OpenSea Seaport 1.5",
-          "chainId": 11155111,
-          "source": "https://github.com/ProjectOpenSea/seaport",
-          "notes": "Seaport 1.5 — CREATE2 canonical address, deployed on Sepolia and all major chains"
-        }
+        "0x00000000000000adc04c56bf30ac9d3c0aaf14dc"
       ],
-      "deployers": [],
       "evidence": [
         {
-          "kind": "github",
-          "url": "https://github.com/ProjectOpenSea/seaport/blob/main/README.md"
+          "address": "0x00000000000000adc04c56bf30ac9d3c0aaf14dc",
+          "kind": "contract",
+          "sourceUrl": "https://docs.opensea.io/docs/seaport",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000008",
+          "note": "TODO: replace with keccak256(cast code 0x00000000000000adc04c56bf30ac9d3c0aaf14dc --rpc-url sepolia)"
         }
       ],
       "attestationName": "opensea.eth"
@@ -139,11 +117,19 @@
   ],
   "shared": [
     {
-      "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
-      "label": "Permit2 (canonical, all chains)",
       "chainId": 11155111,
-      "source": "https://github.com/Uniswap/permit2",
-      "notes": "Shared allowance contract used by Uniswap, 0x, and many other protocols. Same CREATE2 address on all EVM chains."
+      "contracts": [
+        "0x000000000022d473030f116ddee9f6b43ac78ba3"
+      ],
+      "evidence": [
+        {
+          "address": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+          "kind": "shared",
+          "sourceUrl": "https://docs.uniswap.org/contracts/permit2/reference/deployments",
+          "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+          "note": "Permit2 canonical deployment — same codeHash placeholder as Uniswap site entry"
+        }
+      ]
     }
   ]
 }
