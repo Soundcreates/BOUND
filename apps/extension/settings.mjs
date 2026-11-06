@@ -1,11 +1,11 @@
-// Phase 0 Rabdi/Sepolia test defaults. The watcher URL is loopback, so seeding it
-// sends nothing off this machine unless the user runs a local watcher.
+// Phase 0 Rabdi/Sepolia test defaults. Reports go to the hosted aggregator; they are
+// sealed to its pinned key and sent only while monitoring is on.
 export const DEFAULT_SETTINGS=Object.freeze({
  ensRootName:"bound-v2.eth",
  ensResolver:"0xf6efa18d24c108a060b0d2a0e715b9045e09ea0f",
  arkivRpcUrl:"https://rpc.rabdi.db-chain.testnet.arkiv.network",
  watcherOwner:"0xE63393558E36dF643347326E7e03AD5fB0E6c867",
- watcherUrl:"http://127.0.0.1:8787/v1/observations",
+ watcherUrl:"https://bound-aggregator-0-1-1.onrender.com/v1/observations",
  anonBootstrapUrl:"https://ethereum-sepolia-rpc.publicnode.com",
  anonRpcUrl:"https://ethereum-sepolia-rpc.publicnode.com"
 });
@@ -30,9 +30,15 @@ export function normalizeSettings(input){
 // is scored grey with nothing checked. Store the defaults once, only when no
 // settings exist at all: a saved configuration, including deliberately cleared
 // fields, is never overwritten. Returns true when it seeded.
+// The intake URL that earlier builds seeded. A configuration still holding exactly that
+// default is moved to the hosted aggregator; any other saved value is left alone.
+const PREVIOUS_DEFAULT_WATCHER_URL="http://127.0.0.1:8787/v1/observations";
 export async function ensureDefaultSettings(storage){
  const {boundSettings}=await storage.get("boundSettings");
- if(boundSettings!==undefined)return false;
+ if(boundSettings!==undefined){
+  if(boundSettings?.watcherUrl===PREVIOUS_DEFAULT_WATCHER_URL)await storage.set({boundSettings:{...boundSettings,watcherUrl:DEFAULT_SETTINGS.watcherUrl}});
+  return false;
+ }
  await storage.set({boundSettings:normalizeSettings(DEFAULT_SETTINGS)});
  return true;
 }
