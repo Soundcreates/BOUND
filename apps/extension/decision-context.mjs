@@ -23,8 +23,9 @@ const ANON_READ_TIMEOUT_MS = 1_500;
  *
  * Snapshot and whole-bundle reads time out after 5 seconds. On-demand
  * anonymous reads time out after 1.5 seconds. Exactly one current matching
- * baseline is required; its optional `witnessed` array contains aggregate,
- * distinct reporter-key addresses. Drift uses {kind:"drift",
+ * baseline is required; its optional `observed` array lists previously seen
+ * addresses but does not establish trust. `witnessed` contains only addresses
+ * whose reporter thresholds were independently established. Drift uses {kind:"drift",
  * corroborated:true, active:true}. Incident state requires exactly one
  * current {kind:"status", status:"active"|"normal"} record; otherwise it
  * is unknown. Observation records are ignored.
@@ -33,7 +34,9 @@ const ANON_READ_TIMEOUT_MS = 1_500;
  * Arkiv schemas are frozen. Arkiv never supplies trust; only verified
  * snapshots, protocol attestations, and deployment evidence add policy sources.
  */
-export async function createDecisionContext({ siteOrigin, chainId, watcherOwner, adapters, now = Date.now() }) {
+export async function createDecisionContext({ siteOrigin, chainId, watcherOwner, adapters, now = Date.now(), elapsedNow = () => performance.now() }) {
+  const started = elapsedNow();
+  const currentTime = () => now + Math.max(0, elapsedNow() - started);
   const site = canonicalHttpsHost(siteOrigin);
   const chain = normalizeChain(chainId);
   const owner = normalizeAddress(watcherOwner);
@@ -41,8 +44,8 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
     return emptyContext("invalid_context");
   }
 
-  let verified = null;
-  try { verified = validateVerifiedSnapshot(await withTimeout(() => adapters.readVerifiedSnapshot(), BULK_READ_TIMEOUT_MS), now); }
+  let verified = null, verifiedSource = null;
+  try { verifiedSource = await withTimeout(() => adapters.readVerifiedSnapshot(), BULK_READ_TIMEOUT_MS); verified = validateVerifiedSnapshot(verifiedSource, currentTime()); }
   catch { /* No site-specific requests are made without a current verified snapshot. */ }
   if (!verified) return { ...emptyContext("snapshot_unavailable"), site, chain };
 
@@ -60,12 +63,15 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
   const [watcherResult, attestationsResult, deploymentsResult] = await Promise.allSettled([
     baselineRead,
     typeof adapters.readProtocolAttestationsViaAnonRpc === "function"
-      ? withTimeout(() => adapters.readProtocolAttestationsViaAnonRpc({ site, chain }), ANON_READ_TIMEOUT_MS)
+      ? withTimeout(() => adapters.readProtocolAttestationsViaAnonRpc({ site, chain, verifiedSource }), ANON_READ_TIMEOUT_MS)
       : Promise.resolve([]),
     typeof adapters.readVerifiedDeploymentsViaAnonRpc === "function"
-      ? withTimeout(() => adapters.readVerifiedDeploymentsViaAnonRpc({ site, chain }), ANON_READ_TIMEOUT_MS)
+      ? withTimeout(() => adapters.readVerifiedDeploymentsViaAnonRpc({ site, chain, verifiedSource }), ANON_READ_TIMEOUT_MS)
       : Promise.resolve([])
   ]);
+
+  const completedAt = currentTime();
+  if (!Number.isFinite(completedAt) || !validateVerifiedSnapshot(verifiedSource, completedAt)) return { ...emptyContext("snapshot_unavailable"), site, chain };
 
   const policy = Object.create(null);
   for (const address of verified.snapshot.sharedContracts[chain] || []) addSource(policy, address, "shared_contract", ["rights", "destination", "called", "token"]);
@@ -94,12 +100,17 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
   let records = [];
   if (watcherResult.status === "fulfilled" && Array.isArray(watcherResult.value)) {
     try {
-      records = watcherResult.value.filter((record) => typeof record?.owner === "string" && record.owner.toLowerCase() === owner && record.site === site && normalizeChain(record.chain) === chain && isCurrent(record, now));
+      records = watcherResult.value.filter((record) => typeof record?.owner === "string" && record.owner.toLowerCase() === owner && record.site === site && normalizeChain(record.chain) === chain && isCurrent(record, completedAt));
     } catch { records = []; }
   }
   const baselines = records.filter((record) => record.kind === "baseline");
   const baselineRecord = baselines.length === 1 ? baselines[0] : null;
   const baselinePresent = !!baselineRecord;
+  const observed = new Set(
+    baselineRecord && Array.isArray(baselineRecord.observed)
+      ? baselineRecord.observed.map(normalizeAddress).filter(Boolean)
+      : []
+  );
   const witnessed = new Set(
     baselineRecord && Array.isArray(baselineRecord.witnessed)
       ? baselineRecord.witnessed.map(normalizeAddress).filter(Boolean)
@@ -116,6 +127,7 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
     policy: usable ? policy : Object.create(null),
     baseline: usable ? (siteEntry ? "seeded" : "uncurated") : null,
     drift: usable && drift,
+    observed: usable ? observed : new Set(),
     witnessed: usable ? witnessed : new Set(),
     site,
     chain,
@@ -126,26 +138,33 @@ export async function createDecisionContext({ siteOrigin, chainId, watcherOwner,
   };
 }
 
-/** Read site status before wallet connection without a site-specific watcher request. */
-export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, adapters, now = Date.now() }) {
+/** Read site status before wallet connection, using anonymous RPC when available. */
+export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, adapters, now = Date.now(), elapsedNow = () => performance.now() }) {
+  const started = elapsedNow();
+  const currentTime = () => now + Math.max(0, elapsedNow() - started);
   const site = canonicalHttpsHost(siteOrigin);
   const owner = normalizeAddress(watcherOwner);
   const checkedAt = Number.isFinite(now) ? new Date(now).toISOString() : new Date().toISOString();
   const result = (status, expiresAt = null) => ({ site, status, checkedAt, expiresAt });
-  if (!Number.isFinite(now) || !site || !owner || !adapters || typeof adapters.readVerifiedSnapshot !== "function" || typeof adapters.readWatcherBundle !== "function") return result("unknown");
+  if (!Number.isFinite(now) || !site || !owner || !adapters || typeof adapters.readVerifiedSnapshot !== "function" || (typeof adapters.readSiteStatusViaAnonRpc !== "function" && typeof adapters.readWatcherBundle !== "function")) return result("unknown");
 
   let verified;
   try {
-    verified = validateVerifiedSnapshot(await withTimeout(() => adapters.readVerifiedSnapshot(), BULK_READ_TIMEOUT_MS), now);
+    verified = validateVerifiedSnapshot(await withTimeout(() => adapters.readVerifiedSnapshot(), BULK_READ_TIMEOUT_MS), currentTime());
   } catch { return result("unknown"); }
   const siteChains = verified?.snapshot.sites[site];
   if (!siteChains || Object.keys(siteChains).length === 0) return result("unknown");
 
   let records;
   try {
-    records = await withTimeout(() => adapters.readWatcherBundle(), BULK_READ_TIMEOUT_MS);
+    records = typeof adapters.readSiteStatusViaAnonRpc === "function"
+      ? await withTimeout(() => adapters.readSiteStatusViaAnonRpc({ site }), ANON_READ_TIMEOUT_MS)
+      : await withTimeout(() => adapters.readWatcherBundle(), BULK_READ_TIMEOUT_MS);
   } catch { return result("unknown"); }
   if (!Array.isArray(records)) return result("unknown");
+
+  const completedAt = currentTime();
+  if (!Number.isFinite(completedAt) || Date.parse(verified.snapshot.expiresAt) <= completedAt) return result("unknown");
 
   const expectedChains = Object.keys(siteChains);
   const snapshotExpiry = Date.parse(verified.snapshot.expiresAt);
@@ -155,7 +174,7 @@ export async function readPreconnectionSiteStatus({ siteOrigin, watcherOwner, ad
       if (record?.kind !== "status" || record.site !== site) continue;
       const chain = normalizeChain(record.chain);
       if (!chain || !byChain.has(chain) || typeof record.owner !== "string" || record.owner.toLowerCase() !== owner) continue;
-      if (isCurrent(record, now)) byChain.get(chain).push(record);
+      if (isCurrent(record, completedAt)) byChain.get(chain).push(record);
     }
   } catch { return result("unknown"); }
 
@@ -201,7 +220,7 @@ async function withTimeout(operation, timeoutMs) {
 }
 
 function emptyContext(status) {
-  return { policy: Object.create(null), baseline: null, drift: false, witnessed: new Set(), site: null, chain: null, snapshotAvailable: false, watcherBaselineAvailable: false, incidentStatus: "unknown", status };
+  return { policy: Object.create(null), baseline: null, drift: false, observed: new Set(), witnessed: new Set(), site: null, chain: null, snapshotAvailable: false, watcherBaselineAvailable: false, incidentStatus: "unknown", status };
 }
 
 function canonicalHttpsHost(value) {

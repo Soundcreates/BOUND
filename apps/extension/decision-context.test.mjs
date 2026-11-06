@@ -104,6 +104,49 @@ test("fake adapter data drives trusted, malicious, and active-incident decision 
   assert.equal(mayRecordObservation({ verdict: "green", incidentStatus: active.incidentStatus, action: "continue" }), false);
 });
 
+test("an observed address is visible but does not become trusted or witnessed", async () => {
+  const records = [{ owner, kind: "baseline", site, chain: "1", expiresAt: future, observed: [unknownObservation], witnessed: [] }];
+  const context = await createDecisionContext({ siteOrigin: `https://${site}`, chainId: "1", watcherOwner: owner, adapters: adapters({ snapshotResult: snapshot({ sites: {} }), anonRecords: records }), now });
+  assert.equal(context.observed.has(unknownObservation), true);
+  assert.equal(context.witnessed.has(unknownObservation), false);
+  assert.equal(context.policy[unknownObservation], undefined);
+  assert.equal(evaluate({ classification: { kind: "decoded", entries: [{ role: "rights", address: unknownObservation }] }, ...context }).verdict, "red");
+});
+
+test("page-load status uses fresh anonymous data and never falls back to a stale bundle", async () => {
+  let bundleReads = 0;
+  const source = {
+    readVerifiedSnapshot: async () => snapshot(),
+    readWatcherBundle: async () => { bundleReads++; return watcherRecords().map(record => ({ ...record, status: "normal" })); },
+    readSiteStatusViaAnonRpc: async query => { assert.deepEqual(query, { site }); return watcherRecords(); }
+  };
+  const input = { siteOrigin: `https://${site}`, watcherOwner: owner, adapters: source, now };
+  assert.equal((await readPreconnectionSiteStatus(input)).status, "active");
+  source.readSiteStatusViaAnonRpc = async () => { throw new Error("offline"); };
+  assert.equal((await readPreconnectionSiteStatus(input)).status, "unknown");
+  assert.equal(bundleReads, 0);
+});
+
+test("trust and status expiring while adapters are running are not used", async () => {
+  let elapsed = 0;
+  const soon = new Date(now + 1000).toISOString();
+  const source = snapshot();
+  source.snapshot.expiresAt = soon;
+  const records = watcherRecords().map(record => ({ ...record, expiresAt: soon }));
+  const sourceAdapters = adapters({ snapshotResult: source, records });
+  sourceAdapters.readWatcherBundle = async () => { elapsed = 1001; return records; };
+  const input = { siteOrigin: `https://${site}`, chainId: "1", watcherOwner: owner, adapters: sourceAdapters, now, elapsedNow: () => elapsed };
+  assert.equal((await createDecisionContext(input)).baseline, null);
+  elapsed = 0;
+  assert.equal((await readPreconnectionSiteStatus(input)).status, "unknown");
+
+  source.snapshot.expiresAt = future;
+  elapsed = 0;
+  const context = await createDecisionContext(input);
+  assert.equal(context.snapshotAvailable, true);
+  assert.equal(context.baseline, null);
+});
+
 test("trust does not suffix-match hosts or cross chains", async () => {
   const exactHost = await createDecisionContext({
     siteOrigin: "https://sub.xn--bcher-kva.example:8443", chainId: "1", watcherOwner: owner,

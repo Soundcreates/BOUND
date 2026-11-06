@@ -39,7 +39,7 @@ function mapRecords(cache,currentBlock,time){
  const eligible=cache.records.filter(entry=>entry.owner===cache.owner&&KEY.test(entry.key)&&Number.isSafeInteger(entry.expiresAt)&&entry.expiresAt>currentBlock&&validateRecord(entry.record));
  for(const entry of eligible){
   const record=entry.record,common={owner:entry.owner,site:record.site,chain:String(record.chainId),expiresAt};
-  if(record.kind==="baseline")output.push({...common,kind:"baseline",witnessed:[]});
+  if(record.kind==="baseline")output.push({...common,kind:"baseline",observed:[...new Set([...record.counterparties,...record.calledContracts])].sort(),witnessed:[]});
   else if(record.kind==="status"){
    output.push({...common,kind:"status",status:record.state==="incident"?"active":record.state==="normal"?"normal":"drift"});
    if(record.state==="drift"){
@@ -72,10 +72,13 @@ export function createArkivReader({getSettings,storage,anonymousRequest,fetchImp
   if(!cache||cache.version!==1||cache.owner!==settings.watcherOwner||cache.url!==settings.arkivRpcUrl||!Number.isSafeInteger(cache.fetchedAt)||cache.fetchedAt>time||time-cache.fetchedAt>=CACHE_MS||!Number.isSafeInteger(cache.block)||!Array.isArray(cache.records))throw new Error("Watcher bundle unavailable or stale");
   const block=await currentBlock(settings);if(block<cache.block)throw new Error("Arkiv block moved backwards");return mapRecords(cache,block,time);
  }
- async function readUncuratedViaAnonRpc({site,chain}){
+ async function readSiteStatusViaAnonRpc({site}){
   const settings=checkedSettings(await getSettings());if(quantity(await anon("eth_chainId",[]))!==settings.arkivChainId)throw new Error("Unexpected Arkiv chain");
   const result=await queryAll(anon,settings.watcherOwner),time=now();
-  return mapRecords({owner:settings.watcherOwner,fetchedAt:time,records:result.records},result.block,time).filter(item=>item.site===site&&item.chain===chain);
+  return mapRecords({owner:settings.watcherOwner,fetchedAt:time,records:result.records},result.block,time).filter(item=>item.site===site);
  }
- return {refresh,readWatcherBundle,readUncuratedViaAnonRpc};
+ async function readUncuratedViaAnonRpc({site,chain}){
+  return (await readSiteStatusViaAnonRpc({site})).filter(item=>item.chain===chain);
+ }
+ return {refresh,readWatcherBundle,readSiteStatusViaAnonRpc,readUncuratedViaAnonRpc};
 }

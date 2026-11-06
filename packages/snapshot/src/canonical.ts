@@ -8,6 +8,7 @@
  */
 import { keccak_256 } from "@noble/hashes/sha3";
 import { bytesToHex } from "./hex.ts";
+import { isWellFormedUnicode } from "./unicode.ts";
 
 /**
  * Serialize a JSON value per RFC 8785.
@@ -21,7 +22,7 @@ export function canonicalize(value: unknown): string {
     case "boolean":
       return value ? "true" : "false";
     case "string":
-      if (!value.isWellFormed()) throw new TypeError("lone surrogate cannot be canonicalized");
+      if (!isWellFormedUnicode(value)) throw new TypeError("lone surrogate cannot be canonicalized");
       return JSON.stringify(value);
     case "number":
       if (!Number.isFinite(value)) throw new TypeError("non-finite number cannot be canonicalized");

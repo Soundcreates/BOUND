@@ -41,7 +41,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       export async function getWatcherOwner() { return "${OWNER}"; }
       export const decisionAdapters = {
         async readVerifiedSnapshot() { return globalThis.__boundFake.adapters.snapshot; },
-        async readWatcherBundle() { return globalThis.__boundFake.adapters.records; }
+        async readWatcherBundle() { const adapters = globalThis.__boundFake.adapters; return adapters.getRecords ? adapters.getRecords() : adapters.records; }
       };
     `);
     await writeFile(path.join(extensionRoot, "watcher-adapter.mjs"), `
@@ -76,6 +76,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
         ]
       },
       sent: [],
+      notifications: [],
       windows: [],
       listeners: [],
       alarms: new Map(),
@@ -121,6 +122,10 @@ test("service worker uses fake trust and watcher adapters for observation flows"
           return window;
         }
       },
+      notifications: {
+        async create(id, options) { fake.notifications.push({ id, ...options }); return id; },
+        async clear() { return true; }
+      },
       action: { setBadgeText() {}, setBadgeBackgroundColor() {} }
     };
 
@@ -142,7 +147,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
     };
     const scenarioRecords = status => [
-      { owner: OWNER, kind: "baseline", site: fake.site, chain: "1", expiresAt: future, witnessed: [] },
+      { owner: OWNER, kind: "baseline", site: fake.site, chain: "1", expiresAt: future, witnessed: [], observed: [SPENDER] },
       { owner: OWNER, kind: "status", status, site: fake.site, chain: "1", expiresAt: future }
     ];
     const makeSender = (site, documentId) => {
@@ -165,7 +170,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       const id = new URL(window.url).searchParams.get("request");
       const warningSender = { id: "fake-extension", frameId: 0, tab: { windowId: window.id }, url: window.url };
       await send({ type: "BOUND_GET_V1", id }, warningSender);
-      return { id, window, warningSender, resultPromise };
+      return { id, window, warningSender, resultPromise, sender };
     };
     const choose = async (entry, action = "continue") => {
       assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: entry.id, action }, entry.warningSender), { ok: true });
@@ -175,9 +180,38 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     assert.deepEqual(await send({ type: "BOUND_STATUS_V1" }, { id: "fake-extension" }), { observationReporting: true });
     await waitFor(() => session.boundSiteStatuses?.[1]?.status === "normal");
 
+    // A slower earlier refresh must not erase a later incident status.
+    let releaseOld, reads = 0;
+    fake.adapters.getRecords = () => ++reads === 1
+      ? new Promise(resolve => { releaseOld = () => resolve(scenarioRecords("normal")); })
+      : Promise.resolve(scenarioRecords("active"));
+    fake.onAlarm({ name: "bound-site-status-refresh" });
+    await waitFor(() => typeof releaseOld === "function");
+    fake.onAlarm({ name: "bound-site-status-refresh" });
+    await waitFor(() => session.boundSiteStatuses?.[1]?.status === "active");
+    await waitFor(() => fake.notifications.length === 1);
+    assert.match(fake.notifications[0].message, /active incident.*green\.example/);
+    releaseOld();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(session.boundSiteStatuses[1].status, "active");
+    fake.onAlarm({ name: "bound-site-status-refresh" });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(fake.notifications.length, 1);
+    fake.adapters.getRecords = () => Promise.resolve(scenarioRecords("drift"));
+    fake.onAlarm({ name: "bound-site-status-refresh" });
+    await waitFor(() => fake.notifications.length === 2);
+    assert.match(fake.notifications[1].message, /infrastructure change.*green\.example/);
+    delete fake.adapters.getRecords;
+
     const trusted = await startRequest(SITE, { method: "eth_sendTransaction", params: [{ to: TRUSTED, data: "0x" }] });
     assert.equal((await send({ type: "BOUND_GET_V1", id: trusted.id }, trusted.warningSender)).verdict, "green");
-    await choose(trusted);
+    const forwarded = await choose(trusted);
+    assert.ok(forwarded.receiptToken);
+    assert.equal(local.boundObservationQueue?.some(record => record.kind === "observation") ?? false, false);
+    const receipt = { type: "BOUND_FORWARDED_V1", receiptToken: forwarded.receiptToken, digest: forwarded.digest, stateDigest: forwarded.stateDigest };
+    assert.deepEqual(await send(receipt, { ...trusted.sender, frameId: 4 }), { ok: false });
+    assert.deepEqual(await send(receipt, trusted.sender), { ok: true });
+    assert.deepEqual(await send(receipt, trusted.sender), { ok: false });
     await waitFor(() => local.boundObservationQueue?.some(record => record.site === SITE && record.kind === "observation"));
 
     local.boundObservationQueue = [];
@@ -189,6 +223,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
     const red = await startRequest("red.example", approve);
     const redDetails = await send({ type: "BOUND_GET_V1", id: red.id }, red.warningSender);
     assert.equal(redDetails.verdict, "red");
+    assert.deepEqual(redDetails.observedAddresses, [SPENDER]);
     await waitFor(() => local.boundObservationQueue?.some(record => record.kind === "warned" && record.value === SPENDER));
     assert.equal(await send({ type: "BOUND_DECISION_V1", id: red.id, action: "continue" }, red.warningSender).then(result => result.ok), true);
     await red.resultPromise;

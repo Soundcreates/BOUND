@@ -5,6 +5,11 @@ window.dispatchEvent(new CustomEvent("BOUND_INIT_V1", { detail: channel }));
 window.addEventListener("message", async (event) => {
   if (event.source !== window || event.origin !== location.origin) return;
   const message = event.data;
+  if (message?.type === "BOUND_FORWARDED_V1" && message.channel === channel && typeof message.receiptToken === "string" && /^[0-9a-f-]{36}$/i.test(message.receiptToken)) {
+    event.stopImmediatePropagation();
+    chrome.runtime.sendMessage({ type: "BOUND_FORWARDED_V1", receiptToken: message.receiptToken, digest: message.digest, stateDigest: message.stateDigest }).catch(() => {});
+    return;
+  }
   if (message?.type === "BOUND_MALFORMED_V1" && typeof message.id === "string") {
     chrome.runtime.sendMessage({ type: "BOUND_MALFORMED_V1", id: message.id, method: String(message.method || "unknown").slice(0, 100) }).catch(() => {});
     return;
@@ -24,7 +29,7 @@ window.addEventListener("message", async (event) => {
         state: message.state,
         request: message.request
       });
-      window.postMessage({ type: "BOUND_DECISION_V1", channel, id: message.id, digest: result?.digest || message.digest, stateDigest: result?.stateDigest || message.stateDigest, readOnly: result?.readOnly === true, action: result?.action === "continue" ? "continue" : "cancel" }, location.origin);
+      window.postMessage({ type: "BOUND_DECISION_V1", channel, id: message.id, digest: result?.digest || message.digest, stateDigest: result?.stateDigest || message.stateDigest, receiptToken: result?.receiptToken, readOnly: result?.readOnly === true, action: result?.action === "continue" ? "continue" : "cancel" }, location.origin);
     } catch {
       window.postMessage({ type: "BOUND_DECISION_V1", channel, id: message.id, digest: message.digest, stateDigest: message.stateDigest, action: "cancel" }, location.origin);
     }

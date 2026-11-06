@@ -37,6 +37,10 @@ async function awaitDetails() {
   }
   const addresses = document.querySelector("#entries");
   addresses.textContent = data.entries.length ? data.entries.map((entry) => `${entry.role}: ${entry.address}${entry.verified === false ? " (unverified)" : ""}`).join(" · ") : "No counterparty decoded";
+  if (Array.isArray(data.observedAddresses) && data.observedAddresses.length) {
+    document.querySelector("#observed-field").hidden = false;
+    document.querySelector("#observed").textContent = data.observedAddresses.join(" · ");
+  }
   const approvals = uniqueApprovalPairs(data.approvals);
   const approvalPairs = document.querySelector("#approval-pairs");
   for (const { token, spender } of approvals) {

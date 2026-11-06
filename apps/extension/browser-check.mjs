@@ -1,12 +1,14 @@
 import { createServer } from 'node:http';
-import { readFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
+import { findBrowser } from './browser-path.mjs';
 
 const cwd = process.cwd();
 const dist = path.join(cwd, 'apps/extension/dist');
-const profile = path.join(dist, `browser-profile-${crypto.randomUUID()}`);
-await mkdir(profile, { recursive: true });
+const executable = await findBrowser();
+const profile = await mkdtemp(path.join(tmpdir(), 'bound-browser-check-'));
 let framePort;
 const serve = async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
@@ -26,7 +28,7 @@ await new Promise(resolve => frameServer.listen(0, '127.0.0.1', resolve));
 framePort = frameServer.address().port;
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
-const browser = spawn('C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', [
+const browser = spawn(executable, [
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
   '--remote-debugging-port=0', '--remote-allow-origins=*', `--user-data-dir=${profile}`,
   `--disable-extensions-except=${dist}`, `--load-extension=${dist}`, `http://127.0.0.1:${port}/`
@@ -425,4 +427,4 @@ try {
   await waitClosed(earlyTarget);
   console.log('PASS: preinstalled provider mediated; retained reference demonstrates disclosed bypass');
   dapp.ws.close();
-} finally { browser.kill(); server.close(); frameServer.close(); }
+} finally { browser.kill(); server.close(); frameServer.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }

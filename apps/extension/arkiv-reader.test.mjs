@@ -33,3 +33,16 @@ test("uncurated site queries travel through the anonymizing worker",async()=>{
  const f=fixture([row(baseline,1),row({...baseline,site:"other.example"},2)]);
  const records=await f.reader.readUncuratedViaAnonRpc({site,chain:String(chainId)});assert.equal(records.length,1);assert.equal(f.direct.length,0);assert.ok(f.anonymous.some(item=>item.method==="arkiv_query"));
 });
+test("page-load site status uses the anonymous worker and filters exact hosts",async()=>{
+ const f=fixture([row(status,1),row({...status,site:"other.example"},2)]);
+ const records=await f.reader.readSiteStatusViaAnonRpc({site});
+ assert.equal(records.filter(record=>record.kind==="status").length,1);
+ assert.ok(records.every(record=>record.site===site));assert.equal(f.direct.length,0);
+ assert.ok(f.anonymous.some(item=>item.method==="arkiv_query"));
+});
+test("owner-checked baseline exposes observed addresses without treating them as witnesses",async()=>{
+ const observed="0x"+"1".repeat(40),called="0x"+"2".repeat(40);
+ const f=fixture([row({...baseline,counterparties:[observed],calledContracts:[called]},1)]);await f.reader.refresh();
+ const [record]=await f.reader.readWatcherBundle();
+ assert.deepEqual(record.observed,[observed,called]);assert.deepEqual(record.witnessed,[]);
+});
