@@ -265,7 +265,7 @@ Epoch is 3 because the live root sits at epoch 2 from the disposable probe recor
 `assertMonotonicEpoch` refuses anything at or below the published epoch, so a compile at
 the seed's original epoch 1 would have been rejected at publish time.
 
-### First live snapshot publish (compile -> Swarm -> ENS root, 2026-11-06)
+### First live snapshot publish — epoch 3, superseded (2026-11-06)
 
 The full curator publish path, which had never run end to end before this. One command
 does all three steps and each failure mode is distinct, so a problem names itself.
@@ -309,6 +309,44 @@ extension-side read — `readRoot` → `fetchSnapshot` → `checkSnapshot` in
 plaintext (G3) and should be treated as burned. It also remains both curator and resolver
 owner (G2). Neither gap is closed by this publish succeeding, and the rotation still has
 to happen before any grant that matters.
+
+### Live root in use — epoch 4 (2026-11-06)
+
+Epoch 3 above is **superseded and was never usable by the extension**: it was compiled with
+`rootName: bound-demo.eth` and published to `bound-v2.eth`, and
+`trust-engine.mjs:checkSnapshot` rejects a snapshot whose `rootName` differs from the name
+the root was read from. `curator read` reported it verified because it compared only digest
+and epoch. Both holes are closed — `publishSnapshot` refuses the mismatch before spending
+gas, and `readAndVerifyRoot` now checks network, rootName and generatedAt as well.
+
+| Step | Value |
+|---|---|
+| Epoch | 4 (previous: 3) |
+| Digest | `0x2a691b30fc842b6b567204eb73e413c9c0566d014172375ca209f13073ddf6f1` |
+| Swarm reference | `ff58c62ec34c8ab19c6fbc71587abbd9bf98ae18d87e7782fef88c868d1f6550` |
+| ENS root tx | `0x34a43bdfc84d602b1e51335f2395f6abbba1252288d455c0a7c6d6acc07f81bb` |
+| Size | 3896 bytes |
+| Sites | 5 |
+| Expires | 2026-12-06T00:00:00Z |
+| rootName | `bound-v2.eth` — matches the publishing name |
+
+Verified by the strengthened `curator read`, which performs every check
+`checkSnapshot` performs except the cache-specific ones. The extension will therefore
+accept these bytes.
+
+**A receipt race found here.** The first `read` after the epoch-4 publish failed with the
+rootName error, naming epoch 3's data. Nothing was wrong with epoch 4: `writeContract`
+resolves when a transaction enters the mempool, not when it is mined, so the read resolved
+the still-live epoch-3 root. Every value in that error was real and one epoch stale, which
+is the most confusing shape a failure can take. `publishSnapshot` now waits for the receipt
+and raises on a revert.
+
+This was the **third** occurrence of that race: `attest-write` (05a3891) and `attest-grant`
+(9513545) both had it and were both fixed in the CLI, which did nothing for the publish
+path. The fix now sits in the library. The recurring lesson across this and two other bugs
+today — the resolver default and the rootName binding — is that fixing an instance in a
+caller leaves identical siblings live; the guards that have held are the ones pushed down
+into `integrations/*` and `publishSnapshot`.
 
 ### Open gaps — must be disclosed, not claimed as passing
 
