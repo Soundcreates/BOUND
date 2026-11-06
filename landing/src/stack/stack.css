@@ -1,0 +1,26 @@
+/* ─── Technology ─── */
+.st { background: var(--paper, #fff); color: var(--ink, #0b0b0c); font-family: var(--serif, "Instrument Serif", Georgia, serif); border-top: 1px solid var(--line, #e6e6e1); }
+.st-inner { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: clamp(72px, 12vh, 150px) 0; }
+.st-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 40px; align-items: end; }
+.st-head h2 { margin: 0; font-size: clamp(48px, 7vw, 108px); font-weight: 400; line-height: 0.95; letter-spacing: -0.025em; }
+.st-head h2 em { font-style: italic; background: linear-gradient(var(--accent, #ffd500), var(--accent, #ffd500)) no-repeat 0 90% / 100% 38%; }
+.st-head p { margin: 0; font-size: clamp(19px, 1.6vw, 24px); line-height: 1.4; color: #3d3d39; }
+
+.st-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: clamp(40px, 7vh, 80px); }
+.st-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 400px; padding: 26px; border: 1px solid var(--ink, #0b0b0c); border-radius: 22px; background: var(--paper, #fff); transition: transform 0.4s cubic-bezier(.2,.7,.2,1), background 0.3s, box-shadow 0.4s; }
+.st-card:hover { transform: translateY(-6px); background: var(--accent-soft, #fff4b8); box-shadow: 0 30px 44px -30px rgba(11, 11, 12, 0.6); }
+.st-icon { width: 64px; height: 64px; color: var(--ink, #0b0b0c); }
+.st-icon .y { fill: var(--accent, #ffd500); }
+.st-card h3 { margin: 46px 0 10px; font-size: 36px; font-weight: 400; line-height: 1; letter-spacing: -0.015em; }
+.st-card p { margin: 0 0 22px; font-size: 20px; line-height: 1.35; color: #3d3d39; }
+.st-tag { margin-top: auto; padding-bottom: 12px; font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted, #6b6b64); }
+.st-note { max-width: 74ch; margin: 36px 0 0; font-size: 16px; line-height: 1.4; color: var(--muted, #6b6b64); }
+
+@media (max-width: 1100px) { .st-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-card { min-height: 340px; } }
+@media (max-width: 760px) {
+  .st-inner { width: calc(100% - 32px); }
+  .st-head { grid-template-columns: 1fr; gap: 20px; align-items: start; }
+  .st-grid { grid-template-columns: 1fr; }
+  .st-card { min-height: 0; } .st-card h3 { margin-top: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .st-card { transition: none; } }

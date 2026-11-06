@@ -1,0 +1,42 @@
+/* ─── Architecture (Konva) ─── */
+.ar { background: var(--paper, #fff); color: var(--ink, #0b0b0c); font-family: var(--serif, "Instrument Serif", Georgia, serif); border-top: 1px solid var(--line, #e6e6e1); }
+.ar-inner { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: clamp(72px, 12vh, 150px) 0 clamp(56px, 9vh, 110px); }
+.ar-head h2 { margin: 0 0 20px; font-size: clamp(48px, 7vw, 108px); font-weight: 400; line-height: 0.95; letter-spacing: -0.025em; }
+.ar-head h2 em { font-style: italic; background: linear-gradient(var(--accent, #ffd500), var(--accent, #ffd500)) no-repeat 0 90% / 100% 38%; }
+.ar-head p { max-width: 56ch; margin: 0; font-size: clamp(19px, 1.6vw, 24px); line-height: 1.4; color: #3d3d39; }
+
+.ar-grid { display: grid; grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr); gap: clamp(28px, 5vw, 72px); margin-top: clamp(40px, 7vh, 80px); align-items: start; }
+.ar-steps { margin: 0; padding: 0; list-style: none; }
+.ar-step { min-height: 52vh; padding: 28px 0 28px 22px; border-left: 2px solid var(--line, #e6e6e1); opacity: 0.42; transition: opacity 0.4s, border-color 0.4s; }
+.ar-step:last-child { min-height: 92vh; }   /* keeps the sticky diagram on screen while the last step is read */
+.ar-step.is-active { opacity: 1; border-color: var(--accent, #ffd500); box-shadow: -2px 0 0 0 var(--accent, #ffd500); }
+.ar-step-btn { display: flex; align-items: baseline; gap: 14px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ar-num { font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 12px; letter-spacing: 0.1em; padding: 3px 8px; border: 1px solid var(--ink, #0b0b0c); border-radius: 999px; background: var(--paper, #fff); transition: background 0.3s; }
+.ar-step.is-active .ar-num { background: var(--accent, #ffd500); }
+.ar-step-title { font-size: clamp(28px, 2.9vw, 42px); line-height: 1.05; letter-spacing: -0.015em; }
+.ar-step p { max-width: 46ch; margin: 14px 0 14px 0; font-size: clamp(18px, 1.4vw, 21px); line-height: 1.42; color: #2b2b28; }
+.ar-step-btn:focus-visible, .ar-canvas:focus-visible { outline: 2px solid var(--ink, #0b0b0c); outline-offset: 4px; border-radius: 6px; }
+
+.ar-stage { position: sticky; top: 76px; }
+.ar-card { border: 1px solid var(--ink, #0b0b0c); border-radius: 22px; background: var(--paper, #fff); padding: 14px 14px 0; box-shadow: 0 30px 60px -38px rgba(11, 11, 12, 0.55); overflow: hidden; }
+.ar-canvas { width: 100%; min-height: 520px; }
+.ar-canvas canvas { display: block; }
+.ar-inspector { margin: 6px -14px 0; padding: 16px 20px 18px; border-top: 1px solid var(--ink, #0b0b0c); background: var(--accent-soft, #fff4b8); min-height: 168px; }
+.ar-insp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.ar-insp-head b { font-size: 26px; font-weight: 400; letter-spacing: -0.01em; }
+.ar-insp-head span { font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 11px; letter-spacing: 0.06em; color: #55554f; }
+.ar-inspector dl { display: grid; gap: 8px; margin: 10px 0 0; }
+.ar-inspector dt { font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #55554f; }
+.ar-inspector dd { margin: 2px 0 0; font-size: 16px; line-height: 1.32; }
+.ar-hint { margin: 0; padding-top: 38px; font-size: 19px; color: #55554f; text-align: center; }
+.ar-note { max-width: 74ch; margin: 36px 0 0; font-size: 16px; line-height: 1.4; color: var(--muted, #6b6b64); }
+
+@media (max-width: 900px) {
+  .ar-inner { width: calc(100% - 32px); }
+  .ar-grid { grid-template-columns: 1fr; gap: 28px; }
+  .ar-stage { position: static; order: -1; }
+  .ar-step, .ar-step:last-child { min-height: 0; padding: 20px 0 20px 18px; opacity: 1; }
+  .ar-step.is-active { box-shadow: none; }
+  .ar-inspector { min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .ar-step { transition: none; } }

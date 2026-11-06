@@ -1,0 +1,34 @@
+/* ─── Demo + install: a black page with yellow type, like the problem page ─── */
+.dm { background: var(--ink, #0b0b0c); color: var(--accent, #ffd500); font-family: var(--serif, "Instrument Serif", Georgia, serif); }
+.dm-inner { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: clamp(72px, 12vh, 150px) 0; }
+.dm-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 40px; align-items: end; }
+.dm-head h2 { margin: 0; font-size: clamp(48px, 7vw, 108px); font-weight: 400; line-height: 0.95; letter-spacing: -0.025em; }
+.dm-head h2 em { font-style: italic; }
+.dm-head p { margin: 0; font-size: clamp(19px, 1.6vw, 24px); line-height: 1.4; color: rgba(255, 213, 0, 0.82); }
+
+.dm-frame { position: relative; aspect-ratio: 16 / 9; margin-top: clamp(40px, 7vh, 80px); border: 1.5px solid var(--accent, #ffd500); border-radius: 24px; overflow: hidden; background: #111; box-shadow: 0 0 80px -20px rgba(255, 213, 0, 0.28); }
+.dm-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.dm-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; background: radial-gradient(circle at 1px 1px, rgba(255, 213, 0, 0.16) 1px, transparent 0) 0 0 / 26px 26px; }
+.dm-play { display: grid; place-items: center; width: clamp(72px, 9vw, 112px); aspect-ratio: 1; border-radius: 50%; background: var(--accent, #ffd500); box-shadow: 0 0 0 10px rgba(255, 213, 0, 0.16); }
+.dm-play svg { width: 44%; margin-left: 6%; fill: var(--ink, #0b0b0c); }
+.dm-placeholder h3 { margin: 28px 0 8px; font-size: clamp(32px, 4.4vw, 68px); font-weight: 400; line-height: 0.98; letter-spacing: -0.02em; }
+.dm-placeholder p { margin: 0; font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 213, 0, 0.75); }
+
+.dm-install { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(24px, 4vw, 56px); margin-top: clamp(32px, 6vh, 64px); padding: clamp(24px, 3vw, 40px); border: 1px solid rgba(255, 213, 0, 0.5); border-radius: 22px; }
+.dm-install h3 { margin: 0 0 10px; font-size: clamp(30px, 3vw, 42px); font-weight: 400; line-height: 1; letter-spacing: -0.015em; }
+.dm-install p { margin: 0 0 22px; max-width: 34ch; font-size: 19px; line-height: 1.35; color: rgba(255, 213, 0, 0.8); }
+.dm-download { display: inline-flex; align-items: center; gap: 12px; height: 48px; padding: 0 24px; border-radius: 999px; background: var(--accent, #ffd500); color: var(--ink, #0b0b0c); font-size: 19px; transition: transform 0.25s, background 0.2s; }
+.dm-download:hover { transform: translateY(-2px); background: #ffe14d; }
+.dm-download:focus-visible, .dm a:focus-visible { outline: 2px solid var(--accent, #ffd500); outline-offset: 3px; }
+.dm-steps { counter-reset: step; margin: 0; padding: 0; list-style: none; display: grid; gap: 16px; align-content: center; }
+.dm-steps li { counter-increment: step; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 16px; align-items: start; font-size: clamp(19px, 1.6vw, 23px); line-height: 1.35; }
+.dm-steps li::before { content: counter(step); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent, #ffd500); color: var(--ink, #0b0b0c); font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 12px; }
+.dm-steps code { padding: 1px 8px; border: 1px solid rgba(255, 213, 0, 0.5); border-radius: 8px; font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: 0.72em; overflow-wrap: anywhere; }
+.dm-steps b { font-weight: 400; border-bottom: 2px solid var(--accent, #ffd500); }
+
+@media (max-width: 860px) {
+  .dm-inner { width: calc(100% - 32px); }
+  .dm-head { grid-template-columns: 1fr; gap: 20px; align-items: start; }
+  .dm-install { grid-template-columns: 1fr; }
+  .dm-frame { border-radius: 18px; }
+}
