@@ -54,7 +54,10 @@ function isoSeconds(d: Date): string {
 
 /** Assemble curation input into a validated Snapshot object (not yet canonical bytes). */
 export function buildSnapshot(input: CompileInput): Snapshot {
-  const expiresAt = new Date(input.generatedAt.getTime() + input.validityDays * 86_400_000);
+  // Coerce string → Date so callers that JSON.parse without conversion still work.
+  const generatedAt =
+    input.generatedAt instanceof Date ? input.generatedAt : new Date(input.generatedAt as unknown as string);
+  const expiresAt = new Date(generatedAt.getTime() + input.validityDays * 86_400_000);
 
   const sites: Record<string, Record<string, SiteChainEntry>> = {};
   for (const s of input.sites) {
@@ -84,7 +87,7 @@ export function buildSnapshot(input: CompileInput): Snapshot {
   const draft = {
     schemaVersion: SCHEMA_VERSION,
     epoch: input.epoch,
-    generatedAt: isoSeconds(input.generatedAt),
+    generatedAt: isoSeconds(generatedAt),
     expiresAt: isoSeconds(expiresAt),
     network: input.network,
     rootName: input.rootName.toLowerCase(),
