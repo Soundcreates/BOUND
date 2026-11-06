@@ -24,3 +24,17 @@ test("unsafe endpoints, malformed inputs, and unacknowledged delivery fail close
  await assert.rejects(sender("https://watcher.example/v1/observations")([{...record,chain:"0x20000000000000"}]),/chain/);
  await assert.rejects(sender("https://watcher.example/v1/observations")([record]),/accept/);
 });
+
+test('encoder counts wrapper UTF-8 bytes and sender independently enforces limits', async () => {
+ const {encodeObservationBatch}=await import('./watcher-adapter.mjs');
+ const big={...record,reporterKey:'é'.repeat(128)};
+ const fitting=Array(100).fill(big); const body=encodeObservationBatch(fitting);
+ assert.ok(new TextEncoder().encode(body).length<=60000);
+ assert.throws(()=>encodeObservationBatch([...fitting,big]),/count/);
+ const long={...record,site:'a'.repeat(63)+'.'+'b'.repeat(63)+'.'+'c'.repeat(63)+'.'+'d'.repeat(60),reporterKey:'é'.repeat(128)};
+ assert.throws(()=>encodeObservationBatch(Array(100).fill(long)),/60000/);
+ const sender=createWatcherSender({getConfig:async()=>null,fetchImpl:async()=>{throw Error('unexpected');}});
+ await assert.rejects(sender(Array(100).fill(long)),/60000/);
+ const front={site:'example.org',kind:'frontend',chain:'1',reporterKey:'key',path:'/app.js',hash:'sha256-'+'A'.repeat(43)+'=',text:'private'};
+ assert.equal('text' in JSON.parse(encodeObservationBatch([front])).events[0],false);
+});

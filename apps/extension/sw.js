@@ -1,9 +1,13 @@
+import { assessFrontend, frontendObservationCandidates, isFrontendPath, isFrontendHash } from "../../packages/policy-core/frontend.mjs";
+import { createFrontendRedirect } from "./frontend-redirect.mjs";
+import { createTicketStore, createTicketMessageHandler } from "./ticket-store.mjs";
+import { applyFrontendWarning } from "./frontend-routing.mjs";
 import { classifyRequest, cloneRequest } from "../../packages/decoder/index.mjs";
 import { canonicalSite, evaluate } from "../../packages/policy-core/index.mjs";
 import { mayRecordObservation, observationCandidates, warningCandidates } from "../../packages/policy-core/observations.mjs";
 import { createObservationDispatcher } from "./observation-dispatcher.mjs";
 import { sendObservationBatch, isObservationConfigured } from "./watcher-adapter.mjs";
-import { createDecisionContext, readPreconnectionSiteStatus } from "./decision-context.mjs";
+import { createDecisionContext, readFrontendContext, readPreconnectionSiteStatus } from "./decision-context.mjs";
 import { decisionAdapters, getWatcherOwner } from "./trust-adapter.mjs";
 import { anonRpc } from "./anon-rpc-host.mjs";
 import { createNetworkCapture, isCapturePage } from "./network-capture.mjs";
@@ -41,6 +45,34 @@ const STATUS_EXPIRY_PREFIX = "bound-site-status-expiry:";
 let coverageOperation = Promise.resolve();
 let coverageUncertain = false;
 let settingsRevision = 0;
+let settingsEpoch = 0;
+const tickets = createTicketStore({storage: chrome.storage.session, extensionId: chrome.runtime.id});
+const ticketReady = (async () => {
+  await chrome.storage.session.setAccessLevel?.({accessLevel: "TRUSTED_CONTEXTS"});
+  settingsRevision = await tickets.revision();
+})();
+const redirect = createFrontendRedirect({api: {tabs: chrome.tabs, webNavigation: {getFrame: browserFrame}, alarms: chrome.alarms, runtime: chrome.runtime, getSettings: async () => {
+  const {boundSettings = {}} = await chrome.storage.local.get("boundSettings");
+  return {safePageUrl: boundSettings.safePageUrl || "", watcherOwner: await getWatcherOwner()};
+}}, tickets});
+const confirmTicket = createTicketMessageHandler({tickets, extensionId: chrome.runtime.id,
+  confirmUrl: chrome.runtime.getURL("confirm.html"), navigate: (tabId, url) => chrome.tabs.update(tabId, {url})});
+const guardWaiters = new Map();
+const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(k => Object.hasOwn(value,k));
+async function guardRetry(message, sender) {
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2,"0")).join("");
+  const key = `${sender.tab.id}:${sender.documentId}:${message.id}`;
+  if (guardWaiters.has(key)) return false;
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {guardWaiters.delete(key); resolve(false);}, 500);
+    guardWaiters.set(key, {sender, message, nonce, resolve: result => {clearTimeout(timer); guardWaiters.delete(key); resolve(result);}});
+    Promise.resolve(chrome.tabs.sendMessage(sender.tab.id, {type:"BOUND_RETRY_GUARD_V1",id:message.id,digest:message.digest,stateDigest:message.stateDigest,nonce}, {documentId:sender.documentId})).catch(() => guardWaiters.get(key)?.resolve(false));
+  });
+}
+chrome.webNavigation.onCommitted?.addListener(details => { void ticketReady.then(() => redirect.handleNavigation(details)).catch(() => {}); });
+chrome.webNavigation.onErrorOccurred?.addListener(details => { void ticketReady.then(() => redirect.handleNavigation(details)).catch(() => {}); });
+chrome.alarms.onAlarm.addListener(alarm => { void ticketReady.then(() => redirect.onAlarm(alarm)).catch(() => {}); });
+void ticketReady.then(() => redirect.resume()).catch(() => {});
 const dispatcher = createObservationDispatcher({ send: sendObservationBatch });
 async function enqueueReports(records) {
   if (!records.length || !(await monitoringEnabled())) return;
@@ -118,7 +150,7 @@ monitoringEnabled().then((on) => on && dispatcher.resume()).catch(() => {});
 // Seed the defaults on first run so requests are checked instead of all scoring
 // grey. Decisions wait for this; a failure leaves the extension unconfigured.
 const settingsReady = ensureDefaultSettings(chrome.storage.local)
-  .then((seeded) => { if (seeded) { settingsRevision++; refreshPublicData().catch(() => {}); } })
+  .then((seeded) => { if (seeded) refreshPublicData().catch(() => {}); })
   .catch(() => {});
 
 // A grey verdict means nothing was checked. Say why, so it never reads as safe.
@@ -145,6 +177,22 @@ if (decisionAdapters) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (["BOUND_CANCEL_DELIVERED_V1", "BOUND_SAFE_READY_V1", "BOUND_SAFE_CONFIRM_V1", "BOUND_TICKET_GET_V1", "BOUND_TICKET_APPROVE_V1"].includes(message?.type)) {
+    (async () => { await ticketReady; if (message.type === "BOUND_CANCEL_DELIVERED_V1") return redirect.acknowledge(message,sender);
+      await redirect.bindExtensionDocument(sender);
+      if (message.type.startsWith("BOUND_SAFE_")) return redirect.handleMessage(message,sender);
+      if (!await currentDocument(sender)) return {ok:false};
+      return confirmTicket(message,sender);
+    })().then(sendResponse, () => sendResponse({ok:false})); return true;
+  }
+  if (message?.type === "BOUND_RETRY_GUARDED_V1") {
+    if (!exact(message,["type","id","digest","stateDigest","nonce"]) || sender.id !== chrome.runtime.id || sender.frameId !== 0) return;
+    const key = `${sender.tab?.id}:${sender.documentId}:${message.id}`, waiter = guardWaiters.get(key);
+    if (waiter && ["id","digest","stateDigest"].every(k => message[k] === waiter.message[k]) && message.nonce === waiter.nonce && sender.url === waiter.sender.url) {
+      currentDocument(sender).then(ok => waiter.resolve(ok), () => waiter.resolve(false));
+    }
+    return;
+  }
   if (message?.type === "BOUND_CAPTURE_V1" && sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("popup.html")) {
     (async () => {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -159,8 +207,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "BOUND_SETTINGS_CHANGED_V1" && sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("options.html")) {
-    settingsRevision++;invalidate(()=>true);
-    refreshPublicData().then(()=>sendResponse({ok:true}),()=>sendResponse({ok:false}));return true;
+    settingsEpoch++; invalidate(()=>true);
+    ticketReady.then(() => tickets.advanceRevision()).then(revision => {settingsRevision = revision; return refreshPublicData();}).then(()=>sendResponse({ok:true}),()=>sendResponse({ok:false}));return true;
   }
   if (message?.type === "BOUND_STATUS_V1" && sender.id === chrome.runtime.id && !sender.tab) {
     isObservationConfigured().then(observationReporting=>sendResponse({ observationReporting }),()=>sendResponse({ observationReporting:false }));
@@ -171,9 +219,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "BOUND_REQUEST_V1") {
-    monitoringEnabled()
-      .then((on) => on ? handleRequest(message, sender, sendResponse) : passThrough(message, sendResponse))
-      .catch(() => passThrough(message, sendResponse));
+    handleRequest(message, sender, sendResponse).catch(() => sendResponse({action:"cancel",digest:message.digest,stateDigest:message.stateDigest}));
     return true;
   }
   if (message?.type === "BOUND_FORWARDED_V1") {
@@ -197,6 +243,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "BOUND_STATE_CHANGE_V1") {
+    if (sender.id !== chrome.runtime.id || !exact(message,["type","event"])) return;
+    if (sender.frameId === 0 && Number.isInteger(sender.tab?.id)) void ticketReady.then(() => tickets.forTab(sender.tab.id)).then(t => t && tickets.remove(t.id)).catch(() => {});
     const key = `${sender.tab?.id}:${sender.frameId}:${sender.documentId || sender.url}`;
     frameRevisions.set(key, (frameRevisions.get(key) || 0) + 1);
     for (const [id, entry] of pending) {
@@ -236,6 +284,7 @@ chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   }
 });
 chrome.tabs.onRemoved.addListener((tabId) => {
+  void ticketReady.then(() => tickets.removeTab(tabId)).catch(() => {});
   networkCapture?.stop(tabId).catch(() => {});
   tabRevisions.set(tabId, (tabRevisions.get(tabId) || 0) + 1);
   statusRequests.delete(tabId);
@@ -253,11 +302,12 @@ function passThrough(message, sendResponse) {
 }
 
 async function handleRequest(message, sender, sendResponse) {
+  await ticketReady;
   const frameKey = `${sender.tab?.id}:${sender.frameId}:${sender.documentId || sender.url}`;
   const tabRevision = tabRevisions.get(sender.tab?.id) || 0;
   const frameRevision = frameRevisions.get(frameKey) || 0;
-  const revision=settingsRevision;
-  const valid = () => settingsRevision===revision && (tabRevisions.get(sender.tab?.id) || 0) === tabRevision && (frameRevisions.get(frameKey) || 0) === frameRevision;
+  const revision=settingsRevision, epoch=settingsEpoch;
+  const valid = () => settingsEpoch===epoch && settingsRevision===revision && (tabRevisions.get(sender.tab?.id) || 0) === tabRevision && (frameRevisions.get(frameKey) || 0) === frameRevision;
   let request, bytes;
   try {
     request = cloneRequest(message.request);
@@ -289,15 +339,48 @@ async function handleRequest(message, sender, sendResponse) {
     sendResponse({ action: "continue", digest, stateDigest, readOnly: true });
     return;
   }
+  const chainId = validProviderState(message.state) ? String(BigInt(message.state.chainId)) : null;
+  const approved = sender.id === chrome.runtime.id && sender.frameId === 0 && chainId && originOf(sender.url) === originOf(sender.tab?.url) && await currentDocument(sender)
+    ? await tickets.findApproved({tabId:sender.tab.id,documentId:sender.documentId,topOrigin:originOf(sender.url),chainId,settingsRevision:revision}) : null;
+  if (!(await monitoringEnabled())) { if (approved) sendResponse({action:"cancel",digest,stateDigest}); else passThrough(message,sendResponse); return; }
   const now = Date.now();
   const recent = (rate.get(frameKey) || []).filter((at) => now - at < 10_000);
   if (recent.length >= MAX_PENDING_PER_FRAME || pending.size >= 128) {
     // Under load, hand the intact request to the wallet instead of refusing it.
-    sendResponse({ action: "continue", digest, stateDigest, readOnly: true });
+    sendResponse(approved ? {action:"cancel",digest,stateDigest} : { action: "continue", digest, stateDigest, readOnly: true });
     return;
   }
   recent.push(now);
   rate.set(frameKey, recent);
+  const eligibleFrontend = validProviderState(message.state) && classification.kind !== "unsupported";
+  const frontendPromise = eligibleFrontend ? readFrontendEvidence(sender) : Promise.resolve(null);
+  const communityPromise = eligibleFrontend ? (async () => { try { await settingsReady; return await readFrontendContext({ siteOrigin: sender.url, chainId: message.state.chainId, watcherOwner: await getWatcherOwner(), adapters: decisionAdapters }); } catch { return null; } })() : Promise.resolve(null);
+  const frontendAssessment = async (counterpartyRisk = false) => {
+    const [evidence, community] = await Promise.all([frontendPromise, communityPromise]);
+    const c = community || {state:'unavailable', ageMs:null, frontend:null, corroboratedDrift:false, activeIncident:false, ambiguous:false};
+    const frame = {isTop:sender.frameId === 0, sameOrigin:originOf(sender.url) === originOf(sender.tab?.url), ambiguous:c.ambiguous};
+    const assessment = assessFrontend({observed:evidence, record:c.frontend, now:Date.now(), drift:c.corroboratedDrift, incident:c.activeIncident, counterpartyRisk, frame, dataState:c.state, ageMs:c.ageMs});
+    return {evidence, community:c, frame, assessment};
+  };
+  const routeFrontend = async (details, frontendData) => {
+    const assessment = frontendData.assessment;
+    if (approved && assessment.comparison === "conflict") {
+      if (!valid()) return {cancel:true};
+      const guarded = await guardRetry(message,sender);
+      const current = await currentDocument(sender);
+      if (!current) await tickets.remove(approved.id);
+      if (!guarded || !current || !valid() || !await monitoringEnabled()) return {cancel:true};
+      const consumed = await tickets.consume({tabId:sender.tab.id,documentId:sender.documentId,topOrigin:originOf(sender.url),chainId,settingsRevision:revision,comparison:"conflict",requestId:message.id,digest,stateDigest});
+      if (!consumed || !valid() || !await monitoringEnabled()) return {cancel:true};
+      return {overrideUsed:true};
+    }
+    if (!approved && valid() && await monitoringEnabled()) {
+      const {boundSettings = {}} = await chrome.storage.local.get("boundSettings");
+      const result = await redirect.begin({sender,requestId:message.id,digest,stateDigest,details,assessment,chainId,settingsRevision:revision,safePageUrl:boundSettings.safePageUrl || ""});
+      if (result) { if (!valid() || !await monitoringEnabled() || !await currentDocument(sender)) {await tickets.remove(result.ticket); return {cancel:true};} return {result}; }
+    }
+    return {};
+  };
   if (CONNECTION_METHODS.has(request.method)) {
     let statuses = [];
     const origins = [...new Set([originOf(sender.tab?.url), originOf(sender.url)])];
@@ -322,15 +405,21 @@ async function handleRequest(message, sender, sendResponse) {
     const tier = connectionTier(connectionScore, silentPass);
     const reason = `Connection score ${connectionScore.score}/100; silent-pass threshold ${connectionScore.threshold}. ${connectionScore.blockers.join('; ') || (silentPass ? 'Connection checks passed.' : 'Some checks failed or are unavailable.')}`;
     const id = crypto.randomUUID();
-    const details = {
+    const frontendData = await frontendAssessment();
+    let details = {
       id, kind: "connection", method: request.method, target: "", tier, verdict: TIER_VERDICT[tier], score: connectionScore.score,
       connectionScore, connectionStatus, reasons: [reason], entries: [], approvals: [], coverage: connectionCoverage, locked: false,
       tabId: sender.tab?.id, frameId: sender.frameId, documentId: sender.documentId,
       topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), chainId: message.state?.chainId ?? null,
-      incidentStatus: connectionStatus === "active" ? "active" : "unknown"
+      incidentStatus: connectionStatus === "active" ? "active" : statuses.length && statuses.every(item => item.status === "normal") ? "normal" : "unknown",
+      frontend: frontendData.evidence
     };
+    details = applyFrontendWarning({details, assessment: frontendData.assessment});
+    const route = await routeFrontend(details, frontendData);
+    if (route.result || route.cancel) {sendResponse(route.result || {action:"cancel",digest,stateDigest}); return;}
+    details = applyFrontendWarning({details, assessment: frontendData.assessment, overrideUsed:route.overrideUsed});
     await recordWarning({ ...details, verdict: `connection · ${tier}` }).catch(() => {});
-    if (!valid() || pending.size >= 128 || !(await currentDocument(sender)) || !valid()) {
+    if (!valid() || pending.size >= 128 || !(await currentDocument(sender)) || !valid() || route.overrideUsed && !(await monitoringEnabled())) {
       sendResponse({ action: "cancel", digest, stateDigest });
       return;
     }
@@ -340,7 +429,14 @@ async function handleRequest(message, sender, sendResponse) {
       pending.set(id, { details, resolve, timer, used: false });
     });
     openWarning(id);
-    result.then((action) => sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(silentPass ? {} : { connectionStatus }) }));
+    result.then((action) => {
+      let receiptToken;
+      if ((action === 'continue' || action === 'forward') && pendingObservations.size < 128) {
+        receiptToken = crypto.randomUUID(); const timer = setTimeout(() => pendingObservations.delete(receiptToken), 10000);
+        pendingObservations.set(receiptToken, {timer, sender, digest, stateDigest, valid, classification, request, state:message.state, coverage:connectionCoverage, frontendData, verdict:details.verdict, incidentStatus:details.incidentStatus, connection:true});
+      }
+      sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, connectionScore: { score: connectionScore.score, threshold: connectionScore.threshold }, ...(silentPass ? {} : { connectionStatus }), ...(receiptToken ? {receiptToken} : {}), ...(route.overrideUsed && action === "continue" ? {typedApproved:true} : {}) });
+    });
     return;
   }
   if (classification.kind === "read_only") {
@@ -350,17 +446,17 @@ async function handleRequest(message, sender, sendResponse) {
   const locked = !validProviderState(message.state);
   const bypass = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id);
   const coverage = locked || classification.kind === "unsupported" ? "unsupported" : bypass ? "bypass_possible" : "mediated";
-  const frontendPromise = readFrontendEvidence(sender);
   let context = { baseline: null, incidentStatus: "unknown" };
   if (!locked && decisionAdapters) {
     try { await settingsReady; const watcherOwner=await getWatcherOwner();context = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: message.state.chainId, watcherOwner, adapters: decisionAdapters }); }
     catch { /* Unavailable policy data leaves the request grey. */ }
   }
-  const frontend = await frontendPromise;
+  const frontendData = await frontendAssessment(false);
   if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
   const evaluated = evaluate({ classification, ...context, signerAccounts: locked ? [] : message.state.accounts, coverage, thresholds: SCORE_SETTINGS.transaction });
   const id = crypto.randomUUID();
-  const details = {
+  frontendData.assessment = (await frontendAssessment(evaluated.counterpartyRisk)).assessment;
+  let details = {
     id,
     method: classification.method,
     target: classification.entries.find((entry) => entry.role === "called")?.address || request.params?.[0]?.to || "",
@@ -369,7 +465,7 @@ async function handleRequest(message, sender, sendResponse) {
     score: evaluated.score,
     reasons: [...(locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons), ...(!locked && evaluated.verdict === "grey" && evaluated.coverage !== "unsupported" && uncheckedReason(context) ? [uncheckedReason(context)] : [])],
     entries: classification.entries,
-    frontend,
+    frontend: frontendData.evidence,
     networkCapture: networkCapture?.snapshot(sender.tab?.id) || { active: false, rows: [], missing: 0 },
     observedAddresses: [...new Set(classification.entries.filter(entry => entry.verified !== false && typeof entry.address === "string" && context.observed?.has(entry.address.toLowerCase())).map(entry => entry.address.toLowerCase()))],
     approvals: classification.approvals || [],
@@ -383,12 +479,16 @@ async function handleRequest(message, sender, sendResponse) {
     ensLookup: context.ensLookup?.attestation || null,
     ensInconsistent: context.ensLookup?.inconsistent === true,
   };
+  details = applyFrontendWarning({details, assessment: frontendData.assessment});
+  const route = await routeFrontend(details, frontendData);
+  if (route.result || route.cancel) {sendResponse(route.result || {action:"cancel",digest,stateDigest}); return;}
+  details = applyFrontendWarning({details, assessment: frontendData.assessment, overrideUsed:route.overrideUsed});
   details.coverage = coverage;
   details.locked = locked;
   if (sender.tab?.id !== undefined) setCoverage(sender.tab.id, sender.frameId, sender.documentId, coverage).catch(() => {});
   await recordWarning(details).catch(() => {});
-  if (!valid() || !(await currentDocument(sender)) || !valid()) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
-  if (pending.size >= 128) { sendResponse({ action: "continue", digest, stateDigest, readOnly: true }); return; }
+  if (!valid() || !(await currentDocument(sender)) || !valid() || route.overrideUsed && !(await monitoringEnabled())) { sendResponse({ action: "cancel", digest, stateDigest }); return; }
+  if (pending.size >= 128) { sendResponse({ action: details.requireTypedConfirmation ? "cancel" : "continue", digest, stateDigest, readOnly: true }); return; }
   const result = new Promise((resolve) => {
     // Unanswered for the whole deadline: hand it to the wallet, which still asks the user.
     const timer = setTimeout(() => finish(id, "forward"), DEADLINE_MS);
@@ -404,11 +504,11 @@ async function handleRequest(message, sender, sendResponse) {
       if (pendingObservations.size < 128) {
         receiptToken = crypto.randomUUID();
         const timer = setTimeout(() => pendingObservations.delete(receiptToken), 10_000);
-        pendingObservations.set(receiptToken, { timer, sender, digest, stateDigest, valid, classification, request, state: message.state, coverage });
+        pendingObservations.set(receiptToken, { timer, sender, digest, stateDigest, valid, classification, request, state: message.state, coverage, frontendData, verdict:evaluated.verdict, incidentStatus:context.incidentStatus });
       }
     }
     // "forward" means the warning could not be shown: hand it to the wallet, record nothing.
-    sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, ...(receiptToken ? { receiptToken } : {}) });
+    sendResponse({ action: action === "forward" ? "continue" : action, digest, stateDigest, readOnly: false, ...(receiptToken ? { receiptToken } : {}), ...(route.overrideUsed && action === "continue" ? {typedApproved:true} : {}) });
   });
 }
 
@@ -420,8 +520,8 @@ async function readFrontendEvidence(sender) {
       chrome.tabs.sendMessage(sender.tab.id, { type: "BOUND_COLLECT_FRONTEND_V1" }, { documentId: sender.documentId }),
       new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("frontend collection timeout")), 1200); })
     ]);
-    if (!evidence || !Array.isArray(evidence.scripts) || evidence.scripts.length > 32 || !Number.isSafeInteger(evidence.unavailable) || evidence.unavailable < 0) return null;
-    if (!evidence.scripts.every(item => item && typeof item.label === "string" && item.label.length <= 256 && /^sha256-[A-Za-z0-9+/]{43}=$/.test(item.hash) && ["inline DOM", "browser cache"].includes(item.source))) return null;
+    const fields = ['total','compared','inlineExcluded','queryExcluded','crossOriginExcluded','privatePathExcluded','unavailable','overCap'];
+    if (!evidence || evidence.version !== 1 || evidence.documentUrl !== sender.url || new TextEncoder().encode(JSON.stringify(evidence)).length > 32768 || !Array.isArray(evidence.scripts) || evidence.scripts.length > 32 || !evidence.scripts.every(item => isFrontendPath(item.path) && isFrontendHash(item.hash)) || !evidence.coverage || !fields.every(k => Number.isSafeInteger(evidence.coverage[k]) && evidence.coverage[k] >= 0) || evidence.coverage.total > 100000 || fields.slice(1).reduce((n,k) => n + evidence.coverage[k],0) !== evidence.coverage.total || evidence.coverage.compared !== evidence.scripts.length) return null;
     return evidence;
   } catch { return null; } finally { clearTimeout(timer); }
 }
@@ -436,12 +536,22 @@ async function confirmForwarded(message, sender) {
   return { ok: true };
 }
 
-async function enqueueCurrentObservation({ classification, request, state, sender, coverage }) {
+async function enqueueCurrentObservation({ classification, request, state, sender, coverage, frontendData, verdict, incidentStatus, connection, valid }) {
   if (!decisionAdapters) return;
   await settingsReady;const watcherOwner=await getWatcherOwner();if(!watcherOwner)return;
-  const latest = await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: state.chainId, watcherOwner, adapters: decisionAdapters });
+  const community = await readFrontendContext({siteOrigin:sender.url, chainId:state.chainId, watcherOwner, adapters:decisionAdapters});
+  const currentStatus = connection ? await readPreconnectionSiteStatus({siteOrigin:sender.url, watcherOwner, adapters:decisionAdapters}) : null;
+  const latest = connection ? null : await createDecisionContext({ siteOrigin: sender.tab?.url, chainId: state.chainId, watcherOwner, adapters: decisionAdapters });
   const currentCoverage = sender.tab?.id !== undefined && await bypassPossible(sender.tab.id) ? "bypass_possible" : coverage;
-  const evaluated = evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage, thresholds: SCORE_SETTINGS.transaction });
+  const evaluated = connection ? null : evaluate({ classification, ...latest, signerAccounts: state.accounts, coverage: currentCoverage, thresholds: SCORE_SETTINGS.transaction });
+  if (frontendData && !await tickets.hasOverrideDocument({tabId:sender.tab.id,documentId:sender.documentId})) {
+    const frame = {...frontendData.frame, ambiguous:community.ambiguous};
+    const assessment = assessFrontend({observed:frontendData.evidence, record:community.frontend, now:Date.now(), drift:community.corroboratedDrift, incident:community.activeIncident, counterpartyRisk:evaluated?.counterpartyRisk ?? false, frame, dataState:community.state, ageMs:community.ageMs});
+    const args = {site:siteFrom(sender.url), chain:state.chainId, observed:frontendData.evidence, frame, verdict: evaluated?.verdict ?? verdict, incidentStatus:latest?.incidentStatus ?? (currentStatus?.status === "normal" ? "normal" : "unknown"), action:'continue', rawDrift:community.rawDrift, incident:community.activeIncident, communityReportingSafe:community.communityReportingSafe, overrideUsed:false};
+    const original = frontendObservationCandidates({...args, verdict, incidentStatus, assessment:frontendData.assessment, frame:frontendData.frame, rawDrift:frontendData.community.rawDrift, incident:frontendData.community.activeIncident, communityReportingSafe:frontendData.community.communityReportingSafe});
+    if (original.length && valid() && await currentDocument(sender) && !await tickets.hasOverrideDocument({tabId:sender.tab.id,documentId:sender.documentId}) && valid()) await enqueueReports(frontendObservationCandidates({...args, assessment}));
+  }
+  if (connection) return;
   if (!mayRecordObservation({ verdict: evaluated.verdict, incidentStatus: latest.incidentStatus, action: "continue" })) return;
   await enqueueReports(observationCandidates({ site: siteFrom(sender.tab?.url), chain: state.chainId, classification, request, accounts: state.accounts }));
 }
@@ -455,7 +565,7 @@ function handleMalformed(message, sender) {
   recent.push(now);
   rate.set(frameKey, recent);
   const id = crypto.randomUUID();
-  const details = {
+  let details = {
     id,
     method: String(message.method || "unknown").slice(0, 100),
     target: "Not decoded",
@@ -497,7 +607,7 @@ async function handleWarningMessage(message, sender) {
   const window = await entry.window;
   if (!window || sender.tab?.windowId !== window.id || pending.get(message.id) !== entry || entry.used) return denied;
   if (message.type === "BOUND_GET_V1") return entry.details;
-  if (entry.details.verdict === "escalated" && message.action === "continue" && message.confirmation !== "I UNDERSTAND") return { ok: false, error: "confirmation_required" };
+  if ((entry.details.requireTypedConfirmation || entry.details.verdict === "escalated") && message.action === "continue" && message.confirmation !== "I UNDERSTAND") return { ok: false, error: "confirmation_required" };
   entry.used = true;
   finish(message.id, message.action === "continue" ? "continue" : "cancel");
   return { ok: true };
@@ -506,6 +616,7 @@ async function handleWarningMessage(message, sender) {
 function finish(id, action) {
   const entry = pending.get(id);
   if (!entry) return;
+  if (action === "forward" && entry.details.requireTypedConfirmation) action = "cancel";
   clearTimeout(entry.timer);
   pending.delete(id);
   entry.resolve(action);
@@ -598,6 +709,8 @@ async function refreshOpenSiteStatuses() {
 }
 async function refreshPublicData(){
   if (!(await monitoringEnabled())) return;
+  // refresh() already downloads the watcher bundle; the per-tab status reads below
+  // are bundle-first, so they reuse it instead of issuing per-tab Arkiv queries.
   if(typeof decisionAdapters?.refresh==="function")await decisionAdapters.refresh();
   await refreshOpenSiteStatuses();
 }
@@ -609,10 +722,17 @@ async function bypassPossible(tabId) {
     return Object.values(boundCoverage).some((item) => item.tabId === tabId && item.bypassPossible);
   } catch { return true; }
 }
+async function browserFrame({tabId, frameId}) {
+  const frame = await chrome.webNavigation.getFrame({tabId, frameId}).catch(() => null);
+  if (frame || frameId !== 0 || !chrome.runtime.getContexts) return frame;
+  const contexts = await chrome.runtime.getContexts({contextTypes: ['TAB'], tabIds: [tabId]});
+  const context = contexts.find(c => c.frameId === 0 && c.documentUrl?.startsWith(chrome.runtime.getURL('')));
+  return context ? {documentId: context.documentId, url: context.documentUrl} : null;
+}
 async function currentDocument(sender) {
   if (!Number.isInteger(sender.tab?.id) || !Number.isInteger(sender.frameId) || typeof sender.documentId !== "string") return false;
   try {
-    const frame = await chrome.webNavigation.getFrame({ tabId: sender.tab.id, frameId: sender.frameId });
+    const frame = await browserFrame({ tabId: sender.tab.id, frameId: sender.frameId });
     return frame?.documentId === sender.documentId;
   } catch { return false; }
 }

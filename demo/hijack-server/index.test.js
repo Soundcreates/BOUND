@@ -12,7 +12,7 @@ test('normal and hijack backends share one visible origin', async () => {
     assert.equal(normal.status, 200);
     assert.equal(demo.mode, 'normal');
     assert.equal(normal.headers.get('x-bound-demo-upstream'), 'normal');
-    assert.match(await normal.text(), /No wallet request/);
+    assert.match(await normal.text(), /Connect wallet/);
 
     demo.setMode('hijack');
     const hijack = await fetch(demo.origin);
@@ -49,7 +49,7 @@ test('opt-in scanner cloaking serves clean and attack pages at the same origin',
   const scanner=await fetch(demo.origin,{headers:{'user-agent':'Mozilla/5.0 HeadlessChrome/130.0'}});
   const browser=await fetch(demo.origin,{headers:{'user-agent':'Mozilla/5.0 Chrome/130.0'}});
   assert.equal(new URL(scanner.url).origin,new URL(browser.url).origin);
-  assert.match(await scanner.text(),/No wallet request/);assert.match(await browser.text(),/Request test approval/);
+  assert.match(await scanner.text(),/Connect wallet/);assert.match(await browser.text(),/Request test approval/);
  }finally{await demo.close();}
 });
 test('same-origin cutover can serve a synthetic local-chain approval request', async () => {
@@ -59,6 +59,8 @@ test('same-origin cutover can serve a synthetic local-chain approval request', a
     demo.setMode('hijack');
     const response=await fetch(demo.origin); const page=await response.text();
     assert.equal(new URL(response.url).origin,demo.origin);
-    assert.match(page,/eth_sendTransaction/); assert.match(page,/0x7a69/);
+    assert.match(page,/<script src="\/app.js">/);
+    const asset=await (await fetch(demo.origin+'/app.js')).text();
+    assert.match(asset,/eth_sendTransaction/); assert.match(asset,/0x7a69/);
   } finally { await demo.close(); }
 });

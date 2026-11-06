@@ -113,18 +113,37 @@ test("an observed address is visible but does not become trusted or witnessed", 
   assert.equal(evaluate({ classification: { kind: "decoded", entries: [{ role: "rights", address: unknownObservation }] }, ...context }).verdict, "red");
 });
 
-test("page-load status uses fresh anonymous data and never falls back to a stale bundle", async () => {
-  let bundleReads = 0;
+test("page-load status prefers a fresh bundle and never uses a stale bundle", async () => {
+  let anonymousCalls = 0;
   const source = {
     readVerifiedSnapshot: async () => snapshot(),
-    readWatcherBundle: async () => { bundleReads++; return watcherRecords().map(record => ({ ...record, status: "normal" })); },
-    readSiteStatusViaAnonRpc: async query => { assert.deepEqual(query, { site }); return watcherRecords(); }
+    readWatcherBundle: async () => watcherRecords(),
+    readSiteStatusViaAnonRpc: async () => { anonymousCalls++; return watcherRecords(); }
   };
   const input = { siteOrigin: `https://${site}`, watcherOwner: owner, adapters: source, now };
   assert.equal((await readPreconnectionSiteStatus(input)).status, "active");
-  source.readSiteStatusViaAnonRpc = async () => { throw new Error("offline"); };
+  source.readWatcherBundle = async () => [];
   assert.equal((await readPreconnectionSiteStatus(input)).status, "unknown");
-  assert.equal(bundleReads, 0);
+  assert.equal(anonymousCalls, 0);
+  source.readWatcherBundle = async () => { throw new Error("stale"); };
+  source.readSiteStatusViaAnonRpc = async () => { anonymousCalls++; throw new Error("offline"); };
+  assert.equal((await readPreconnectionSiteStatus(input)).status, "unknown");
+  assert.equal(anonymousCalls, 1);
+});
+
+test("concurrent anonymous fallbacks share a read", async () => {
+  let calls = 0, release;
+  const pending = new Promise(resolve => { release = resolve; });
+  const input = { siteOrigin: `https://${site}`, watcherOwner: owner, now, adapters: {
+    readVerifiedSnapshot: async () => snapshot(),
+    readWatcherBundle: async () => { throw new Error("stale"); },
+    readSiteStatusViaAnonRpc: async () => { calls++; return pending; }
+  } };
+  const first = readPreconnectionSiteStatus(input), second = readPreconnectionSiteStatus(input);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls, 1);
+  release(watcherRecords());
+  assert.deepEqual((await Promise.all([first, second])).map(value => value.status), ["active", "active"]);
 });
 
 test("trust and status expiring while adapters are running are not used", async () => {
@@ -331,7 +350,9 @@ test("loopback HTTP origins are allowed only for test hosts", async () => {
   assert.equal(snapshotCalls, 0);
 });
 
-test("snapshot is checked before site reads and every adapter wait is bounded", async () => {
+test("snapshot is checked before site reads and every adapter wait is bounded", async (t) => {
+  const original = setTimeout;
+  t.mock.method(globalThis, "setTimeout", (fn, ms, ...args) => original(fn, Math.min(ms, 5), ...args));
   let siteReadCalls = 0;
   const stale = await createDecisionContext({
     siteOrigin: `https://${site}`, chainId: "1", watcherOwner: owner,
@@ -432,7 +453,9 @@ test("preconnection status allows a slow anonymous Arkiv lookup", async () => {
   assert.equal(result.status,'normal');
 });
 
-test("preconnection status allows only loopback HTTP test origins and times out", async () => {
+test("preconnection status allows only loopback HTTP test origins and times out", async (t) => {
+  const original = setTimeout;
+  t.mock.method(globalThis, "setTimeout", (fn, ms, ...args) => original(fn, Math.min(ms, 5), ...args));
   const localSite = "localhost:5173";
   const localSnapshot = snapshot({ sites: { [localSite]: { "1": {
     trustedCounterparties: [], trustedContracts: [], deployers: [], source: "local test"
@@ -455,4 +478,17 @@ test("preconnection status allows only loopback HTTP test origins and times out"
   });
   assert.equal(timeout.status, "unknown");
   assert.equal(timeout.expiresAt, null);
+});
+
+test("a stalled bundle read falls back to anonymous status", async (t) => {
+  const original = setTimeout;
+  t.mock.method(globalThis, "setTimeout", (fn, ms, ...args) => original(fn, ms === 2_000 ? 5 : ms, ...args));
+  let calls = 0;
+  const result = await readPreconnectionSiteStatus({ siteOrigin: `https://${site}`, watcherOwner: owner, now, adapters: {
+    readVerifiedSnapshot: async () => snapshot(),
+    readWatcherBundle: () => new Promise(() => {}),
+    readSiteStatusViaAnonRpc: async () => { calls++; return watcherRecords(); }
+  } });
+  assert.equal(result.status, "active");
+  assert.equal(calls, 1);
 });

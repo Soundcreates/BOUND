@@ -37,3 +37,8 @@ test('registry expiry is persisted before renewal intent is cleared',async t=>{
  fail=false;renewer=await openExpiryRenewer(f.options);await renewer.resume();
  assert.equal(updates.length,2);assert.equal(updates[1][2],120);assert.equal(JSON.parse(await readFile(f.options.path,'utf8')).pending,null);
 });
+test('renews frontend records with the configured lifetime',async t=>{
+ const f=await fixture(t);const frontend={schemaVersion:1,kind:'frontend',site:'example.org',chainId:1,scripts:[],updatedAt:'2026-01-01T00:00:00.000Z'};
+ f.options.lifetimes.frontend=200;f.options.listCurrent=async()=>[{key,record:frontend}];f.setEntity({key,owner,expiresAt:30,record:frontend});f.setBlock(20);
+ const renewer=await openExpiryRenewer(f.options);await renewer.renew();assert.equal(f.calls[0].lifetime,200);
+});

@@ -70,7 +70,8 @@ async function cmdPublish(bytesPath: string): Promise<void> {
   process.stdout.write(
     `published epoch ${result.epoch}` +
       (result.previousEpoch !== undefined ? ` (previous: ${result.previousEpoch})` : " (first publish)") +
-      `\n  arkivKey:   ${result.arkivKey}\n  arkivOwner: ${result.arkivOwner}\n  digest:     ${result.digest}\n  tx:         ${result.txHash}\n`,
+      `\n  swarmRef: ${result.swarmRef}\n  digest:   ${result.digest}\n  tx:       ${result.txHash}\n` +
+      `  mined in block ${result.blockNumber} — the root is live and readable now\n`,
   );
 }
 
@@ -80,8 +81,7 @@ async function cmdRead(): Promise<void> {
   process.stdout.write(
     `live root verified — epoch ${root.epoch}, network ${root.network}\n` +
       `  digest:   ${root.digest}\n` +
-      `  arkivKey: ${root.arkivKey}\n` +
-      `  arkivOwner: ${root.arkivOwner}\n` +
+      `  swarmRef: ${root.swarmRef}\n` +
       `  sites:    ${Object.keys(snapshot.sites).length}\n` +
       `  expires:  ${snapshot.expiresAt}\n`,
   );

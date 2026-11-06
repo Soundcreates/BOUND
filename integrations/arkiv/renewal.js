@@ -6,7 +6,7 @@ const keyPattern=/^0x[0-9a-f]{64}$/;
 const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(key=>Object.hasOwn(v,key));
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 const digest=value=>createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
-const validRecord=record=>validateRecord(record)&&['baseline','status','ens_record'].includes(record.kind);
+const validRecord=record=>validateRecord(record)&&['baseline','status','ens_record','frontend'].includes(record.kind);
 const operationId=item=>digest(['expiry-extension',item.key,item.expiry,item.lifetime,item.record]);
 const validPending=item=>exact(item,['id','key','record','expiry','lifetime'])&&keyPattern.test(item.key)&&validRecord(item.record)&&Number.isSafeInteger(item.expiry)&&item.expiry>=0&&Number.isSafeInteger(item.lifetime)&&item.lifetime>0&&item.lifetime<=7884000&&item.id===operationId(item);
 async function persist(path,state){const temporary=`${path}.${randomUUID()}.tmp`;let file;try{file=await open(temporary,'wx',0o600);await file.writeFile(JSON.stringify(state),'utf8');await file.sync();await file.close();file=undefined;await rename(temporary,path);const directory=await open(dirname(path),'r');try{await directory.sync();}finally{await directory.close();}}finally{if(file)await file.close();await unlink(temporary).catch(error=>{if(error.code!=='ENOENT')throw error;});}}
@@ -42,7 +42,7 @@ export async function openExpiryRenewer({path,owner,currentBlock,getEntity,listC
    try{entity=await getEntity(item.key);verify(entity,item,block);}catch{unavailable=true;continue;}
    if(entity.expiresAt-block>renewBeforeBlocks)continue;
    const pendingSender=await hasPending();if(typeof pendingSender!=='boolean'||pendingSender)throw new Error('another Arkiv transaction is pending');
-   const pending={key:item.key,record:structuredClone(item.record),expiry:entity.expiresAt,lifetime:lifetimes[item.record.kind]};pending.id=operationId(pending);
+   const pending={key:item.key,record:structuredClone(item.record),expiry:entity.expiresAt,lifetime:lifetimes[item.record.kind] ?? (item.record.kind==='frontend' ? lifetimes.baseline : undefined)};pending.id=operationId(pending);
    await save(pending);await resume();
   }
   if(unavailable)throw new Error('one or more Arkiv entities could not be renewed');

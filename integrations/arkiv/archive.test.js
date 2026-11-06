@@ -122,3 +122,44 @@ test('multiple same-hour guarded recoveries do not replay a superseded normal st
  await assert.rejects(archive.writeRecoveryStatus(normal,ids[4],priorDrift),/stale status recovery/);assert.equal(sent,4);
  const priorIncident=await archive.getStatusVersion(normal.site,normal.chainId);await archive.writeRecoveryStatus(normal,ids[2],priorIncident);assert.equal(sent,5);
 });
+test('frontend writer enforces kind and lifetime bounds',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-frontend-archive-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const options={url:'https://rpc.example',owner,target,chainId:7794095,schemaTag,senderJournal:join(dir,'sender'),registryJournal:join(dir,'registry'),lifetimes:{observation:100,baseline:100,drift:100,incident:100,status:100,frontend:25},prepare:async()=>{},inspect:async()=>{},hash:async()=>{}};
+ for(const lifetime of [0,25,7884001,1.5]) await assert.rejects(openArkivArchive({...options,lifetimes:{...options.lifetimes,frontend:lifetime}}),/invalid frontend lifetime/);
+ const archive=await openArkivArchive({...options,lifetimes:{...options.lifetimes,frontend:100}});t.after(()=>archive.close());
+ await assert.rejects(archive.writeFrontend(base,'1'.repeat(64)),/invalid Arkiv record kind/);
+});
+test('pending frontend send is quarantined on unsafe restart and cannot replay after recovery',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-frontend-replay-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const record={schemaVersion:1,kind:'frontend',site:'example.org',chainId:1,scripts:[],updatedAt:'2026-01-01T00:00:00.000Z'};
+ let safe=true,sent=0,prepared=0;const requests=new Map();
+ const fetchImpl=async(_url,options)=>{const req=JSON.parse(options.body);let result;
+  switch(req.method){
+   case 'eth_chainId':result='0x76edaf';break;
+   case 'eth_blockNumber':result='0xb';break;
+   case 'arkiv_query':result={data:[],blockNumber:'0xb'};break;
+   case 'eth_getTransactionReceipt':result=null;break;
+   case 'eth_sendRawTransaction':sent++;result='0x'+'0'.repeat(63)+'1';break;
+   default:throw Error('unexpected RPC '+req.method);
+  }return {ok:true,json:async()=>({jsonrpc:'2.0',id:1,result})};};
+ const options={url:'https://rpc.example',fetchImpl,owner,target,chainId:7794095,schemaTag,senderJournal:join(dir,'sender'),registryJournal:join(dir,'registry'),lifetimes:{observation:100,baseline:100,drift:100,incident:100,status:100},getFrontendSafety:async()=>({known:safe,rawDrift:!safe,incident:false}),prepare:async request=>{prepared++;requests.set('0x01',request);return '0x01';},inspect:async raw=>({...requests.get(raw),from:owner,to:target}),hash:async bytes=>'0x'+bytes.toString('hex').padStart(64,'0')};
+ let archive=await openArkivArchive(options);t.after(()=>archive.close());
+ await assert.rejects(archive.writeFrontend(record,'1'.repeat(64)),/pending/);assert.equal(sent,1);await archive.close();
+ safe=false;archive=await openArkivArchive(options);
+ await assert.rejects(archive.writeFrontend({...record,updatedAt:'2026-01-01T01:00:00.000Z'},'2'.repeat(64)),/quarantined/);
+ assert.equal(sent,1);await archive.close();safe=true;archive=await openArkivArchive(options);
+ await assert.rejects(archive.writeFrontend(record,'1'.repeat(64)),/quarantined/);
+ await assert.rejects(archive.writeFrontend({...record,updatedAt:'2026-01-01T02:00:00.000Z'},'3'.repeat(64)),/quarantined/);
+ assert.equal(sent,1);assert.equal(prepared,1);
+});
+test('never prepared quarantined frontend operation is retired durably',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bound-frontend-retire-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const record={schemaVersion:1,kind:'frontend',site:'example.org',chainId:1,scripts:[],updatedAt:'2026-01-01T00:00:00.000Z'},id='1'.repeat(64);
+ let safe=false,prepared=0;
+ const options={url:'https://rpc.example',owner,target,chainId:7794095,schemaTag,senderJournal:join(dir,'sender'),registryJournal:join(dir,'registry'),lifetimes:{observation:100,baseline:100,drift:100,incident:100,status:100},getFrontendSafety:async()=>({known:safe,rawDrift:!safe,incident:false}),prepare:async()=>{prepared++;throw Error('unexpected preparation');},inspect:async()=>{},hash:async()=>{}};
+ let archive=await openArkivArchive(options);t.after(()=>archive.close());
+ await assert.rejects(archive.writeFrontend(record,id),/quarantined/);assert.equal(prepared,0);
+ safe=true;assert.deepEqual(await archive.reconcileFrontend(record,id),{state:'absent'});
+ await archive.close();archive=await openArkivArchive(options);
+ await assert.rejects(archive.writeFrontend(record,id),/retired/);assert.equal(prepared,0);
+});

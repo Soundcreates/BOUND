@@ -137,3 +137,12 @@ test("dispatcher timeout aborts transport and keeps the batch queued", async () 
   assert.deepEqual(h.storageData.boundObservationQueue, [record]);
   assert.equal(h.storageData.boundObservationDispatchAt, now + 2_000);
 });
+
+test('lost response retries the same queued prefix', async () => {
+ const queue=Array.from({length:21},(_,i)=>({site:`s${i}.example`,kind:'warned',chain:'1',reporterKey:'key'}));
+ const h=harness(queue); let now=1000; const sent=[];
+ const dispatcher=createObservationDispatcher({storage:h.storage,alarms:h.alarmApi,now:()=>now,random:()=>0,send:async batch=>{sent.push(structuredClone(batch));if(sent.length===1)throw Error('lost response');}});
+ await dispatcher.schedule(); now=h.storageData.boundObservationDispatchAt; await assert.rejects(dispatcher.dispatch(),/lost response/);
+ assert.deepEqual(h.storageData.boundObservationQueue,queue); now=h.storageData.boundObservationDispatchAt; await dispatcher.dispatch();
+ assert.deepEqual(sent[0],sent[1]); assert.equal(h.storageData.boundObservationQueue.length,1);
+});

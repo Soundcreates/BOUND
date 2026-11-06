@@ -1,0 +1,20 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {querySafeCommunity,DEFAULT_CONFIG} from './src/community.mjs';
+const args={rpcUrl:DEFAULT_CONFIG.rpcUrl,watcher:DEFAULT_CONFIG.watchers[0],chainId:'1',site:'example.com'};
+const reply=(id,result)=>new Response(JSON.stringify({jsonrpc:'2.0',id,result}),{headers:{'content-type':'application/json'}});
+test('validates RPC chain and owner and returns bounded fresh result',async()=>{const fetchImpl=async(_u,o)=>{const q=JSON.parse(o.body);return reply(q.id,q.method==='eth_chainId'?'0x76edaf':{data:[],blockNumber:'0xa'});};const v=await querySafeCommunity({...args,fetchImpl});assert.equal(v.state,'fresh');assert.equal(v.ambiguous,true);assert.equal((await querySafeCommunity({...args,watcher:'0x'+'a'.repeat(40),fetchImpl})).state,'unavailable');assert.equal((await querySafeCommunity({...args,fetchImpl:async(_u,o)=>reply(JSON.parse(o.body).id,'0x1')})).state,'unavailable');});
+test('rejects non JSON content',async()=>{assert.equal((await querySafeCommunity({...args,fetchImpl:async()=>new Response('{}')})).state,'unavailable');});
+const key=n=>'0x'+n.toString(16).padStart(64,'0');
+const record=(kind,extra)=>({schemaVersion:1,kind,site:'example.com',chainId:1,...extra});
+const entity=(n,r,patch={})=>({key:key(n),owner:args.watcher,expiresAt:'0x64',attributes:[{name:'arkiv.schema',type:'str',value:'bound.record.v1'},{name:'payload',type:'bytes',value:'0x'+Buffer.from(JSON.stringify(r)).toString('hex')}],...patch});
+const date='2026-01-01T00:00:00.000Z';
+const front=record('frontend',{scripts:[],updatedAt:date});
+const incident=record('incident',{trigger:'drift+warned',severity:'high',counterparty:'0x'+'a'.repeat(40),reportDigest:key(9),reportReference:'a'.repeat(64),createdAt:date});
+const status=record('status',{state:'incident',feedReference:key(8),incidentReference:key(2),updatedAt:date});
+function fetchRows(rows){return async(_u,o)=>{const q=JSON.parse(o.body);return reply(q.id,q.method==='eth_chainId'?'0x76edaf':{data:rows,blockNumber:'0xa'});};}
+test('rejects expired, wrong owner and malformed records',async()=>{for(const row of [entity(1,front,{owner:'0x'+'a'.repeat(40)}),entity(1,front,{expiresAt:'0xa'}),entity(1,{...front,extra:1})])assert.equal((await querySafeCommunity({...args,fetchImpl:fetchRows([row]),now:()=>Date.parse(date)})).state,'unavailable');});
+test('incident requires exact unique status and incident linkage',async()=>{const now=()=>Date.parse(date);const linked=await querySafeCommunity({...args,fetchImpl:fetchRows([entity(1,front),entity(2,incident),entity(3,status)]),now});assert.equal(linked.activeIncident,true);const unlinked=await querySafeCommunity({...args,fetchImpl:fetchRows([entity(1,front),entity(2,incident),entity(3,{...status,incidentReference:key(5)})]),now});assert.equal(unlinked.activeIncident,false);const ambiguous=await querySafeCommunity({...args,fetchImpl:fetchRows([entity(1,front),entity(2,status),entity(3,status)]),now});assert.equal(ambiguous.ambiguous,true);assert.equal(ambiguous.activeIncident,false);});
+test('rejects oversized responses and wrong JSON-RPC id',async()=>{for(const fetchImpl of [async()=>new Response('x'.repeat(1000001),{headers:{'content-type':'application/json'}}),async()=>reply(999,'0x76edaf')])assert.equal((await querySafeCommunity({...args,fetchImpl})).state,'unavailable');});
+test('restarts once on block churn and fails if it recurs',async()=>{let pages=0;const fetchImpl=async(_u,o)=>{const q=JSON.parse(o.body);if(q.method==='eth_chainId')return reply(q.id,'0x76edaf');pages++;const rows=pages%2===1?[1,2,3,4].map(n=>entity(n,front)):[];return reply(q.id,{data:rows,blockNumber:pages%2?'0xa':'0xb'});};const v=await querySafeCommunity({...args,fetchImpl,now:()=>Date.parse(date)});assert.equal(v.state,'unavailable');assert.equal(pages,4);});
+test('hanging fetch is bounded by the total deadline',async()=>{const started=Date.now();const v=await querySafeCommunity({...args,fetchImpl:()=>new Promise(()=>{})});assert.equal(v.state,'unavailable');assert.ok(Date.now()-started<9500);});

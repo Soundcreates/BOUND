@@ -48,7 +48,7 @@ async function verify(){
   return response.json();
  };
  const reader=createArkivReader({getSettings:async()=>({arkivRpcUrl:config.arkiv.url,watcherOwner:config.arkiv.owner}),storage:{get:async()=>cache,set:async value=>{cache={...cache,...value};}},anonymousRequest});
- const trust=createTrustEngine({getSettings:async()=>({ensRootName:config.ens.rootName,ensResolver:config.ens.resolverAddress,arkivRpcUrl:config.arkiv.url}),storage:{get:async()=>({}),set:async()=>{}},readRoot:async()=>verified.root,readArkivSnapshot:({key,owner})=>readArkivEntity({url:config.arkiv.url,accessKey:config.arkiv.accessKey,owner,chainId:config.arkiv.chainId,schemaTag:config.arkiv.schemaTag,entityKey:key})});
+ const trust=createTrustEngine({getSettings:async()=>({ensRootName:config.ens.rootName,ensResolver:config.ens.resolverAddress,arkivRpcUrl:config.arkiv.url}),storage:{get:async()=>({}),set:async()=>{}},readRoot:async()=>verified.root,readArkivSnapshot:({key,owner})=>readArkivEntity({url:config.arkiv.url,accessKey:config.arkiv.accessKey,owner,chainId:config.arkiv.chainId,schemaTag:config.arkiv.schemaTag,entityKey:key}),log:(level,step,details)=>console.error(`[BOUND ENS] ${level.toUpperCase()} ${step}`,JSON.stringify(details))});
  const decisionSource=await trust.readVerifiedSnapshot();
  for(let attempt=0;;attempt++){
   try{await reader.refresh();break;}

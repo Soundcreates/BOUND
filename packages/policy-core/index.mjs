@@ -9,9 +9,16 @@ export function canonicalSite(value) {
 }
 
 export function evaluate({ classification, policy, baseline, signerAccounts = [], drift = false, witnessed = new Set(), coverage = "mediated", thresholds = { green: 70, amber: 40, red: 16 } }) {
-  if (classification.kind === "unsupported") return { verdict: "grey", score: null, coverage: "unsupported", reasons: ["Unsupported wallet method"] };
-  if (classification.kind === "escalated") return { verdict: "escalated", score: 0, coverage, reasons: [classification.label || "Sensitive signature"] };
-  if (!baseline) return { verdict: "grey", score: null, coverage, reasons: ["No baseline", ...(classification.label ? [classification.label] : [])] };
+  const counterpartyRisk = Boolean(baseline && policy && classification.kind === "decoded" && (classification.entries || []).some(item => {
+    const address = item.address?.toLowerCase();
+    if (!address || item.verified === false || !["rights", "destination", "called"].includes(item.role)) return false;
+    if (item.role === "destination" && signerAccounts.some(account => account.toLowerCase() === address)) return false;
+    const entry = policy[address];
+    return !entry?.sources?.some(source => trustedBy.has(source) && (!entry.rolesBySource || entry.rolesBySource[source]?.includes(item.role) === true));
+  }));
+  if (classification.kind === "unsupported") return { counterpartyRisk, verdict: "grey", score: null, coverage: "unsupported", reasons: ["Unsupported wallet method"] };
+  if (classification.kind === "escalated") return { counterpartyRisk, verdict: "escalated", score: 0, coverage, reasons: [classification.label || "Sensitive signature"] };
+  if (!baseline) return { counterpartyRisk, verdict: "grey", score: null, coverage, reasons: ["No baseline", ...(classification.label ? [classification.label] : [])] };
 
   let score = 100;
   const reasons = [];
@@ -55,6 +62,6 @@ export function evaluate({ classification, policy, baseline, signerAccounts = []
   score = Math.min(score, classification.cap ?? 100);
   if (classification.label) reasons.push(classification.label);
   const verdict = score >= thresholds.green ? "green" : score >= thresholds.amber ? "amber" : score >= thresholds.red ? "red" : "escalated";
-  if (verdict === "green" && coverage !== "mediated") return { verdict: "grey", score: null, coverage, reasons: [...reasons, "A wallet path may bypass BOUND."] };
-  return { verdict, score, coverage, reasons, ...(warnedAddresses.size ? { warnedAddresses: [...warnedAddresses] } : {}) };
+  if (verdict === "green" && coverage !== "mediated") return { counterpartyRisk, verdict: "grey", score: null, coverage, reasons: [...reasons, "A wallet path may bypass BOUND."] };
+  return { counterpartyRisk, verdict, score, coverage, reasons, ...(warnedAddresses.size ? { warnedAddresses: [...warnedAddresses] } : {}) };
 }

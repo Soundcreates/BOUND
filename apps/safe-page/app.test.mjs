@@ -1,0 +1,19 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {startSafePage,liveEvidenceDisagrees} from './src/app.mjs';
+import {encodeSafeFragment} from './src/fragment.mjs';
+const evidence={v:1,site:'example.com',chain:'1',score:null,sev:'warning',reason:['incident'],conflicts:[],unfamiliar:[],cov:{total:0,compared:0,inlineExcluded:0,queryExcluded:0,crossOriginExcluded:0,privatePathExcluded:0,unavailable:0,overCap:0},ticket:'1'.repeat(32),watcher:'0x'+'e'.repeat(40)};
+function fixture(hash,protocol='https:'){const nodes=Object.fromEntries(['confirm','leave','summary','reasons','coverage','rows','live'].map(k=>[k,{textContent:'',disabled:false,children:[],addEventListener(_n,fn){this.click=fn;},appendChild(x){this.children.push(x);}}]));let cleared=false;const messages=[],navigations=[];const win={location:{hash,pathname:'/safe',search:'',origin:'https://example.org',protocol,assign:x=>navigations.push(x)},history:{replaceState(){cleared=true;}},postMessage:(...x)=>messages.push(x)};return {win,doc:{getElementById:id=>nodes[id],createElement:()=>({textContent:''})},nodes,messages,navigations,get cleared(){return cleared;}};}
+test('invalid fragment clears immediately, disables confirmation and skips query',()=>{const f=fixture('#bad');startSafePage({window:f.win,document:f.doc,query:()=>assert.fail()});assert.ok(f.cleared);assert.ok(f.nodes.confirm.disabled);f.nodes.leave.click();assert.deepEqual(f.navigations,['about:blank']);});
+test('remote sends ready and confirmation, leaves controls enabled on failure',async()=>{const f=fixture(encodeSafeFragment(evidence));startSafePage({window:f.win,document:f.doc,query:async()=>{throw Error();}});assert.ok(f.cleared);assert.equal(f.messages[0][0].type,'BOUND_SAFE_READY_V1');f.nodes.confirm.click();assert.equal(f.messages[1][0].type,'BOUND_SAFE_CONFIRM_V1');await new Promise(resolve=>setImmediate(resolve));assert.match(f.nodes.live.textContent,/unavailable/);assert.equal(f.nodes.confirm.disabled,false);});
+test('packaged sends runtime messages',()=>{const f=fixture(encodeSafeFragment(evidence),'chrome-extension:');f.win.chrome={runtime:{sendMessage:m=>f.messages.push(m)}};startSafePage({window:f.win,document:f.doc,query:async()=>({state:'unavailable'})});f.nodes.confirm.click();assert.deepEqual(f.messages.map(x=>x.type),['BOUND_SAFE_READY_V1','BOUND_SAFE_CONFIRM_V1']);});
+
+test('live baseline accepting the observed hash disagrees even when incident flags match',async()=>{
+ const observed='sha256-'+Buffer.alloc(32,1).toString('base64'),expected='sha256-'+Buffer.alloc(32,2).toString('base64');
+ const e={...evidence,reason:[],conflicts:[{path:'/app.js',observed,expected:[expected]}],cov:{...evidence.cov,total:2,compared:1,inlineExcluded:1}};
+ const live={state:'fresh',activeIncident:false,corroboratedDrift:false,rawDrift:false,ambiguous:false,block:10,frontend:{scripts:[{path:'/app.js',hash:observed,established:true}]}};
+ assert.equal(liveEvidenceDisagrees(e,live),true);
+ assert.equal(liveEvidenceDisagrees(e,{...live,frontend:{scripts:[{path:'/app.js',hash:expected,established:true}]}}),false);
+ const f=fixture(encodeSafeFragment(e));startSafePage({window:f.win,document:f.doc,query:async()=>live});await new Promise(resolve=>setImmediate(resolve));
+ assert.match(f.nodes.live.textContent,/may disagree/);assert.match(f.nodes.coverage.textContent,/1 of 2/);assert.match(f.nodes.coverage.textContent,/inlineExcluded: 1/);
+});

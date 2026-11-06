@@ -95,7 +95,7 @@ test("verified deployer lineage limits the request to amber without another appl
 
 test("eth_sign remains escalated even when there is no baseline", () => {
   assert.deepEqual(evaluate({ classification: { kind: "escalated", cap: 0, label: "Blind signature" }, baseline: null }), {
-    verdict: "escalated", score: 0, coverage: "mediated", reasons: ["Blind signature"]
+    counterpartyRisk: false, verdict: "escalated", score: 0, coverage: "mediated", reasons: ["Blind signature"]
   });
 });
 
@@ -122,4 +122,20 @@ test("normal DEX opaque calldata with heuristic hits remains amber even when add
 test("trusted router calldata without heuristic address hits stays green", () => {
   const classification = classifyRequest({ method: "eth_sendTransaction", params: [{ to: addr(1), data: `0xdeadbeef${"0".repeat(63)}1` }] });
   assert.equal(evaluate({ classification, baseline: "seeded", policy: { [addr(1)]: { sources: ["snapshot"] } } }).verdict, "green");
+});
+
+
+test("counterparty risk follows verified roles and applicable trust without changing scores", () => {
+  const run = (role, extra = {}) => evaluate({classification:{kind:"decoded", entries:[{address:addr(1),role}]},baseline:"seeded",policy:{},...extra});
+  for (const role of ["called", "destination"]) { const result = run(role); assert.equal(result.counterpartyRisk,true); assert.equal(result.score,65); assert.equal(result.verdict,"amber"); }
+  for (const role of ["token","unknown"]) assert.equal(run(role).counterpartyRisk,false);
+  assert.equal(run("destination",{signerAccounts:[addr(1)]}).counterpartyRisk,false);
+  const policy = { [addr(1)]: {sources:["snapshot"],rolesBySource:{snapshot:["called"]}} };
+  assert.equal(run("called",{policy}).counterpartyRisk,false);
+  assert.equal(run("rights",{policy}).counterpartyRisk,true);
+  assert.equal(run("rights",{policy:{[addr(1)]:{sources:["deployer_lineage"]}}}).counterpartyRisk,false);
+  assert.equal(run("called",{classification:{kind:"decoded",entries:[{address:addr(1),role:"called",verified:false}]}}).counterpartyRisk,false);
+  assert.equal(run("called",{baseline:null}).counterpartyRisk,false);
+  assert.equal(run("called",{policy:null}).counterpartyRisk,false);
+  for (const kind of ["unsupported","escalated"]) assert.equal(run("called",{classification:{kind}}).counterpartyRisk,false);
 });

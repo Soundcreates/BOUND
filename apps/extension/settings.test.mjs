@@ -16,6 +16,7 @@ test("default settings seed once and never overwrite a saved configuration",asyn
  const seeded=empty.data().boundSettings;
  assert.deepEqual(seeded,normalizeSettings(DEFAULT_SETTINGS));
  assert.equal(seeded.watcherOwner,DEFAULT_SETTINGS.watcherOwner.toLowerCase());
+ assert.equal(seeded.safePageUrl,"https://bzz.limo/bzz/2ef102c267b6d62900b8c31c25620405d5fff12e22cd01f79038bd3eea0e682c/");
  assert.equal(seeded.watcherUrl,"https://bound-aggregator-0-1-1.onrender.com/v1/observations");
  assert.equal(await ensureDefaultSettings(empty),false);
  // A saved configuration with a deliberately cleared watcher URL stays as saved.
@@ -23,4 +24,11 @@ test("default settings seed once and never overwrite a saved configuration",asyn
  const kept=store({boundSettings:saved});
  assert.equal(await ensureDefaultSettings(kept),false);
  assert.equal(kept.data().boundSettings.watcherUrl,"");
+});
+
+test('safe page setting preserves gateway paths and accepts only public HTTPS or loopback',()=>{
+ assert.equal(normalizeSettings({}).safePageUrl,'');
+ for(const safePageUrl of ['https://gateway.example/bzz/'+'a'.repeat(64)+'/', 'http://127.0.0.1:8081/safe/', 'http://[::1]:8081/safe.html'])assert.equal(normalizeSettings({safePageUrl}).safePageUrl,safePageUrl);
+ for(const safePageUrl of ['http://gateway.example/safe', 'https://user:pass@gateway.example/safe', 'https://gateway.example/safe?x=1', 'https://gateway.example/safe#x', 'javascript:alert(1)', 'chrome-extension://ext/safe.html'])assert.throws(()=>normalizeSettings({safePageUrl}));
+ assert.notEqual(normalizeSettings({safePageUrl:'https://gateway.example/bzz/release-a/'}).safePageUrl,normalizeSettings({safePageUrl:'https://gateway.example/bzz/release-b/'}).safePageUrl);
 });

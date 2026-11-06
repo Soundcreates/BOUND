@@ -84,14 +84,13 @@ async function main(): Promise<void> {
   });
   const nextEpoch = (previous?.epoch ?? 0) + 1;
   const disposableDigest = ("0x" + "ab".repeat(32)) as `0x${string}`;
-  const disposableKey = ("0x" + "cd".repeat(32)) as `0x${string}`;
+  const disposableRef = "cd".repeat(32);
   const txHash = await publishRootRecord(walletClient, publicClient, ens, {
     digest: disposableDigest,
     epoch: nextEpoch,
     network: "sepolia",
     schemaVersion: 1,
-    arkivKey: disposableKey,
-    arkivOwner: curator.address.toLowerCase() as `0x${string}`,
+    swarmRef: disposableRef,
   });
   console.log(`published disposable epoch ${nextEpoch}, tx ${txHash} — waiting for receipt`);
   await publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -118,8 +117,7 @@ async function main(): Promise<void> {
           epoch: nextEpoch + 1,
           network: "sepolia",
           schemaVersion: 1,
-          arkivKey: ("0x" + "ee".repeat(32)) as `0x${string}`,
-          arkivOwner: curator.address.toLowerCase() as `0x${string}`,
+          swarmRef: "ee".repeat(32),
         });
         console.error("FAIL: unauthorized write SUCCEEDED — this must not happen");
       } catch {

@@ -1,3 +1,4 @@
+import { isFrontendPath, isFrontendHash, validateFrontendRecord } from './frontend.js';
 // Phase 0 wire contract. Validation does not authenticate an Arkiv owner.
 const ADDRESS_RE = /^0x[0-9a-f]{40}$/;
 const DIGEST_RE = /^0x[0-9a-f]{64}$/;
@@ -46,6 +47,10 @@ const siteChain = v => exact(v, ['trustedCounterparties', 'trustedCalledContract
   [...v.trustedCounterparties, ...v.trustedCalledContracts, ...v.deployerLineage.map(x => x.address)].every(a => v.sourceEvidence.some(e => e.address === a));
 
 export function validateRoot(v) {
+  if (exact(v, ['schemaVersion', 'network', 'epoch', 'digest', 'swarmReference'])) {
+    return v.schemaVersion === 1 && network(v.network) && integer(v.epoch) && v.epoch > 0 &&
+      isDigest(v.digest) && typeof v.swarmReference === 'string' && /^[0-9a-f]{64}$/.test(v.swarmReference);
+  }
   return exact(v, ['schemaVersion', 'network', 'epoch', 'digest', 'arkivKey', 'arkivOwner']) &&
     v.schemaVersion === 1 && network(v.network) && integer(v.epoch) && v.epoch > 0 &&
     isDigest(v.digest) && isDigest(v.arkivKey) && isAddress(v.arkivOwner);
@@ -66,6 +71,7 @@ export function validateRootSnapshotPair(root, snapshot) {
 
 // This is the extension-to-watcher intake. Its kind is the observation subtype.
 export function validateObservation(v) {
+  if (v?.kind === 'frontend') return exact(v, ['site', 'kind', 'chainId', 'reporterKey', 'path', 'hash']) && host(v.site) && v.site.length <= 253 && integer(v.chainId) && v.chainId > 0 && typeof v.reporterKey === 'string' && /^[\x20-\x7e]{1,128}$/.test(v.reporterKey) && isFrontendPath(v.path) && isFrontendHash(v.hash);
   return exact(v, ['site', 'kind', 'value', 'chainId', 'reporterKey']) &&
     host(v.site) && ['counterparty', 'called-contract', 'warned'].includes(v.kind) &&
     isAddress(v.value) && integer(v.chainId) && v.chainId > 0 && nonempty(v.reporterKey);
@@ -92,6 +98,7 @@ const change = v => exact(v, ['kind', 'before', 'after']) &&
 export function validateRecord(v) {
   if (v === null || typeof v !== 'object' || Array.isArray(v)) return false;
   switch (v.kind) {
+    case 'frontend': return validateFrontendRecord(v);
     case 'observation':
       return baseRecord(v, ['value', 'reporterKey', 'event']) &&
         isAddress(v.value) && nonempty(v.reporterKey) &&
@@ -104,11 +111,16 @@ export function validateRecord(v) {
         Array.isArray(v.changes) && v.changes.length > 0 &&
         v.changes.every((item, i) => change(item) && (!i || v.changes[i - 1].kind < item.kind)) &&
         typeof v.corroborated === 'boolean' && isArkivEntityReference(v.evidenceReference) && timestamp(v.detectedAt);
-    case 'incident':
-      return baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'reportReference', 'createdAt']) &&
+    case 'incident': {
+      const isReportRef = baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'reportReference', 'createdAt']) &&
+        typeof v.reportReference === 'string' && /^[0-9a-f]{64}$/.test(v.reportReference);
+      const isSwarmRef = baseRecord(v, ['trigger', 'severity', 'counterparty', 'reportDigest', 'swarmReference', 'createdAt']) &&
+        typeof v.swarmReference === 'string' && /^[0-9a-f]{64}$/.test(v.swarmReference);
+      return (isReportRef || isSwarmRef) &&
         ['drift+warned', 'K-same-counterparty-warned'].includes(v.trigger) &&
         v.severity === 'high' && isAddress(v.counterparty) && isDigest(v.reportDigest) &&
-        /^[0-9a-f]{64}$/.test(v.reportReference) && timestamp(v.createdAt);
+        timestamp(v.createdAt);
+    }
     case 'evidence':
       return baseRecord(v, ['digest', 'payload', 'createdAt']) && isDigest(v.digest) &&
         typeof v.payload === 'string' && v.payload.length > 0 && new TextEncoder().encode(v.payload).length <= 61_440 && timestamp(v.createdAt);
@@ -146,7 +158,7 @@ export function validateBundle(v, watcherAddress, currentBlock) {
         !isDigest(entry.key) || keys.has(entry.key) ||
         !isAddress(entry.owner) || entry.owner !== watcherAddress ||
         !integer(entry.expiresAt) || entry.expiresAt <= currentBlock ||
-        !validateRecord(entry.record) || !['baseline', 'drift', 'incident', 'status', 'ens_record'].includes(entry.record.kind)) return false;
+        !validateRecord(entry.record) || !['baseline', 'drift', 'incident', 'status', 'ens_record', 'frontend'].includes(entry.record.kind)) return false;
     keys.add(entry.key);
   }
   return true;

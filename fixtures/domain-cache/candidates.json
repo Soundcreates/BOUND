@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "purpose": "Candidate origins for future domain-cache integration tests; not verified evidence or Arkiv records.",
+  "origins": [
+    {
+      "origin": "https://app.uniswap.org",
+      "classification": "candidate"
+    },
+    {
+      "origin": "https://app.aave.com",
+      "classification": "candidate"
+    },
+    {
+      "origin": "https://swap.cow.fi",
+      "classification": "candidate"
+    },
+    {
+      "origin": "https://app.1inch.io",
+      "classification": "candidate"
+    },
+    {
+      "origin": "https://app.ens.domains",
+      "classification": "candidate"
+    },
+    {
+      "origin": "https://suspicious-wallet.example",
+      "classification": "fictional-test"
+    },
+    {
+      "origin": "https://fake-swap.example",
+      "classification": "fictional-test"
+    },
+    {
+      "origin": "https://wallet-verify.example",
+      "classification": "fictional-test"
+    },
+    {
+      "origin": "https://reward-claim.example",
+      "classification": "fictional-test"
+    },
+    {
+      "origin": "https://token-bridge.example",
+      "classification": "fictional-test"
+    },
+    {
+      "origin": "https://secure-airdrop.example",
+      "classification": "fictional-test"
+    }
+  ]
+}

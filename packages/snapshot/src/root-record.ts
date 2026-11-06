@@ -1,13 +1,13 @@
 /**
- * The root record: ONE ENSv2 text record holding digest + epoch + Arkiv entity pointer.
+ * The root record: ONE ENSv2 text record holding digest + epoch + Swarm reference.
  *
- * The v2 text record holds the digest, epoch, Arkiv entity key and owner, network and
- * snapshot schema version so publication is one record update. One record
+ * Plan §3: "Prefer one versioned ENS text-record value containing digest, epoch, Swarm
+ * reference, network and schema version so publication is one record update." One record
  * means there is no incoherent intermediate state to read, so no commit-pointer dance.
  *
- * Record key:  bound.root.v2
+ * Record key (frozen Phase 0):  bound.root.v1
  * Record value: canonical JCS JSON, so the published string is byte-reproducible:
- *   {"arkivKey":"0x…64","arkivOwner":"0x…40","digest":"0x…64","epoch":7,"network":"sepolia","schemaVersion":1}
+ *   {"digest":"0x…64","epoch":7,"network":"sepolia","schemaVersion":1,"swarmRef":"…64"}
  *
  * The value is deliberately NOT signed: authority comes from WHO may write this record key
  * (the curator's EAC role on this resolver), which is exactly what a DNS attacker lacks.
@@ -17,22 +17,44 @@ import { decodeUtf8Strict, parseStrictJson, type JsonValue } from "./strict-json
 import { isCanonicalAddress, isHex32, isStrictlySorted, type Hex } from "./hex.ts";
 import { isCanonicalHost } from "./host.ts";
 import { SchemaError, isChainKey, isNetworkLabel, parseTimestamp, SCHEMA_VERSION } from "./schema.ts";
+import { isCanonicalSwarmRef } from "./swarm-ref.ts";
 
-export const ROOT_RECORD_KEY = "bound.root.v2" as const;
+export const ROOT_RECORD_KEY = "bound.root.v1" as const;
 export const ATTESTATION_RECORD_KEY = "bound.attest.v1" as const;
 
-export interface RootRecord {
-  digest: Hex;
-  epoch: number;
-  network: string;
-  schemaVersion: number;
-  /** Arkiv entity key containing the canonical snapshot bytes. */
-  arkivKey: Hex;
-  /** Owner authenticated by the ENS root publisher and checked against Arkiv metadata. */
-  arkivOwner: `0x${string}`;
-}
+export type RootRecord =
+  | {
+      digest: Hex;
+      epoch: number;
+      network: string;
+      schemaVersion: number;
+      /** Plain (never encrypted) Swarm reference, 64 lowercase hex chars, no 0x. */
+      swarmRef: string;
+      arkivKey?: never;
+      arkivOwner?: never;
+    }
+  | {
+      digest: Hex;
+      epoch: number;
+      network: string;
+      schemaVersion: number;
+      /** Arkiv entity key containing the canonical snapshot bytes. */
+      arkivKey: Hex;
+      /** Owner authenticated by the ENS root publisher and checked against Arkiv metadata. */
+      arkivOwner: `0x${string}`;
+      swarmRef?: never;
+    };
 
-export function encodeRootRecord(r: RootRecord): string {
+export function encodeRootRecord(r: RootRecord | any): string {
+  if ("swarmRef" in r && r.swarmRef !== undefined) {
+    return canonicalize({
+      digest: r.digest,
+      epoch: r.epoch,
+      network: r.network,
+      schemaVersion: r.schemaVersion,
+      swarmRef: r.swarmRef,
+    });
+  }
   return canonicalize({
     arkivKey: r.arkivKey,
     arkivOwner: r.arkivOwner,
@@ -48,6 +70,22 @@ export function parseRootRecord(value: string): RootRecord {
   if (value.length > 4096) throw new SchemaError("root", "record too large");
   const parsed: JsonValue = parseStrictJson(value, { maxDepth: 4, maxLength: 4096, maxStringLength: 512 });
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new SchemaError("root", "expected object");
+
+  if ("swarmRef" in parsed) {
+    const allowed = new Set(["digest", "epoch", "network", "schemaVersion", "swarmRef"]);
+    for (const k of Object.keys(parsed)) if (!allowed.has(k)) throw new SchemaError(`root.${k}`, "unknown field");
+    for (const k of allowed) if (!(k in parsed)) throw new SchemaError(`root.${k}`, "missing field");
+
+    const { digest, epoch, network, schemaVersion, swarmRef } = parsed as Record<string, JsonValue>;
+    if (!isHex32(digest)) throw new SchemaError("root.digest", "expected lowercase 32-byte hex");
+    if (typeof epoch !== "number" || !Number.isSafeInteger(epoch) || epoch < 1) throw new SchemaError("root.epoch", "expected positive integer");
+    if (!isNetworkLabel(network)) throw new SchemaError("root.network", "invalid network label");
+    if (schemaVersion !== SCHEMA_VERSION) throw new SchemaError("root.schemaVersion", "unsupported schema version");
+    if (!isCanonicalSwarmRef(swarmRef)) throw new SchemaError("root.swarmRef", "expected 64 lowercase hex chars (plain, unencrypted reference)");
+
+    return { digest, epoch, network, schemaVersion, swarmRef } as RootRecord;
+  }
+
   const allowed = new Set(["arkivKey", "arkivOwner", "digest", "epoch", "network", "schemaVersion"]);
   for (const k of Object.keys(parsed)) if (!allowed.has(k)) throw new SchemaError(`root.${k}`, "unknown field");
   for (const k of allowed) if (!(k in parsed)) throw new SchemaError(`root.${k}`, "missing field");
@@ -57,13 +95,10 @@ export function parseRootRecord(value: string): RootRecord {
   if (typeof epoch !== "number" || !Number.isSafeInteger(epoch) || epoch < 1) throw new SchemaError("root.epoch", "expected positive integer");
   if (!isNetworkLabel(network)) throw new SchemaError("root.network", "invalid network label");
   if (schemaVersion !== SCHEMA_VERSION) throw new SchemaError("root.schemaVersion", "unsupported schema version");
-  if (!isHex32(arkivKey)) throw new SchemaError("root.arkivKey", "expected lowercase Arkiv entity key");
-  if (!isCanonicalAddress(arkivOwner)) throw new SchemaError("root.arkivOwner", "expected lowercase Arkiv owner address");
+  if (!isHex32(arkivKey)) throw new SchemaError("root.arkivKey", "expected 32-byte hex");
+  if (!isCanonicalAddress(arkivOwner)) throw new SchemaError("root.arkivOwner", "expected address");
 
-  const record: RootRecord = { arkivKey, arkivOwner, digest, epoch, network, schemaVersion };
-  // A record the curator did not produce byte-for-byte canonically is still usable, but
-  // the canonical form is what the publisher writes and what the receipt records.
-  return record;
+  return { arkivKey, arkivOwner, digest, epoch, network, schemaVersion } as RootRecord;
 }
 
 /** Parse a record read as raw bytes (e.g. via data(key)); enforces strict UTF-8. */

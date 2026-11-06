@@ -9,3 +9,9 @@ test('query constrains and rechecks owner and expiry', async () => {
   const bundle = await queryBundle({ client, owner, currentBlock: 10, now: () => 0 });
   assert.deepEqual(bundle.records, [entry]);
 });
+test('bundle includes a validated frontend record', async () => {
+ const record={schemaVersion:1,kind:'frontend',site:'example.com',chainId:1,scripts:[],updatedAt:'2026-01-01T00:00:00.000Z'};
+ const entry={key,owner,expiresAt:11,record};
+ const bundle=await queryBundle({client:{query:async()=>[entry]},owner,currentBlock:10,now:()=>0});
+ assert.deepEqual(bundle.records,[entry]);
+});
