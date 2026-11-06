@@ -63,18 +63,30 @@ export class RootReadError extends Error {
 
 /** Read the live root record for `cfg.rootName`, resolving the resolver fresh each time. */
 export async function readRootRecord(client: PublicClient, cfg: BoundEnsConfig): Promise<RootRecord> {
-  const { resolver, node } = await findResolver(client, cfg.rootName);
+  const { resolver } = await findResolver(client, cfg.rootName);
+  // Always derive the node from the name directly — findResolver may return a wildcard
+  // parent's node (e.g. namehash("eth")) rather than namehash(cfg.rootName) itself when the
+  // resolver is set at a parent level. The PermissionedResolver stores records keyed by the
+  // full name's node, so we must use namehash(cfg.rootName) for the read.
+  const node = namehash(cfg.rootName) as Hex;
   if (resolver.toLowerCase() !== cfg.resolverAddress.toLowerCase()) {
     // The name no longer points at BOUND's pinned resolver. Treat exactly like "unreachable" —
     // never silently trust whatever resolver now answers for the name (plan §3: pin the resolver).
     throw new RootReadError(`resolver for ${cfg.rootName} is ${resolver}, expected pinned ${cfg.resolverAddress}`);
   }
-  const value = (await client.readContract({
-    address: resolver,
-    abi: permissionedResolverAbi,
-    functionName: "text",
-    args: [node, ROOT_RECORD_KEY],
-  })) as string;
+  let value: string;
+  try {
+    value = (await client.readContract({
+      address: resolver,
+      abi: permissionedResolverAbi,
+      functionName: "text",
+      args: [node, ROOT_RECORD_KEY],
+    })) as string;
+  } catch {
+    // PermissionedResolver reverts on text() when no record has been set yet (empty storage).
+    // Treat this the same as an empty record — the caller can decide what to do.
+    throw new RootReadError(`no root record set at ${cfg.rootName} / ${ROOT_RECORD_KEY} (resolver returned revert)`);
+  }
   if (value === "") throw new RootReadError(`empty root record at ${cfg.rootName} / ${ROOT_RECORD_KEY}`);
   return parseRootRecord(value); // throws SchemaError on malformed content
 }
