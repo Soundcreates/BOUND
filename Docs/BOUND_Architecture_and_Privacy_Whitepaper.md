@@ -25,68 +25,52 @@ This whitepaper details:
 BOUND divides responsibilities cleanly across five distinct layers: client evaluation, curated trust anchoring, dynamic watcher monitoring, decentralized storage, and privacy mixnet routing.
 
 ```mermaid
-flowchart TD
-    subgraph Client["Browser Sandbox (Local Extension)"]
-        DApp["Web3 dApp / Frontend"]
-        Hook["MAIN World Hook<br/>(Freeze EIP-1193 / EIP-6963)"]
-        Relay["ISOLATED World Relay<br/>(Digest & DOM Collection)"]
-        SW["MV3 Service Worker<br/>(Policy Engine & Trust Evaluator)"]
-        UI["Extension Warning & Consent UI<br/>(Offline & User-Controlled)"]
+flowchart LR
+    subgraph Client["1. Browser Client Sandbox"]
+        direction TB
+        Hook["<b>MAIN World Hook</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Freezes EIP-1193 & 6963 calls<br/>• Deep-freezes calldata payload<br/>• Computes SHA-256 state digest"]
+        Relay["<b>ISOLATED World Relay</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• DOM script collector<br/>• Strips sensitive inline queries<br/>• Generates one-time receipt"]
+        SW["<b>MV3 Service Worker</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Evaluates local policy engine<br/>• Zero tracking & zero cloud RPC<br/>• Generates confidence score"]
+        Hook --> Relay --> SW
     end
 
-    subgraph Trust["Curated Trust Anchors (Sepolia)"]
-        Curator["Curator Signer"]
-        ENS["ENS v2 Root<br/>(bound-v2.eth / PermissionedResolver)"]
+    subgraph Trust["2. Curated Anchors"]
+        direction TB
+        Curator["<b>Curator Signer</b><br/>━━━━━━━━━━━━━<br/>Compiles safe snapshots"]
+        ENS["<b>ENS v2 Root</b><br/>━━━━━━━━━━━━━<br/>• bound-v2.eth on Sepolia<br/>• PermissionedResolver proxy<br/>• Anchors root snapshot hash"]
+        Curator --> ENS
     end
 
-    subgraph Monitoring["Dynamic Watcher & Ingestion"]
-        Aggregator["Aggregator & Watcher Service"]
-        HPKE["RFC 9180 HPKE Ingestion<br/>(P-256 / AES-128-GCM)"]
-        Drift["DNS / TLS Drift Detector<br/>(DoH, ASN, Cert Monitor)"]
-        Journal["Durable Local Journal<br/>(Idempotent Retry & Lock)"]
+    subgraph Monitoring["3. Dynamic Aggregator"]
+        direction TB
+        HPKE["<b>RFC 9180 HPKE Ingestion</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• P-256 / AES-128-GCM cipher<br/>• Traffic analysis 1 KiB padding<br/>• Rejects plaintext & web CORS"]
+        Journal["<b>Durable Journal</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Enforces k ≥ 2 consensus<br/>• Quarantines conflicting drift<br/>• Idempotent on-chain retry"]
+        Drift["<b>Drift Monitor</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>DoH, ASN & TLS cert scanner"]
+        HPKE --> Journal
+        Drift --> Journal
     end
 
-    subgraph Storage["Decentralized Storage (Arkiv & Swarm)"]
-        Arkiv["Arkiv Blockchain<br/>(Rabdi Testnet Chain 7794095)"]
-        Swarm["Ethereum Swarm / Bzz<br/>(Decentralized Safe Page)"]
+    subgraph Storage["4. Decentralized State"]
+        direction TB
+        Arkiv["<b>Arkiv Blockchain (Rabdi)</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Block-expiring TTL records<br/>• Immutable baseline storage<br/>• Verified watcher key signature"]
+        Swarm["<b>Swarm / Bzz Network</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>Decentralized safe page hosting"]
     end
 
-    subgraph Anon["Privacy Mixnet"]
-        AnonRPC["Anon-RPC Worker<br/>(Anonymized Chain Reads)"]
-    end
-
-    DApp -->|"window.ethereum.request()"| Hook
-    Hook -->|"Frozen Request & State Digest"| Relay
-    Relay -->|"One-time Receipt"| SW
-    
-    SW -->|"Verify Root & Policy"| ENS
+    SW -->|"Verify Policy"| ENS
     SW -->|"Direct / Anon Read"| Arkiv
-    SW -->|"Fetch Attestations"| AnonRPC
-    
-    SW -->|"Score < Threshold"| UI
-    SW -->|"Approved"| DApp
+    SW -.->|"Sealed Batch (HPKE)"| HPKE
+    Journal -->|"Broadcasts Verified Status"| Arkiv
+    Curator -->|"Archives Snapshot"| Arkiv
 
-    Curator -->|"Publish Canonical Root"| ENS
-    Curator -->|"Archive Trust Snapshot"| Arkiv
+    classDef client fill:#f0fdf4,stroke:#16a34a,stroke-width:3px,color:#14532d;
+    classDef trust fill:#faf5ff,stroke:#7c3aed,stroke-width:3px,color:#4c1d95;
+    classDef monitor fill:#fffbeb,stroke:#d97706,stroke-width:3px,color:#78350f;
+    classDef store fill:#eff6ff,stroke:#2563eb,stroke-width:3px,color:#1e3a8a;
 
-    SW -.->|"Sealed Observation (HPKE)"| HPKE
-    HPKE --> Aggregator
-    Aggregator --> Journal
-    Drift --> Journal
-    Journal -->|"Write Verified Baseline & Status"| Arkiv
-    Aggregator -.-> Swarm
-
-    classDef client fill:#f0fdf4,stroke:#16a34a,color:#166534,stroke-width:2px;
-    classDef trust fill:#faf5ff,stroke:#9333ea,color:#581c87,stroke-width:2px;
-    classDef monitor fill:#fffbeb,stroke:#d97706,color:#92400e,stroke-width:2px;
-    classDef store fill:#eff6ff,stroke:#2563eb,color:#1e40af,stroke-width:2px;
-    classDef anon fill:#fdf2f8,stroke:#db2777,color:#9d174d,stroke-width:2px;
-
-    class DApp,Hook,Relay,SW,UI client;
+    class Hook,Relay,SW client;
     class Curator,ENS trust;
-    class Aggregator,HPKE,Drift,Journal monitor;
+    class HPKE,Journal,Drift monitor;
     class Arkiv,Swarm store;
-    class AnonRPC anon;
 ```
 
 ### 1.1 The Client-Side Mediation Sandbox

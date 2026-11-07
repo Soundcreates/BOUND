@@ -8,33 +8,39 @@ When you interact with a dApp, BOUND intercepts the transaction before it reache
 > For the complete in-depth system architecture, zero-tracking user privacy guarantees, and RFC 9180 HPKE anti-poisoning cryptographic specifications, see the [**BOUND Architecture, Privacy & Anti-Poisoning Whitepaper**](Docs/BOUND_Architecture_and_Privacy_Whitepaper.md).
 
 ```mermaid
+flowchart LR
+    subgraph Inputs["1. Policy & Monitoring Inputs"]
+        direction TB
+        A["<b>1. Curator Service</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Vets & compiles trusted contract policies<br/>• Anchors canonical root on ENS v2<br/>• Publishes trust snapshots to Arkiv"]
+        B["<b>2. Watcher & Aggregator</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Monitors DNS, TLS & certificate drift<br/>• Ingests sealed HPKE community reports<br/>• Enforces k ≥ 2 anti-poisoning quorum"]
+    end
 
-flowchart TD
-    A["1. Curator<br/>Vets and compiles the official list of safe smart contracts"]
-    B["2. Watcher & Aggregator<br/>Scans for domain changes and aggregates community reports"]
+    subgraph Storage["2. Decentralized Evidence Layer"]
+        C["<b>3. Decentralized Storage Network</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>• <b>ENS v2</b>: Protocol root & attestations on Sepolia<br/>• <b>Arkiv</b>: On-chain TTL drift, status & baseline records<br/>• <b>Swarm</b>: Decentralized safe-page fallback storage<br/>• <b>Anon-RPC</b>: Mixnet routing for non-linkable queries"]
+    end
 
-    A -->|"Publishes safe list"| C
-    B -->|"Sends live drift alerts"| C
+    subgraph Extension["3. Client-Side Firewall"]
+        D["<b>4. BOUND Extension Sandbox</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>• In-memory freeze of EIP-1193 & EIP-6963 calls<br/>• 100% local client-side policy evaluation<br/>• Zero tracking & zero cloud RPC analysis"]
+    end
 
-    C["3. Decentralized Storage Network<br/><br/>• ENS v2: Locks the official contract list on Ethereum<br/>• Swarm: Decentralized file storage for contract lists<br/>• Arkiv: Live database tracking website changes & alerts<br/>• Anon-RPC: Checks blockchain data privately without tracking you"]
+    subgraph Verdicts["4. Decision & Enforcement"]
+        direction TB
+        E["<b>✅ Approved Transaction</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Verified contract destination<br/>• Authentic domain & valid certs<br/>• Forwarded to wallet for signing"]
+        F["<b>🛡️ Threat / Warning Held</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Unknown contract or active drift<br/>• Held in extension warning window<br/>• Requires explicit user consent"]
+    end
 
-    C -->|"Provides verified data"| D
-
-    D["4. BOUND Browser Extension<br/>Freezes transaction & checks if the contract is on the official list"]
-
+    A -->|"Publishes Root & Baseline"| C
+    B -->|"Broadcasts On-Chain Status"| C
+    C -->|"Delivers Verified State"| D
     D -->|"Safe"| E
-    D -->|"Threat"| F
+    D -->|"Risk"| F
 
-    E["Approved Contract & Normal Site<br/>Forwarded to Crypto Wallet to sign"]
-
-    F["Unknown Contract or Hijacked Domain<br/>Transaction Blocked & Held in Warning Window"]
-
-    classDef curator fill:#f3e8ff,stroke:#9333ea,color:#581c87,stroke-width:2px
-    classDef watcher fill:#fff7ed,stroke:#f59e0b,color:#9a3412,stroke-width:2px
-    classDef storage fill:#eff6ff,stroke:#2563eb,color:#1e40af,stroke-width:4px
-    classDef extension fill:#ecfdf5,stroke:#16a34a,color:#166534,stroke-width:2px
-    classDef safe fill:#ecfdf5,stroke:#059669,color:#065f46,stroke-width:2px
-    classDef threat fill:#fef2f2,stroke:#dc2626,color:#991b1b,stroke-width:2px
+    classDef curator fill:#f5f3ff,stroke:#7c3aed,stroke-width:3px,color:#4c1d95
+    classDef watcher fill:#fffbeb,stroke:#d97706,stroke-width:3px,color:#78350f
+    classDef storage fill:#eff6ff,stroke:#2563eb,stroke-width:3px,color:#1e3a8a
+    classDef extension fill:#f0fdf4,stroke:#16a34a,stroke-width:3px,color:#14532d
+    classDef safe fill:#ecfdf5,stroke:#059669,stroke-width:3px,color:#064e3b
+    classDef threat fill:#fef2f2,stroke:#dc2626,stroke-width:3px,color:#7f1d1d
 
     class A curator
     class B watcher
