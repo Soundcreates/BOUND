@@ -51,7 +51,8 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       "frontend-integrity.mjs",
       "frontend-redirect.mjs",
       "ticket-store.mjs",
-      "frontend-routing.mjs"
+      "frontend-routing.mjs",
+      "warning-checks.mjs"
     ]) {
       await copyFile(path.join(repoRoot, "apps", "extension", file), path.join(extensionRoot, file));
     }
