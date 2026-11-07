@@ -16,6 +16,10 @@ async function capture(action) {
 async function initialize() {
   try {
     await capture("status");
+    if (!capturing && chrome.storage?.local?.get) {
+      const { boundMonitoring } = await chrome.storage.local.get("boundMonitoring").catch(() => ({}));
+      if (boundMonitoring) capturing = true;
+    }
     render();
     button.disabled = false;
   } catch {
@@ -23,6 +27,13 @@ async function initialize() {
     status.hidden = false;
   }
 }
+
+chrome.storage?.onChanged?.addListener?.((changes, area) => {
+  if (area === "local" && changes.boundMonitoring) {
+    capturing = changes.boundMonitoring.newValue === true;
+    render();
+  }
+});
 
 button.addEventListener("click", async () => {
   button.disabled = true;

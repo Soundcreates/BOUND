@@ -33,3 +33,25 @@ test("captures actual source response hashes and only approved network metadata"
   capture.reset(4); assert.equal(capture.snapshot(4).rows.length, 0);
   detach({ tabId: 4 }); assert.equal(capture.snapshot(4).active, false);
 });
+
+test("onDetach callback receives source and reason when user cancels debugging", async () => {
+  let detach;
+  const api = {
+    onEvent: { addListener() {} }, onDetach: { addListener(fn) { detach = fn; } },
+    async attach() {}, async detach() {}, async sendCommand() { return {}; }
+  };
+  let detachedSource, detachedReason;
+  const capture = createNetworkCapture({
+    api,
+    onDetach: (source, reason) => {
+      detachedSource = source;
+      detachedReason = reason;
+    }
+  });
+  await capture.start(7);
+  assert.equal(capture.snapshot(7).active, true);
+  detach({ tabId: 7 }, "canceled_by_user");
+  assert.equal(capture.snapshot(7).active, false);
+  assert.deepEqual(detachedSource, { tabId: 7 });
+  assert.equal(detachedReason, "canceled_by_user");
+});

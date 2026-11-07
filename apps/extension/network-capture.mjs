@@ -10,7 +10,7 @@ export function isCapturePage(value) {
 // CDP gives the actual response body retained by Chrome, not a second fetch.
 // Captures are tab-scoped, in memory, and never include query strings, cookies,
 // authorization headers, request bodies or non-source response bodies.
-export function createNetworkCapture({ api, now = Date.now }) {
+export function createNetworkCapture({ api, now = Date.now, onDetach }) {
   const tabs = new Map(), MAX_ROWS = 200, MAX_BYTES = 2 * 1024 * 1024;
   const safeHeaders = new Set(["content-type", "content-length", "cache-control", "content-security-policy", "x-content-type-options"]);
   const send = (tabId, method, params = {}) => api.sendCommand({ tabId }, method, params);
@@ -68,6 +68,9 @@ export function createNetworkCapture({ api, now = Date.now }) {
     } else if (method === "Network.loadingFailed") state.requests.delete(params.requestId);
   }
   api.onEvent.addListener((source, method, params) => { onEvent(source, method, params).catch(() => {}); });
-  api.onDetach.addListener(source => tabs.delete(source.tabId));
+  api.onDetach.addListener((source, reason) => {
+    tabs.delete(source.tabId);
+    onDetach?.(source, reason);
+  });
   return { start, stop, stopAll, reset, snapshot };
 }

@@ -21,7 +21,14 @@ const rate = new Map();
 const tabRevisions = new Map();
 const frameRevisions = new Map();
 const statusRequests = new Map();
-const networkCapture = chrome.debugger ? createNetworkCapture({ api: chrome.debugger }) : null;
+const networkCapture = chrome.debugger ? createNetworkCapture({
+  api: chrome.debugger,
+  onDetach: (_source, reason) => {
+    if (reason === "canceled_by_user") {
+      chrome.storage.local.set({ boundMonitoring: false }).catch(() => {});
+    }
+  }
+}) : null;
 const MAX_PENDING_PER_FRAME = 8;
 // The user decides; BOUND only gives up on a warning nobody answers for this long.
 // Deadline timers call timer?.unref?.(): a browser timer id is a number with no unref,
