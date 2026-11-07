@@ -38,8 +38,6 @@ async function awaitDetails() {
     score.hidden = false;
     score.textContent = `Connection confidence score: ${data.connectionScore.score}/100${data.locked ? " · partial; wallet state unavailable" : ""}. Higher means stronger checks; this is not a safety guarantee.`;
   }
-  const tier = data.tier || (data.verdict === "green" ? "pass" : data.verdict === "escalated" ? "firewall" : "huge");
-  document.body.classList.add(`tier-${tier}`);
   document.querySelector("#top").textContent = data.topOrigin;
   document.querySelector("#frame").textContent = data.frameOrigin;
   document.querySelector("#method").textContent = data.method;
@@ -148,31 +146,27 @@ function renderConnectionChecks(data) {
   const total = checks.length;
   const percent = Math.round((passed / total) * 100);
   const pie = document.querySelector("#pie-chart");
-  if (pie) {
-    pie.style.setProperty("--pass-share", `${percent}%`);
-    pie.setAttribute("aria-label", `${passed} of ${total} connection checks passed; ${total - passed} failed or unavailable`);
-    document.querySelector("#pie-chart-label").textContent = `${percent}% passed`;
-    document.querySelector("#passed-count").textContent = `${passed} passed`;
-    document.querySelector("#not-passed-count").textContent = `${total - passed} failed or unavailable`;
-    const pieSummary = document.querySelector("#pie-summary");
-    if (pieSummary) pieSummary.hidden = false;
-    document.querySelector("#verdict-field")?.classList.add("score-after-pie");
-  }
+  pie.style.setProperty("--pass-share", `${percent}%`);
+  pie.setAttribute("aria-label", `${passed} of ${total} connection checks passed; ${total - passed} failed or unavailable`);
+  document.querySelector("#pie-chart-label").textContent = `${percent}% passed`;
+  document.querySelector("#passed-count").textContent = `${passed} passed`;
+  document.querySelector("#not-passed-count").textContent = `${total - passed} failed or unavailable`;
+  document.querySelector("#pie-summary").hidden = false;
+  document.querySelector("#verdict-field").classList.add("score-after-pie");
 }
 
 const moreDetails = document.querySelector(".more-details");
 let pieAnimated = false;
 let pieObserver;
 function observePieUntilVisible() {
-  if (pieAnimated || !moreDetails?.open || document.querySelector("#pie-summary")?.hidden) return;
+  if (pieAnimated || !moreDetails.open || document.querySelector("#pie-summary").hidden) return;
   const pie = document.querySelector("#pie-chart");
-  if (!pie) return;
   const play = () => {
     if (pieAnimated) return;
     pieAnimated = true;
     pieObserver?.disconnect();
     pie.classList.add("pie-animate");
-    document.querySelector("#verdict-field")?.classList.add("reveal-score");
+    document.querySelector("#verdict-field").classList.add("reveal-score");
   };
   if (!("IntersectionObserver" in window)) return play();
   pieObserver ||= new IntersectionObserver(entries => {
@@ -180,11 +174,9 @@ function observePieUntilVisible() {
   }, { threshold: 0.5 });
   pieObserver.observe(pie);
 }
-if (moreDetails) {
-  moreDetails.addEventListener("toggle", () => {
-    observePieUntilVisible();
-  });
-}
+moreDetails.addEventListener("toggle", () => {
+  observePieUntilVisible();
+});
 
 async function decide(action) {
   const data = await details;
