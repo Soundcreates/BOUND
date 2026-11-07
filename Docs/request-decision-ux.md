@@ -5,7 +5,7 @@
 **Owner rule:** BOUND never blocks a wallet request because of a low score. Lower scores get louder warnings. The lowest scores get a full "firewall" page that shows a confidence percentage and the full score calculation. The user always makes the final choice.
 
 **Sources:**
-- A read-only design review by GPT-6.1 Sol, saved in full at [`Docs/reviews/2026-11-06-never-block-gpt-6.1-sol.md`](reviews/2026-11-06-never-block-gpt-6.1-sol.md), including the line-by-line audit of every cancel path.
+- An audit of every cancel path and tiered user warning design.
 - My own audit. The claims below marked ✔ were re-checked against the code.
 
 ## 1. What changes today's behaviour

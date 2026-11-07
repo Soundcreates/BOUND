@@ -4,7 +4,7 @@
 
 The owner subsequently requested Swarm as a persistent second cache layer, in addition to hosting the safe page. The cache lookup order is extension local storage, then a shared Swarm cache, then fresh source verification on a miss or expiry. The logical key is the normalized domain URL (origin, retaining scheme, subdomain and port); it contains no wallet address or route/query/fragment. The JSON value scopes evidence by chain and script fingerprints and includes an exclusive TTL deadline bounded by source expiry. Cache hits remain subject to current document comparison and trust validation. Tickets, wallet payloads, typed approvals and permission grants never become shared cache data. The Swarm feed/publisher implementation and configuration are specified separately in `swarm-domain-cache-plan.md`. All implementation and review delegation uses GPT models only, as requested by the owner.
 
-Review: 2026-11-06, branch `swarm-integration`. Scope: planning review only; source line citations refer to this checkout before implementation. The plan is `Docs/frontend-mismatch-swarm-plan.md` v2. This document supplies implementation decisions where v2 is ambiguous; it does not claim those decisions are already implemented. No build, live publication, commit, or source mutation was performed during this review.
+Review: 2026-11-06, branch `swarm-integration`. Scope: planning review and implementation specifications for frontend hash mismatch and safe page redirect. This document supplies implementation decisions and requirements. No build, live publication, commit, or source mutation was performed during this review.
 
 ## 1. Verdict and round-1 disposition
 
