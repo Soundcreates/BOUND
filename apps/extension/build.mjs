@@ -30,7 +30,7 @@ for (const file of ["logo.png", "BOUND.jpeg", "ui.css", "manifest.json", "alert-
 }
 for (const [file, replacements] of [
   ['anon-rpc-host.mjs', [['./anon-rpc-engine.mjs', './anon-rpc-bundle.js']]],
-  ['trust-adapter.mjs', [['./trust-engine.mjs', './trust-bundle.js'], ['./arkiv-reader.mjs', './arkiv-bundle.js']]]
+  ['trust-adapter.mjs', [['./trust-engine.mjs', './trust-bundle.js'], ['./arkiv-reader.mjs', './arkiv-bundle.js'], ['./ens-registry.mjs', './ens-registry-bundle.js']]]
 ]) {
   let source = await readFile(path.join(root, file), 'utf8');
   for (const [from, to] of replacements) source = source.replaceAll(from, to);
@@ -50,6 +50,7 @@ await build({entryPoints:[path.join(root,"../safe-page/src/fragment.mjs")],outfi
 const safePage = await buildSafePage();
 await Promise.all(Object.values(safePage.packaged).map(file => copyFile(file, path.join(output, path.basename(file)))));
 await build({entryPoints:[path.join(root,"anon-rpc-engine.mjs")],outfile:path.join(output,"anon-rpc-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome116"});
+await build({entryPoints:[path.join(root,"ens-registry.mjs")],outfile:path.join(output,"ens-registry-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome119"});
 await build({entryPoints:[path.join(root,"trust-engine.mjs")],outfile:path.join(output,"trust-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome116"});
 await build({entryPoints:[path.join(root,"arkiv-reader.mjs")],outfile:path.join(output,"arkiv-bundle.js"),bundle:true,format:"esm",platform:"browser",target:"chrome116"});
 // score-settings.mjs stays a separate module so the adapter reads the generated, pinned key.

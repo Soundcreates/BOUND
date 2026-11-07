@@ -189,3 +189,13 @@ test("unverified bundles never become stale display data",async()=>{
  assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+3599999})).state,"stale");
  assert.equal((await f.reader.readCommunityCache({site,chain:chainId,now:time+3600000})).state,"unavailable");
 });
+
+test('incident history is owner, site and chain scoped and preserves reported scores',async()=>{
+ const incident={schemaVersion:1,kind:'incident',site,chainId,trigger:'K-same-counterparty-warned',severity:'high',counterparty:'0x'+'1'.repeat(40),reportDigest:ref,reportReference:'d'.repeat(64),createdAt:hour};
+ const warning={schemaVersion:1,kind:'observation',site,chainId,value:'0x'+'1'.repeat(40),reporterKey:'reporter',event:'warned',score:35,observedAt:hour};
+ const f=fixture([row(incident,1),row(warning,2),row({...warning,site:'other.example'},3),row({...warning,score:5},4,other),row({...warning,score:6},5,owner,9)]);
+ const history=await f.reader.readIncidentHistory({site,chain:String(chainId)});
+ assert.deepEqual(history,{state:'available',incidents:[{time:hour,severity:'high'}],warnings:[{time:hour,score:35}]});
+ assert.equal(f.direct.length,0);
+ const query=f.anonymous.find(x=>x.method==='arkiv_query');assert.ok(query);assert.ok(!JSON.stringify(query).includes(site));
+});

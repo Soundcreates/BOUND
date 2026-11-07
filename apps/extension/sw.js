@@ -354,13 +354,25 @@ async function handleRequest(message, sender, sendResponse) {
   rate.set(frameKey, recent);
   const eligibleFrontend = validProviderState(message.state) && classification.kind !== "unsupported";
   const frontendPromise = eligibleFrontend ? readFrontendEvidence(sender) : Promise.resolve(null);
+  const incidentHistoryPromise = eligibleFrontend && sender.frameId === 0 && originOf(sender.url) === originOf(sender.tab?.url) ? (async()=>{
+    let timer;try {return await Promise.race([decisionAdapters.readIncidentHistory({site:siteFrom(sender.url),chain:chainId}),new Promise(resolve=>{timer=setTimeout(()=>resolve(null),8000);})]);}
+    catch{return null;}finally{clearTimeout(timer);}
+  })() : Promise.resolve(null);
+  const registryPromise = eligibleFrontend && sender.frameId === 0 && originOf(sender.url) === originOf(sender.tab?.url) ? (async () => {
+    try {
+      const observed = await frontendPromise;
+      let timer;
+      try { return await Promise.race([decisionAdapters.readEnsRegistry({siteOrigin:sender.url,observed}), new Promise(resolve => { timer=setTimeout(() => resolve({status:'unavailable',reason:'ENS registry lookup timed out'}),8000); })]); }
+      finally { clearTimeout(timer); }
+    } catch { return {status:'unavailable',reason:'ENS registry lookup failed'}; }
+  })() : Promise.resolve({status:'unavailable',reason:'Registry comparison requires a top-level supported request'});
   const communityPromise = eligibleFrontend ? (async () => { try { await settingsReady; return await readFrontendContext({ siteOrigin: sender.url, chainId: message.state.chainId, watcherOwner: await getWatcherOwner(), adapters: decisionAdapters }); } catch { return null; } })() : Promise.resolve(null);
   const frontendAssessment = async (counterpartyRisk = false) => {
-    const [evidence, community] = await Promise.all([frontendPromise, communityPromise]);
+    const [evidence, community, registry, incidentHistory] = await Promise.all([frontendPromise, communityPromise, registryPromise, incidentHistoryPromise]);
     const c = community || {state:'unavailable', ageMs:null, frontend:null, corroboratedDrift:false, activeIncident:false, ambiguous:false};
     const frame = {isTop:sender.frameId === 0, sameOrigin:originOf(sender.url) === originOf(sender.tab?.url), ambiguous:c.ambiguous};
     const assessment = assessFrontend({observed:evidence, record:c.frontend, now:Date.now(), drift:c.corroboratedDrift, incident:c.activeIncident, counterpartyRisk, frame, dataState:c.state, ageMs:c.ageMs});
-    return {evidence, community:c, frame, assessment};
+    return {evidence, community:c, frame, assessment, registry, incidentHistory};
   };
   const routeFrontend = async (details, frontendData) => {
     const assessment = frontendData.assessment;
@@ -394,7 +406,7 @@ async function handleRequest(message, sender, sendResponse) {
     // A connection is never refused on score: "verified" only decides whether the
     // review is a quiet pass or a louder tier the user has to read.
     const silentPass = connectionScore.verified;
-    if (!valid() || !(await currentDocument(sender)) || !validProviderState(message.state)) {
+    if (!valid() || !(await currentDocument(sender))) {
       sendResponse({ action: "cancel", digest, stateDigest, connectionStatus: "unknown" });
       return;
     }
@@ -408,11 +420,11 @@ async function handleRequest(message, sender, sendResponse) {
     const frontendData = await frontendAssessment();
     let details = {
       id, kind: "connection", method: request.method, target: "", tier, verdict: TIER_VERDICT[tier], score: connectionScore.score,
-      connectionScore, connectionStatus, reasons: [reason], entries: [], approvals: [], coverage: connectionCoverage, locked: false,
+      connectionScore, connectionStatus, reasons: [reason], entries: [], approvals: [], coverage: connectionCoverage, locked: !validProviderState(message.state),
       tabId: sender.tab?.id, frameId: sender.frameId, documentId: sender.documentId,
       topOrigin: originOf(sender.tab?.url), frameOrigin: originOf(sender.url), chainId: message.state?.chainId ?? null,
       incidentStatus: connectionStatus === "active" ? "active" : statuses.length && statuses.every(item => item.status === "normal") ? "normal" : "unknown",
-      frontend: frontendData.evidence
+      frontend: frontendData.evidence, frontendRegistry: frontendData.registry, incidentHistory:frontendData.incidentHistory
     };
     details = applyFrontendWarning({details, assessment: frontendData.assessment});
     const route = await routeFrontend(details, frontendData);
@@ -473,6 +485,8 @@ async function handleRequest(message, sender, sendResponse) {
     reasons: [...(locked ? [...evaluated.reasons, "Wallet chain/account state is unavailable."] : evaluated.reasons), ...(!locked && evaluated.verdict === "grey" && evaluated.coverage !== "unsupported" && uncheckedReason(context) ? [uncheckedReason(context)] : [])],
     entries: classification.entries,
     frontend: frontendData.evidence,
+    frontendRegistry: frontendData.registry,
+    incidentHistory: frontendData.incidentHistory,
     networkCapture: networkCapture?.snapshot(sender.tab?.id) || { active: false, rows: [], missing: 0 },
     observedAddresses: [...new Set(classification.entries.filter(entry => entry.verified !== false && typeof entry.address === "string" && context.observed?.has(entry.address.toLowerCase())).map(entry => entry.address.toLowerCase()))],
     approvals: classification.approvals || [],
@@ -503,7 +517,7 @@ async function handleRequest(message, sender, sendResponse) {
     pending.set(id, { details, resolve, timer, used: false });
   });
   const warnings = !locked && evaluated.score !== null && evaluated.score < SCORE_SETTINGS.transaction.amber
-    ? warningCandidates({ site: siteFrom(sender.tab?.url), chain: message.state.chainId, addresses: evaluated.warnedAddresses, request, accounts: message.state.accounts }) : [];
+    ? warningCandidates({ site: siteFrom(sender.tab?.url), chain: message.state.chainId, addresses: evaluated.warnedAddresses, request, accounts: message.state.accounts }).map(warning => ({...warning, score:evaluated.score, observedAt:new Date(Math.floor(Date.now()/3600000)*3600000).toISOString()})) : [];
   openWarning(id, warnings);
   result.then((action) => {
     let receiptToken;

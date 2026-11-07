@@ -16,7 +16,7 @@ test("default settings seed once and never overwrite a saved configuration",asyn
  const seeded=empty.data().boundSettings;
  assert.deepEqual(seeded,normalizeSettings(DEFAULT_SETTINGS));
  assert.equal(seeded.watcherOwner,DEFAULT_SETTINGS.watcherOwner.toLowerCase());
- assert.equal(seeded.safePageUrl,"https://bzz.limo/bzz/2ef102c267b6d62900b8c31c25620405d5fff12e22cd01f79038bd3eea0e682c/");
+ assert.equal(seeded.safePageUrl,"https://bzz.limo/bzz/fa43f135f708b18f7f97008971e977f8ac74385f9f7237fb58bdc20ad2ba14ef/");
  assert.equal(seeded.watcherUrl,"https://bound-aggregator-0-1-1.onrender.com/v1/observations");
  assert.equal(await ensureDefaultSettings(empty),false);
  // A saved configuration with a deliberately cleared watcher URL stays as saved.

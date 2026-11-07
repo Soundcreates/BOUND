@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {makePlan} from './registry-records.mjs';
+function fixture(){const sites=Array.from({length:50},(_,i)=>({site:`site${i}.example`,name:`Site ${i}`,candidateUrl:`https://site${i}.example/app?tracking=1`}));return [{sites},{sites:sites.map(s=>({site:s.site,finalSite:s.site,capturedAt:'2026-11-06T00:00:00Z',scripts:[{status:'observed',path:'/app.js',hash:'sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0='}]}))}];}
+test('makes deterministic curator subnames with public observations rather than trusted attestations',()=>{const [r,o]=fixture(),p=makePlan(r,o);assert.equal(p.entries.length,50);assert.equal(new Set(p.entries.map(e=>e.name)).size,50);assert.equal(p.entries[0].url,'https://site0.example/app');const v=JSON.parse(p.entries[0].observation);assert.match(v.source,/unverified/);assert.equal(v.scripts[0].path,'/app.js');assert.deepEqual(makePlan(r,o),p)});
+test('never attaches a script fetched after redirect to a different host',()=>{const [r,o]=fixture();o.sites[0].finalSite='other.example';assert.equal(JSON.parse(makePlan(r,o).entries[0].observation).status,'unavailable')});
+test('rejects duplicate or invalid origins',()=>{const [r,o]=fixture();r.sites[1]=r.sites[0];assert.throws(()=>makePlan(r,o));const [r2,o2]=fixture();r2.sites[0].candidateUrl='http://site0.example';assert.throws(()=>makePlan(r2,o2));});

@@ -66,8 +66,8 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
     maxObservedTime = time;
     return time;
   };
-  const eventKey = event => JSON.stringify([event.site, event.chainId, event.value, event.reporterKey, event.kind === 'warned' ? 'warned' : 'positive']);
-  const toRecord = event => ({schemaVersion: 1, kind: 'observation', site: event.site, chainId: event.chainId, value: event.value, reporterKey: event.reporterKey, event: event.kind});
+  const eventKey = event => JSON.stringify([event.site, event.chainId, event.value, event.reporterKey, event.kind === 'warned' ? 'warned' : 'positive', ...(event.kind === 'warned' && event.observedAt ? [event.observedAt] : [])]);
+  const toRecord = event => ({schemaVersion: 1, kind: 'observation', site: event.site, chainId: event.chainId, value: event.value, reporterKey: event.reporterKey, event: event.kind, ...(event.score !== undefined ? {score:event.score,observedAt:event.observedAt} : {})});
 
   async function intake(batch) {
     batch = structuredClone(batch);
@@ -80,10 +80,11 @@ export async function openDurableWatcher({path, windowMs, retentionMs, k, now = 
       // batch must not add entries (and Arkiv writes) for as long as the original is kept.
       const seen = new Set(liveEntries.map(entry => eventKey({
         site: entry.record.site, chainId: entry.record.chainId, value: entry.record.value,
-        reporterKey: entry.record.reporterKey, kind: entry.record.event,
+        reporterKey: entry.record.reporterKey, kind: entry.record.event, observedAt: entry.record.observedAt,
       })));
       const additions = [];
       for (const event of batch.events) {
+        if (event.observedAt && Date.parse(event.observedAt) > time) return {schemaVersion: 1, result: 'rejected'};
         const active = await isIncidentActive(event.site, event.chainId);
         if (typeof active !== 'boolean') throw new Error('incident status unavailable');
         if (active) continue;

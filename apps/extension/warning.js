@@ -17,9 +17,18 @@ async function awaitDetails() {
   document.querySelector("#report-domain").textContent = data.topOrigin || "unknown site";
   document.querySelector("#request-time").textContent = new Date().toLocaleString();
   renderConnectionChecks(data);
+  const registry = data.frontendRegistry;
+  document.querySelector("#ens-registry-result").textContent = registry?.status === "changed"
+    ? `× ENS registry: ${registry.changed} matching-path script hash(es) changed (${registry.compared} compared). Observational evidence only.`
+    : registry?.status === "matched-subset"
+      ? `✓ ENS registry: ${registry.compared} script hash(es) match; ${registry.unfamiliar} unfamiliar. Partial, unreviewed observation—not a safety verdict.`
+      : `ENS registry: not compared (${registry?.reason || "no registry evidence"}).`;
   if (data.kind === "connection") {
     continueButton.textContent = "Continue to wallet";
     document.querySelector("#wallet-next-step").hidden = false;
+    const score = document.querySelector("#connection-score");
+    score.hidden = false;
+    score.textContent = `Connection confidence score: ${data.connectionScore.score}/100${data.locked ? " · partial; wallet state unavailable" : ""}. Higher means stronger checks; this is not a safety guarantee.`;
   }
   document.querySelector("#top").textContent = data.topOrigin;
   document.querySelector("#frame").textContent = data.frameOrigin;
@@ -38,7 +47,7 @@ async function awaitDetails() {
   else if (data.kind === "malformed") document.querySelector("#notice").textContent = "BOUND could not decode this request reliably. Review the request carefully before continuing.";
   else if (data.verdict === "escalated") document.querySelector("#notice").textContent = data.method === "eth_sign" ? "This request requires extra caution. Blind signatures can grant permissions that are not visible here." : "This request has elevated risk. Review the site, addresses, and reasons before continuing.";
   else if (data.score !== null) document.querySelector("#notice").textContent = "Proceed at your own risk";
-  if (data.locked) document.querySelector("#notice").textContent = "Wallet chain or account state could not be verified, so BOUND could not score this request. Review it carefully before continuing.";
+  if (data.locked) document.querySelector("#notice").textContent = data.kind === "connection" ? "Wallet chain or account state could not be verified. The connection score is partial; review the request carefully before continuing." : "Wallet chain or account state could not be verified, so BOUND could not score this request. Review it carefully before continuing.";
   if (data.malformed) {
     document.querySelector("#request-status").textContent = "This request could not be frozen safely and has been cancelled.";
     document.querySelector("#request-status").hidden = false;
@@ -59,6 +68,10 @@ async function awaitDetails() {
   const addresses = document.querySelector("#entries");
   addresses.textContent = data.entries.length ? data.entries.map((entry) => `${entry.role}: ${entry.address}${entry.verified === false ? " (unverified)" : ""}`).join(" · ") : "No counterparty decoded";
   document.querySelector("#frontend").textContent = frontendIntegrityText(data.frontendIntegrity);
+  const history=data.incidentHistory;
+  document.querySelector("#incident-history").textContent = history?.state === 'available'
+    ? [...history.incidents.map(i=>`Incident: ${i.severity}, ${i.time}`), ...history.warnings.map(w=>`Warning score: ${w.score}/100, ${w.time} (hour rounded)`), 'Only unexpired records from this watcher; missing history is not proof of safety. Warning scores are not incident probabilities.'].join('\n')
+    : 'Unavailable. Missing history is not proof of safety.';
   if (data.networkCapture?.active) {
     const node = document.querySelector("#network-capture"); node.replaceChildren();
     for (const row of data.networkCapture.rows) {

@@ -72,7 +72,8 @@ export function validateRootSnapshotPair(root, snapshot) {
 // This is the extension-to-watcher intake. Its kind is the observation subtype.
 export function validateObservation(v) {
   if (v?.kind === 'frontend') return exact(v, ['site', 'kind', 'chainId', 'reporterKey', 'path', 'hash']) && host(v.site) && v.site.length <= 253 && integer(v.chainId) && v.chainId > 0 && typeof v.reporterKey === 'string' && /^[\x20-\x7e]{1,128}$/.test(v.reporterKey) && isFrontendPath(v.path) && isFrontendHash(v.hash);
-  return exact(v, ['site', 'kind', 'value', 'chainId', 'reporterKey']) &&
+  const scored = v?.kind === 'warned' && exact(v, ['site', 'kind', 'value', 'chainId', 'reporterKey', 'score', 'observedAt']) && integer(v.score) && v.score <= 100 && timestamp(v.observedAt);
+  return (scored || exact(v, ['site', 'kind', 'value', 'chainId', 'reporterKey'])) &&
     host(v.site) && ['counterparty', 'called-contract', 'warned'].includes(v.kind) &&
     isAddress(v.value) && integer(v.chainId) && v.chainId > 0 && nonempty(v.reporterKey);
 }
@@ -100,7 +101,7 @@ export function validateRecord(v) {
   switch (v.kind) {
     case 'frontend': return validateFrontendRecord(v);
     case 'observation':
-      return baseRecord(v, ['value', 'reporterKey', 'event']) &&
+      return (baseRecord(v, ['value', 'reporterKey', 'event']) || (v.event === 'warned' && baseRecord(v, ['value', 'reporterKey', 'event', 'score', 'observedAt']) && integer(v.score) && v.score <= 100 && timestamp(v.observedAt))) &&
         isAddress(v.value) && nonempty(v.reporterKey) &&
         ['counterparty', 'called-contract', 'warned'].includes(v.event);
     case 'baseline':

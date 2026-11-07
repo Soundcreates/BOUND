@@ -44,10 +44,14 @@ The browser fixture can exercise the live gateway without a wallet, Bee node or 
 
 ```sh
 node apps/extension/build.mjs
-BOUND_E2E_SAFE_PAGE_URL='https://bzz.limo/bzz/2ef102c267b6d62900b8c31c25620405d5fff12e22cd01f79038bd3eea0e682c/' \
+BOUND_E2E_SAFE_PAGE_URL='https://bzz.limo/bzz/fa43f135f708b18f7f97008971e977f8ac74385f9f7237fb58bdc20ad2ba14ef/' \
   node --experimental-strip-types apps/extension/e2e/frontend-mismatch-check.mjs /absolute/path/to/node_modules/playwright
 ```
 
 Set `BOUND_CHROME_EXECUTABLE_PATH` to a Chromium executable if the installed Playwright browser is unavailable. The test creates disposable browser profiles, collects real fixture script reports, advances a test-only watcher clock, and supplies fixture Arkiv records and a fake wallet. It checks remote navigation only after cancellation, fragment removal, private confirmation, and one typed retry. It does not test live Arkiv publication, real wallet behavior, or real corroboration.
 
 For a real local watcher, use the encrypted-report setup in `services/watcher/README.md`, declare only verified safe demo scopes, and start the watcher with an Arkiv writer. The live detector needs three independent reporter profiles, at least one hour of maturity, successful Arkiv publication and fresh corroboration (drift, incident, or counterparty risk) before automatic navigation. A changed script alone produces a warning. The demo seed simulates three reporters and must not be treated as independent evidence.
+
+Automatic navigation also requires a numeric BOUND score below the configured transaction red threshold (`BOUND_TX_RED_THRESHOLD`, default 16). An unknown score or a score at or above that threshold does not trigger a redirect. The browser fixture uses a simulated risky approval to exercise the low-score path.
+
+For a visible, step-by-step presentation of that fixture, add `BOUND_E2E_DEMO=1` to the command above. Press Enter at each terminal prompt. It shows app A, switches the same URL to app B, shows that an ordinary connection warning does not automatically redirect, and then submits a simulated risky approval that triggers the fallback. The wallet, watcher records and clock are simulated; it does not write to live Arkiv or send a wallet transaction. The expected risky approval score is 15 under default settings (the threshold is below 16, not below 15). The gateway may fall back to the packaged recovery page if it cannot be reached.

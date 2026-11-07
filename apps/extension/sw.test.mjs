@@ -164,7 +164,9 @@ test("warned events are queued after opening and before a decision, without the 
   const id = new URL(window.url).searchParams.get("request");
   assert.ok(await send({ type: "BOUND_GET_V1", id }, warningSender(window)));
   assert.equal(data.boundObservationQueue.length, 1);
-  assert.deepEqual(Object.keys(data.boundObservationQueue[0]).sort(), ["chain", "kind", "reporterKey", "site"]);
+  assert.deepEqual(Object.keys(data.boundObservationQueue[0]).sort(), ["chain", "kind", "observedAt", "reporterKey", "score", "site"]);
+  assert.equal(data.boundObservationQueue[0].score, 0);
+  assert.match(data.boundObservationQueue[0].observedAt, /T\d{2}:00:00\.000Z$/);
   assert.equal(data.boundObservationQueue[0].kind, "warned");
   assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id, action: "cancel" }, warningSender(window)), { ok: true });
   assert.equal((await pending).action, "cancel");

@@ -2,6 +2,8 @@ import {anonRpc} from "./anon-rpc-host.mjs";
 import {createEnsLookupCache} from "./ens-cache.mjs";
 import {createTrustEngine} from "./trust-engine.mjs";
 import {createArkivReader} from "./arkiv-reader.mjs";
+import {readEnsRegistry} from "./ens-registry.mjs";
+import {normalizeSettings} from "./settings.mjs";
 // L1 of the ENS lookup cache: in memory, mirrored to chrome.storage.session.
 const ensCache=createEnsLookupCache({storage:chrome.storage.session});
 // ENS/digest audit trail, printed in the service-worker console
@@ -35,5 +37,7 @@ export const decisionAdapters={
  async readUncuratedViaAnonRpc(query){return (await arkivReader()).readUncuratedViaAnonRpc(query);},
  async refreshWatcherBundle(){return (await arkivReader()).refresh();},
  async readFrontendCommunity(query){return (await arkivReader()).ensureCommunity(query);},
+ async readIncidentHistory(query){return (await arkivReader()).readIncidentHistory(query);},
+ async readEnsRegistry(query){return readEnsRegistry({...query,settings:normalizeSettings((await settings())||{}),anonymousRequest:anonRpc});},
  async refresh(){await Promise.allSettled([trustEngine().then(value=>value.readVerifiedSnapshot()),arkivReader().then(value=>value.refresh())]);}
 };

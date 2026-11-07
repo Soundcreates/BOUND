@@ -186,6 +186,7 @@ BOUND checks the authority behind every action — **not** whether an address is
 | **ENSv2** (Sepolia, chain `11155111`) | Ethereum | Holds the snapshot root under a curator-only role | The root of trust |
 | **Anon-RPC** (`nox` worker) | Sandboxed iframe inside the extension | Anonymous chain reads over a Sphinx mixnet | Chain data, not identity |
 | **Swarm** | Decentralized storage | Hosts the **safe page** (a recovery page that works even if the real site is hijacked). Older v1 roots also stored the snapshot here | Nothing — content-addressed |
+| **Financial registry** (`ens-registry.mjs`) | Extension, read at request time | Compares same-path script hashes against a separate, scraper-seeded ENS record for 50 real DeFi frontends (B12) | Evidence only — never moves the score |
 
 ## B2. The extension, step by step
 
@@ -335,7 +336,7 @@ The watcher publishes a **frontend record** per site on Arkiv. A script hash onl
 
 If your page's script hash **conflicts** with the established one, the warning is raised to at least the **"huge"** tier.
 
-If there is a conflict **and** independent corroboration (drift, an active incident, or a risky counterparty) **and** it is the top frame **and** same-origin, BOUND cancels the request and **redirects you to the safe page** — a recovery page hosted on **Swarm** (`bzz.limo/bzz/2ef102c2…682c/`) that reads Arkiv on its own and shows the evidence. A changed script **alone** only warns — because normal deploys change scripts too.
+If there is a conflict **and** independent corroboration (drift, an active incident, or a risky counterparty) **and** it is the top frame **and** same-origin **and** the request's numeric BOUND score is below the red threshold (`BOUND_TX_RED_THRESHOLD`, default **16**) — an unknown score never qualifies — BOUND cancels the request and **redirects you to the safe page** — a recovery page hosted on **Swarm** (`bzz.limo/bzz/2ef102c2…682c/`) that reads Arkiv on its own and shows the evidence. A changed script **alone** only warns — because normal deploys change scripts too.
 
 To override, you need a private confirmation page and a typed `I UNDERSTAND`. The override is a one-time ticket bound to that tab, that document, that origin, that chain and the current settings version.
 
@@ -427,6 +428,21 @@ Storage stays roughly flat instead of growing forever.
 - It reports a (site, address) pair at most **once a week**.
 - Reports are not a trust source. Reporter keys are **rotating pseudonyms** — they count distinct keys, not distinct people.
 
+## B11. Incident and warning history (new — "Show more" on the warning page)
+
+- Each **address-warning report** now also carries the reporting client's numeric **score (0–100)** and an **hour-rounded UTC timestamp**. The watcher rejects a report whose timestamp is in the future, and deduplicates reports per site/counterparty/reporter within the same hour.
+- The warning window's "Show more" section does an **owner-wide, anonymous Arkiv query** (over Anon-RPC) for the current host + wallet chain, filtered locally, and shows up to **5 unexpired incidents** and **5 scored warnings**.
+- This is read-only history, not a verdict: a score shown here is **not a probability**, and **missing history is not proof of safety** — the UI says so explicitly. It cannot raise or lower the live score.
+- Older watcher deployments reject the new scored-report shape, so the watcher and the extension must be upgraded together.
+- CLI equivalent for anyone checking the claim themselves: `node --env-file=.env scripts/watcher/incident-history.mjs <site> <chainId>`.
+
+## B12. ENS financial-site registry comparison (new — observational, not a trust signal)
+
+- Separate from the trust snapshot. For each real top-level HTTPS wallet request, BOUND derives a deterministic subname `site-<sha256(hostname)-prefix>.bound-v2.eth`, reads its `url` and `com.bound.frontend-observation.v1` text records through the **same pinned resolver and Anon-RPC path** as the trust snapshot, and compares same-path script hashes already collected by the frontend collector (B5).
+- The registry itself is seeded from **50 real financial/DeFi frontends** (Aave, Uniswap, Lido, Curve, Coinbase, etc.) — hashes collected by an independent public-HTTPS scraper (`scripts/registry/financial_registry.py`), published to real Sepolia ENS subnames with real transaction hashes (see `fixtures/financial-registry/ENS-RECORDS.md`). 26 of the 50 candidate sites yielded comparable script hashes; the rest were unavailable or had nothing comparable.
+- **This never changes the score or triggers the safe-page redirect.** It is shown as a separate line in the warning window: "✓ matched-subset" (scripts match), "× changed" (same-path hash differs — observational only), or "unavailable" (stale, no record, no overlapping paths). It is explicitly a public, unreviewed, scraper-collected data point — not a curated baseline.
+- Why it exists: it is a second, independently-sourced data point a judge or user can verify themselves on a public ENS explorer, on top of (never instead of) the reviewed trust snapshot and the watcher's own reporter-corroborated frontend baseline.
+
 ---
 
 # PART C — EDGE CASES BOUND HANDLES
@@ -504,6 +520,8 @@ Storage stays roughly flat instead of growing forever.
 | Attacker **overrides warnings** to train the baseline | Overrides are never published as evidence |
 | Reports sent during an **active incident** | Suppressed |
 | Competitor sends a flood of fake warnings to **grief a healthy site** | Needs K=3 independent reports or corroborated drift |
+| Warning report **backdated or future-dated** to game history | Watcher rejects any `observedAt` in the future; hour-bucket dedup stops repeat-spam from one reporter |
+| Someone writes a **fake registry record** under the financial-registry subname pattern | Resolver and exact host must still match the pinned proxy; a mismatched record is `unavailable`, never trusted, and never touches the score |
 
 ## C4. Normal-life events that must NOT cause false alarms
 
@@ -594,6 +612,8 @@ Say these out loud if asked. Honesty is part of the product.
 10. **Report delay is 2–10 seconds in this build** for testing; the privacy target is 30 seconds to 30 minutes.
 11. **Revoking an approval does not cancel a signature already given**, and Permit2 allowances are separate from ERC-20 ones.
 12. **Nothing here is audited**, and we publish no accuracy percentage without the test set it was measured on.
+13. **The incident/warning history panel and the ENS financial registry comparison are both read-only evidence, not verdicts.** A clean history is not proof of safety; a "changed" registry hash is not proof of compromise. Neither can move the score or trigger the safe-page redirect.
+14. **The financial registry's 50 entries are an unreviewed, scraper-collected convenience sample** — ranked by self-reported TVL, not an endorsement, not a complete top-50, and not proof those are each site's real wallet-connecting frontend.
 
 ---
 
@@ -626,7 +646,10 @@ Seeds are never read from Arkiv records. Every read filters to our watcher's add
 Decisions are local, from data fetched in advance. Network facts at signing time have a hard 1.5-second budget.
 
 **"Why should I believe your numbers?"**
-Run `npm test` — **719 tests, 0 failures** in the root suite (checked 2026-11-07). The Arkiv query in the README is runnable by anyone.
+Run `npm test` in the root suite. The Arkiv query in the README is runnable by anyone.
+
+**"Isn't a 50-site 'financial registry' just a trust list in disguise?"**
+No — it never touches the score or the redirect. It's a second, independently-verifiable data point (real Sepolia transactions anyone can look up) sitting next to, not inside, the reviewed trust snapshot. We say this explicitly in the warning UI and in Part E.
 
 ## F2. Numbers cheat sheet
 
@@ -646,6 +669,9 @@ Run `npm test` — **719 tests, 0 failures** in the root suite (checked 2026-11-
 | Snapshot hash | keccak256 over RFC 8785 canonical JSON |
 | Connection weights | origin 10, snapshot 25, domain 20, Arkiv 10, watcher 25, wallet 10; pass ≥ 80 |
 | Transaction bands | green ≥ 70, amber ≥ 40, red ≥ 16, escalated < 16 |
+| Safe-page redirect score gate | numeric score must be `< 16` (`BOUND_TX_RED_THRESHOLD`); unknown score never qualifies |
+| Incident/warning history shown | up to 5 incidents + 5 scored warnings, owner-wide Arkiv query, current host + chain only |
+| Financial registry (new) | 50 real DeFi frontends seeded; 26/50 yielded comparable script hashes; subname `site-<sha256(host)>.bound-v2.eth` |
 | Key caps | untrusted rights 35 (15 with drift); untrusted destination 65; malformed 35; `eth_sign` 0 |
 | Signing-time chain budget | 1.5 s |
 | Warning lifetime | 10 min (hook hard stop 11 min) |
@@ -666,6 +692,7 @@ Run `npm test` — **719 tests, 0 failures** in the root suite (checked 2026-11-
 5. **Scanner trick.** With `BOUND_DEMO_SCANNER_CLEAN=1`, show that a `HeadlessChrome` request gets the clean page.
 6. **The click.** Press the approve button → red/escalated warning naming the untrusted spender, the token, the Revoke.cash link. Press Cancel → page gets `4001`, the wallet popup never opens.
 7. **Frontend mismatch.** Show the script hash conflict in the warning and the safe-page redirect on Swarm.
-8. **Limits.** Show a `bypass_possible` case honestly. Close with the 14:54 → 15:41 timeline.
+8. **Show more.** Open "Show more" on the warning page — point out the incident/warning history panel and the ENS financial-registry comparison line, and say out loud that neither one moved the score.
+9. **Limits.** Show a `bypass_possible` case honestly. Close with the 14:54 → 15:41 timeline.
 
 > **Pre-record backups** of the hijack step and the bypass case in case live networking misbehaves. **Never build a clone of a real brand's site** — the demo uses our own test dApp.

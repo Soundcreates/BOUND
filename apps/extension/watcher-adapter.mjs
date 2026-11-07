@@ -24,7 +24,9 @@ export function toIntakeEvent(record){
  // invent one; the local warning history still records the event.
  if(record.kind==="warned"&&record.value===undefined)return null;
  if(!ADDRESS.test(record.value)||!["observation","warned"].includes(record.kind)||(record.observationKind!==undefined&&(record.kind!=="observation"||record.observationKind!=="called-contract")))throw new Error("Invalid queued observation");
- return {site:record.site,kind:record.kind==="warned"?"warned":record.observationKind??"counterparty",value:record.value,chainId:Number(chainId),reporterKey:record.reporterKey};
+ const event={site:record.site,kind:record.kind==="warned"?"warned":record.observationKind??"counterparty",value:record.value,chainId:Number(chainId),reporterKey:record.reporterKey,...(record.score!==undefined?{score:record.score,observedAt:record.observedAt}:{})};
+ if(!validateObservation(event))throw new Error("Invalid queued observation");
+ return event;
 }
 export function encodeObservationBatch(records){
  if(!Array.isArray(records)||!records.length||records.length>100)throw new Error("Invalid observation batch count");

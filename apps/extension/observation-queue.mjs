@@ -11,7 +11,7 @@ function serialized(operation) {
 }
 
 function recordKey(record) {
-  return JSON.stringify([record.site, record.chain, record.kind, record.value?.toLowerCase() || null, ...(record.observationKind ? [record.observationKind] : [])]);
+  return JSON.stringify([record.site, record.chain, record.kind, record.value?.toLowerCase() || null, ...(record.observationKind ? [record.observationKind] : []), ...(record.kind === 'warned' && record.observedAt ? [record.observedAt] : [])]);
 }
 
 async function load(storage) {
@@ -50,6 +50,7 @@ export async function enqueue(records, storage = chrome.storage.local, now = Dat
       }
       if (!record || !["observation", "warned"].includes(record.kind) || typeof record.site !== "string" || !record.site || record.site.length > 253 || typeof record.chain !== "string" || !record.chain || record.chain.length > 80 ||
         (record.value !== undefined && (typeof record.value !== "string" || !/^0x[0-9a-f]{40}$/i.test(record.value))) || (record.kind === "observation" && !record.value) || (record.observationKind !== undefined && (record.kind !== "observation" || record.observationKind !== "called-contract"))) throw new TypeError("Invalid observation record");
+      if ((record.score !== undefined || record.observedAt !== undefined) && (record.kind !== "warned" || !Number.isSafeInteger(record.score) || record.score < 0 || record.score > 100 || typeof record.observedAt !== "string" || !Number.isFinite(Date.parse(record.observedAt)) || new Date(record.observedAt).toISOString() !== record.observedAt)) throw new TypeError("Invalid warning score");
       const value = record.value?.toLowerCase();
       const dedupeKey = recordKey({ ...record, value });
       const previous = seen[dedupeKey] ?? seen[`${record.site}:${record.chain}:${value || record.kind}`];
@@ -58,7 +59,7 @@ export async function enqueue(records, storage = chrome.storage.local, now = Dat
       // so a report dropped from the queue (Stop, consent withdrawn) can be made again.
       if (queue.some(item => recordKey(item) === dedupeKey)) continue;
       if (queue.length >= MAX_QUEUE) throw new Error("Observation queue is full");
-      queue.push({ site: record.site, kind: record.kind, ...(value ? { value } : {}), ...(record.observationKind ? { observationKind: record.observationKind } : {}), chain: record.chain, reporterKey: reporter.key });
+      queue.push({ site: record.site, kind: record.kind, ...(value ? { value } : {}), ...(record.observationKind ? { observationKind: record.observationKind } : {}), ...(record.score !== undefined ? {score:record.score,observedAt:record.observedAt} : {}), chain: record.chain, reporterKey: reporter.key });
     }
     await storage.set({boundReporter: reporter, boundObservationSeen: seen, boundObservationQueue: queue, boundObservationQueueVersion: 2, ...(queue.length !== initialLength ? {boundObservationGeneration: crypto.randomUUID()} : {})});
   });

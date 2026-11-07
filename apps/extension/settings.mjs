@@ -5,7 +5,7 @@ export const DEFAULT_SETTINGS=Object.freeze({
  ensResolver:"0xf6efa18d24c108a060b0d2a0e715b9045e09ea0f",
  arkivRpcUrl:"https://rpc.rabdi.db-chain.testnet.arkiv.network",
  watcherOwner:"0xE63393558E36dF643347326E7e03AD5fB0E6c867",
- safePageUrl:"https://bzz.limo/bzz/2ef102c267b6d62900b8c31c25620405d5fff12e22cd01f79038bd3eea0e682c/",
+ safePageUrl:"https://bzz.limo/bzz/fa43f135f708b18f7f97008971e977f8ac74385f9f7237fb58bdc20ad2ba14ef/",
  watcherUrl:"https://bound-aggregator-0-1-1.onrender.com/v1/observations",
  anonBootstrapUrl:"https://ethereum-sepolia-rpc.publicnode.com",
  anonRpcUrl:"https://ethereum-sepolia-rpc.publicnode.com"

@@ -192,7 +192,7 @@
     };
     const readState = () => new NativePromise((resolve) => {
       let chainId, accounts, remaining = 2, finished = false;
-      const timer = setTimeoutNative(() => finish(null), 5_000);
+      const timer = setTimeoutNative(() => finish(null), 15_000);
       function finish(value) {
         if (finished) return;
         finished = true;

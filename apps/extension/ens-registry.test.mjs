@@ -1,0 +1,36 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {webcrypto} from 'node:crypto';
+import {parseAbi,decodeFunctionData,encodeFunctionResult} from 'viem';
+import {registryName,compareRegistryRecord,readEnsRegistry} from './ens-registry.mjs';
+const hash='sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=', other='sha256-'+Buffer.alloc(32,1).toString('base64');
+const observed={scripts:[{path:'/app.js',hash}]}, now=Date.parse('2026-11-07T00:00:00Z');
+const raw=JSON.stringify({version:1,hostname:'app.uniswap.org',observedAt:'2026-11-06T00:00:00Z',status:'observed',scripts:[{path:'/app.js',sha256:hash}]});
+const input={host:'app.uniswap.org',url:'https://app.uniswap.org/',raw,observed,now};
+test('derives the same registry subname used by the publisher',async()=>{assert.equal(await registryName('app.uniswap.org','bound-v2.eth',webcrypto.subtle),'site-17cf44d91db9e2e496ec0498.bound-v2.eth')});
+test('compares only common script paths and preserves unknown evidence',()=>{
+ assert.equal(compareRegistryRecord(input).status,'matched-subset');
+ assert.equal(compareRegistryRecord({...input,observed:{scripts:[{path:'/app.js',hash:other}]}}).status,'changed');
+ assert.equal(compareRegistryRecord({...input,observed:{scripts:[{path:'/new.js',hash}]}}).status,'unavailable');
+ assert.equal(compareRegistryRecord({...input,host:'evil.example'}).status,'unavailable');
+ assert.equal(compareRegistryRecord({...input,now:now+8*86400000}).status,'unavailable');
+});
+test('ENS lookup verifies pinned resolver and both records through anonymous transport',async()=>{
+ const resolver='0x1111111111111111111111111111111111111111';
+ const uni=parseAbi(['function findResolver(bytes name) view returns (address,bytes32,uint256)','function resolve(bytes name,bytes data) view returns (bytes,address)']);
+ const textAbi=parseAbi(['function text(bytes32 node,string key) view returns (string)']);
+ let methods=[];
+ const request=async({method,params})=>{methods.push(method);if(method==='eth_chainId')return {result:'0xaa36a7'};
+  const call=decodeFunctionData({abi:uni,data:params[0].data});
+  if(call.functionName==='findResolver')return {result:encodeFunctionResult({abi:uni,functionName:'findResolver',result:[resolver,'0x'+'00'.repeat(32),0n]})};
+  const text=decodeFunctionData({abi:textAbi,data:call.args[1]});
+  const value=text.args[1]==='url'?input.url:raw;
+  const encoded=encodeFunctionResult({abi:textAbi,functionName:'text',result:value});
+  return {result:encodeFunctionResult({abi:uni,functionName:'resolve',result:[encoded,resolver]})};
+ };
+ const settings={ensRootName:'bound-v2.eth',ensResolver:resolver,ensChainId:11155111};
+ const result=await readEnsRegistry({siteOrigin:input.url,settings,anonymousRequest:request,observed,now});
+ assert.equal(result.status,'matched-subset');assert.equal(result.compared,1);assert.ok(methods.includes('eth_call'));
+ assert.equal((await readEnsRegistry({siteOrigin:input.url,settings:{...settings,ensResolver:'0x'+'22'.repeat(20)},anonymousRequest:request,observed,now})).status,'unavailable');
+ assert.equal((await readEnsRegistry({siteOrigin:'https://app.uniswap.org:8443/',settings,anonymousRequest:request,observed,now})).status,'unavailable');
+});

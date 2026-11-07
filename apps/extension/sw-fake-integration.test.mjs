@@ -68,6 +68,7 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       export async function getWatcherOwner() { return "${OWNER}"; }
       export const decisionAdapters = {
         async readVerifiedSnapshot() { return globalThis.__boundFake.adapters.snapshot; },
+        async readEnsRegistry({observed}) { return {status:'matched-subset',compared:observed.scripts.length,unfamiliar:0}; },
         async readWatcherBundle() { const adapters = globalThis.__boundFake.adapters; return adapters.getRecords ? adapters.getRecords() : adapters.records; }
       };
     `);
@@ -217,9 +218,9 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       return { id: "fake-extension", tab: { id: 1, url: `https://${site}/` }, frameId: 0, documentId, url: `https://${site}/` };
     };
     const connectionState = { chainId: "0x1", accounts: [] };
-    const connect = async (method, sender) => {
+    const connect = async (method, sender, state = connectionState) => {
       const request = { method, params: method === "wallet_requestPermissions" ? [{ eth_accounts: {} }] : [] };
-      return send({ type: "BOUND_REQUEST_V1", request, state: connectionState, digest: await hash(JSON.stringify(request)), stateDigest: await hash(JSON.stringify(connectionState)) }, sender);
+      return send({ type: "BOUND_REQUEST_V1", request, state, digest: await hash(JSON.stringify(request)), stateDigest: await hash(JSON.stringify(state)) }, sender);
     };
     // Passive account reads never open UI: the wallet only discloses granted accounts.
     for (const method of ["eth_accounts", "eth_coinbase", "metamask_getProviderState"]) {
@@ -230,10 +231,10 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       assert.equal(fake.windows.length, before, `${method} must not open a review`);
     }
     // Connection prompts always open a review and are never cancelled on score alone.
-    const review = async (method, sender, status) => {
+    const review = async (method, sender, status, state = connectionState) => {
       fake.adapters.records = status ? scenarioRecords(status) : [];
       const index = fake.windows.length;
-      const resultPromise = connect(method, sender);
+      const resultPromise = connect(method, sender, state);
       await waitFor(() => fake.windows.length > index);
       const window = fake.windows[index];
       const id = new URL(window.url).searchParams.get("request");
@@ -246,6 +247,8 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       const sender = makeSender(SITE, `connection-${method}`);
       const verified = await review(method, sender, "normal");
       assert.equal(verified.details.kind, "connection");
+      assert.equal(verified.details.frontendRegistry.status, "matched-subset");
+      assert.equal(verified.details.frontendRegistry.compared, 1);
       assert.equal(verified.details.tier, "pass");
       assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: verified.id, action: "continue" }, verified.warningSender), { ok: true });
       assert.equal((await verified.resultPromise).action, "continue");
@@ -266,6 +269,12 @@ test("service worker uses fake trust and watcher adapters for observation flows"
       assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: missing.id, action: "cancel" }, missing.warningSender), { ok: true });
       assert.equal((await missing.resultPromise).action, "cancel");
     }
+    const slowWallet = await review("eth_requestAccounts", makeSender(SITE, "slow-wallet"), null, null);
+    assert.equal(slowWallet.details.locked, true);
+    assert.equal(typeof slowWallet.details.connectionScore.score, "number");
+    assert.equal(slowWallet.details.connectionScore.verified, false);
+    assert.deepEqual(await send({ type: "BOUND_DECISION_V1", id: slowWallet.id, action: "continue" }, slowWallet.warningSender), { ok: true });
+    assert.equal((await slowWallet.resultPromise).action, "continue");
     const connectionSender = makeSender(SITE, "connection-cross-frame");
     fake.adapters.records = scenarioRecords("normal");
     const crossFrame = await review("eth_requestAccounts", { ...connectionSender, url: "https://unknown.example/" }, "normal");

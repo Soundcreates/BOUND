@@ -93,3 +93,15 @@ The host's `PORT` is honoured; the image binds `0.0.0.0` and defaults to 8787.
 - `GET /healthz` reports `503` until the rebuild and Arkiv writer are ready.
 - `BOUND_REBUILD=always` forces a rebuild even when state files exist. With `BOUND_LOCAL_INTAKE_ARKIV=off` the rebuild still runs, read-only, as a dry run.
 - Duplicate baseline/status entities found during a rebuild are logged, never deleted automatically.
+
+### Incident and scored warning history
+
+Address-based warning reports include the originating BOUND score and an hour-rounded UTC observation timestamp. The watcher stores these as `observation` entities, alongside separately published `incident` entities. A reported score is not a probability and a warning is not proof of an incident. Old records may have no score; site-only warnings are not uploaded. Reports may be deduplicated within a given hour per reporter, site and counterparty. The local watcher retains warning observations for 345600 blocks; incident entity lifetimes depend on its deployment settings. Absence of unexpired records means unknown, not proof of safety.
+
+To query current records from the configured writer (the site is filtered locally after an owner-wide read):
+
+```sh
+node --env-file=.env scripts/watcher/incident-history.mjs app.morpho.org 11155111
+```
+
+The extension's Show more section displays up to five unexpired incident records and five scored warnings for the current host and wallet chain, via an anonymous owner-wide query. It reports unavailable if the query fails or exceeds its bounded page/time budget; it does not use history to infer a score or security verdict. Upgrade and restart the watcher and rebuild/reload the extension together: older watcher versions reject the new scored report shape. Hosted deployments must be updated separately.

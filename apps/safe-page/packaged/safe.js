@@ -105,7 +105,7 @@
       case "frontend":
         return validateFrontendRecord(v);
       case "observation":
-        return baseRecord(v, ["value", "reporterKey", "event"]) && isAddress(v.value) && nonempty(v.reporterKey) && ["counterparty", "called-contract", "warned"].includes(v.event);
+        return (baseRecord(v, ["value", "reporterKey", "event"]) || v.event === "warned" && baseRecord(v, ["value", "reporterKey", "event", "score", "observedAt"]) && integer(v.score) && v.score <= 100 && timestamp2(v.observedAt)) && isAddress(v.value) && nonempty(v.reporterKey) && ["counterparty", "called-contract", "warned"].includes(v.event);
       case "baseline":
         return baseRecord(v, ["counterparties", "calledContracts", "updatedAt"]) && addresses(v.counterparties) && addresses(v.calledContracts) && timestamp2(v.updatedAt);
       case "drift":
@@ -210,7 +210,9 @@
   }
   var chain = (s) => typeof s === "string" && /^[1-9][0-9]*$/.test(s) && Number.isSafeInteger(Number(s));
   function valid(v) {
-    return keys(v, ["v", "site", "chain", "score", "sev", "reason", "conflicts", "unfamiliar", "cov", "ticket", "watcher"]) && v.v === 1 && validSite(v.site) && chain(v.chain) && (v.score === null || Number.isInteger(v.score) && v.score >= 0 && v.score <= 100) && ["pass", "warning", "huge", "firewall"].includes(v.sev) && Array.isArray(v.reason) && v.reason.length <= 3 && new Set(v.reason).size === v.reason.length && v.reason.every((x) => ["drift", "incident", "counterparty"].includes(x)) && Array.isArray(v.conflicts) && v.conflicts.length <= 16 && v.conflicts.every((x) => keys(x, ["path", "observed", "expected"]) && isFrontendPath(x.path) && isFrontendHash(x.observed) && Array.isArray(x.expected) && x.expected.length <= 4 && x.expected.every(isFrontendHash)) && Array.isArray(v.unfamiliar) && v.unfamiliar.length <= 16 && v.unfamiliar.every((x) => keys(x, ["path", "hash"]) && isFrontendPath(x.path) && isFrontendHash(x.hash)) && keys(v.cov, coverage) && coverage.every((k) => Number.isSafeInteger(v.cov[k]) && v.cov[k] >= 0) && coverage.slice(1).reduce((n, k) => n + v.cov[k], 0) === v.cov.total && typeof v.ticket === "string" && /^[0-9a-f]{32}$/.test(v.ticket) && typeof v.watcher === "string" && /^0x[0-9a-f]{40}$/.test(v.watcher);
+    const fields = ["v", "site", "chain", "score", "sev", "reason", "conflicts", "unfamiliar", "cov", "ticket", "watcher"];
+    const report = v?.report;
+    return (keys(v, fields) || keys(v, [...fields, "report"]) && keys(report, ["time", "method", "checks"]) && Number.isFinite(Date.parse(report.time)) && typeof report.method === "string" && /^[a-zA-Z0-9_]{1,80}$/.test(report.method) && Array.isArray(report.checks) && report.checks.length === 6 && report.checks.every((x) => ["passed", "failed", "unavailable"].includes(x))) && v.v === 1 && validSite(v.site) && chain(v.chain) && (v.score === null || Number.isInteger(v.score) && v.score >= 0 && v.score <= 100) && ["pass", "warning", "huge", "firewall"].includes(v.sev) && Array.isArray(v.reason) && v.reason.length <= 3 && new Set(v.reason).size === v.reason.length && v.reason.every((x) => ["drift", "incident", "counterparty"].includes(x)) && Array.isArray(v.conflicts) && v.conflicts.length <= 16 && v.conflicts.every((x) => keys(x, ["path", "observed", "expected"]) && isFrontendPath(x.path) && isFrontendHash(x.observed) && Array.isArray(x.expected) && x.expected.length <= 4 && x.expected.every(isFrontendHash)) && Array.isArray(v.unfamiliar) && v.unfamiliar.length <= 16 && v.unfamiliar.every((x) => keys(x, ["path", "hash"]) && isFrontendPath(x.path) && isFrontendHash(x.hash)) && keys(v.cov, coverage) && coverage.every((k) => Number.isSafeInteger(v.cov[k]) && v.cov[k] >= 0) && coverage.slice(1).reduce((n, k) => n + v.cov[k], 0) === v.cov.total && typeof v.ticket === "string" && /^[0-9a-f]{32}$/.test(v.ticket) && typeof v.watcher === "string" && /^0x[0-9a-f]{40}$/.test(v.watcher);
   }
   function parseSafeFragment(hash) {
     try {
@@ -349,9 +351,15 @@
     }) || evidence.unfamiliar.some((row) => hashes(row.path).length > 0);
   }
   function startSafePage({ window: win = window, document: doc = document, query = querySafeCommunity } = {}) {
-    let evidence = null;
+    let evidence = null, demo = null;
     try {
       evidence = parseSafeFragment(win.location.hash);
+      if (!evidence && win.location.hash.startsWith("#presentation=")) {
+        const v = JSON.parse(decodeURIComponent(win.location.hash.slice("#presentation=".length)));
+        const u = new URL(v.origin);
+        if (Object.keys(v).sort().join(",") === "origin,score,time" && ["http:", "https:"].includes(u.protocol) && u.origin === v.origin && Number.isInteger(v.score) && v.score >= 0 && v.score < 16 && Number.isFinite(Date.parse(v.time))) demo = v;
+      }
+    } catch {
     } finally {
       win.history.replaceState(null, "", win.location.pathname + win.location.search);
     }
@@ -361,13 +369,28 @@
     const confirm = by("confirm");
     confirm.disabled = !evidence;
     by("leave").addEventListener("click", () => win.location.assign("about:blank"));
+    if (demo) {
+      set("summary", `Presentation report \xB7 Site: ${demo.origin} \xB7 Time: ${new Date(demo.time).toLocaleString()} \xB7 Simulated confidence score: ${demo.score}/100 (higher is better)`);
+      set("reasons", "This score is fixed for the presentation. No BOUND assessment or wallet request was performed.");
+      set("coverage", "ENS/Arkiv snapshot: unavailable \xB7 Domain and port match: unavailable \xB7 Arkiv watcher lookup: unavailable \xB7 Watcher status: unavailable \xB7 Wallet chain/account: unavailable \xB7 Frontend comparison: unavailable.");
+      set("live", "Live community data was not queried for this presentation.");
+      return;
+    }
     if (!evidence) {
       set("summary", "This page could not read the extension evidence.");
       set("live", "Live community data unavailable.");
       return;
     }
-    set("summary", `Site: ${evidence.site} \xB7 Chain: ${evidence.chain} \xB7 Severity: ${evidence.sev} \xB7 Score: ${evidence.score ?? "unavailable"}`);
-    set("reasons", `Corroboration: ${evidence.reason.join(", ") || "none"}`);
+    set("summary", `Site: ${evidence.site} \xB7 Chain: ${evidence.chain} \xB7 Severity: ${evidence.sev} \xB7 Confidence score: ${evidence.score ?? "unavailable"}/100 (higher is better)`);
+    set("reasons", `${evidence.report ? `Time: ${new Date(evidence.report.time).toLocaleString()} \xB7 Method: ${evidence.report.method}. ` : ""}Corroboration: ${evidence.reason.join(", ") || "none"}`);
+    if (evidence.report) {
+      const labels = ["HTTPS or local origin", "ENS/Arkiv snapshot", "Domain and port match", "Arkiv watcher lookup", "Watcher status", "Wallet chain/account"];
+      for (let i = 0; i < labels.length; i++) {
+        const li = doc.createElement("li");
+        li.textContent = `${labels[i]}: ${evidence.report.checks[i]}`;
+        by("rows").appendChild(li);
+      }
+    }
     set("coverage", `Observed scripts: ${evidence.cov.compared} of ${evidence.cov.total}. ${Object.entries(evidence.cov).filter(([key]) => !["total", "compared"].includes(key)).map(([key, value]) => `${key}: ${value}`).join("; ")}. Cached bytes may differ from executed code.`);
     const rows = by("rows");
     for (const row of evidence.conflicts) {

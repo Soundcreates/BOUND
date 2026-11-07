@@ -26,18 +26,19 @@ const READ_KINDS=["baseline","status","drift","ens_record","frontend","incident"
 const KIND_FILTER=`(${READ_KINDS.map(kind=>`kind = str('${kind}')`).join(" OR ")})`;
 // Rabdi makes a block every ~2s; a listing that spans a new block is restarted
 // rather than failing, so one block landing mid-read does not drop watcher data.
-async function queryAll(request,owner,limits={pages:0,restarts:0}){
+async function queryAll(request,owner,limits={pages:0,restarts:0},kinds=READ_KINDS){
  let cursor=null,block=null;const records=[];
- while(limits.pages++<MAX_PAGES){
-  const expression=`$owner = addr(${owner}) AND arkiv.schema = str('bound.record.v1') AND ${KIND_FILTER}${cursor?` AND $key > key(${cursor})`:""} ORDER BY $key ASC`;
+ const filter=kinds===READ_KINDS ? KIND_FILTER : `(${kinds.map(kind=>`kind = str('${kind}')`).join(' OR ')})`;
+ while(limits.pages++<(limits.maxPages??MAX_PAGES)){
+  const expression=`$owner = addr(${owner}) AND arkiv.schema = str('bound.record.v1') AND ${filter}${cursor?` AND $key > key(${cursor})`:""} ORDER BY $key ASC`;
   const result=await request("arkiv_query",[expression,{select:{key:true,owner:true,expiresAt:true,attributes:true},limit:`0x${LIMIT.toString(16)}`}]);
   if(!result||!Array.isArray(result.data)||result.data.length>LIMIT)throw new Error("Invalid Arkiv query");
-  const current=quantity(result.blockNumber);if(block!==null&&block!==current){if(limits.restarts++===0)return queryAll(request,owner,limits);throw new Error("Arkiv pagination changed block");}block=current;
+  const current=quantity(result.blockNumber);if(block!==null&&block!==current){if(limits.restarts++===0)return queryAll(request,owner,limits,kinds);throw new Error("Arkiv pagination changed block");}block=current;
   for(const row of result.data){
    if(!row||typeof row.key!=="string"||!KEY.test(row.key)||(cursor&&row.key<=cursor))throw new Error("Invalid Arkiv pagination");cursor=row.key;
    if(typeof row.owner!=="string"||!ADDRESS.test(row.owner))throw new Error("Invalid Arkiv owner");if(row.owner!==owner)continue;
    const expiresAt=quantity(row.expiresAt);if(expiresAt<=block)continue;
-   const record=decode(row.attributes);if(READ_KINDS.includes(record.kind))records.push({key:row.key,owner:row.owner,expiresAt,record});
+   const record=decode(row.attributes);if(kinds.includes(record.kind))records.push({key:row.key,owner:row.owner,expiresAt,record});
   }
   if(result.data.length<LIMIT)return {records,block};
  }
@@ -58,6 +59,12 @@ function mapRecords(cache,currentBlock,time){
   }
  }
  return output;
+}
+export function summarizeIncidentHistory(entries,site,chain,now=Date.now()){
+ const filtered=entries.filter(({record})=>record.site===site&&String(record.chainId)===chain);
+ const incidents=filtered.filter(({record})=>record.kind==='incident'&&Date.parse(record.createdAt)<=now).map(({record})=>({time:record.createdAt,severity:record.severity})).sort((a,b)=>b.time.localeCompare(a.time));
+ const warnings=filtered.filter(({record})=>record.kind==='observation'&&record.event==='warned'&&record.observedAt&&Date.parse(record.observedAt)<=now).map(({record})=>({time:record.observedAt,score:record.score})).sort((a,b)=>b.time.localeCompare(a.time));
+ return {state:'available',incidents:incidents.slice(0,5),warnings:warnings.slice(0,5)};
 }
 export function createArkivReader({getSettings,storage,anonymousRequest,fetchImpl=fetch,now=Date.now}){
  if(typeof getSettings!=="function"||!storage||typeof storage.get!=="function"||typeof storage.set!=="function"||typeof anonymousRequest!=="function"||typeof fetchImpl!=="function")throw new Error("Invalid Arkiv reader");
@@ -200,5 +207,13 @@ export function createArkivReader({getSettings,storage,anonymousRequest,fetchImp
  async function readUncuratedViaAnonRpc({site,chain}){
   return (await readSiteStatusViaAnonRpc({site})).filter(item=>item.chain===chain);
  }
- return {refresh,verifyBundleBlock,readCommunityCache,ensureCommunity,readWatcherBundle,readSiteStatusViaAnonRpc,readUncuratedViaAnonRpc,readEnsRecord,readTrustSnapshot};
+ async function readIncidentHistory({site,chain}){
+  const settings=checkedSettings(await getSettings());
+  if(typeof site!=='string'||typeof chain!=='string'||!/^[1-9]\d*$/.test(chain))throw new Error('Invalid history scope');
+  if(quantity(await anon('eth_chainId',[]))!==settings.arkivChainId)throw new Error('Unexpected Arkiv chain');
+  const result=await queryAll(anon,settings.watcherOwner,{pages:0,restarts:0,maxPages:8},['incident','observation']);
+  await observeBlock(settings,result.block);
+  return summarizeIncidentHistory(result.records,site,chain,now());
+ }
+ return {refresh,verifyBundleBlock,readCommunityCache,ensureCommunity,readWatcherBundle,readSiteStatusViaAnonRpc,readUncuratedViaAnonRpc,readEnsRecord,readTrustSnapshot,readIncidentHistory};
 }

@@ -316,7 +316,7 @@ function allowRequest(address) {
 }
 setInterval(() => { const time = Date.now(); for (const [address, window] of rateWindows) if (time - window.start >= RATE_WINDOW_MS) rateWindows.delete(address); }, RATE_WINDOW_MS).unref();
 
-const sameEvent = (record, event) => record.site === event.site && record.chainId === event.chainId && record.value === event.value && record.reporterKey === event.reporterKey && record.event === event.kind;
+const sameEvent = (record, event) => record.site === event.site && record.chainId === event.chainId && record.value === event.value && record.reporterKey === event.reporterKey && record.event === event.kind && record.observedAt === event.observedAt;
 // Delivers pending observations and reports whether none of this batch is still waiting.
 async function deliveredWithin(events, timeoutMs) {
   let timer;
