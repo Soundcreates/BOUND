@@ -31,7 +31,7 @@ flowchart TD
 
     classDef curator fill:#f3e8ff,stroke:#9333ea,color:#581c87,stroke-width:2px
     classDef watcher fill:#fff7ed,stroke:#f59e0b,color:#9a3412,stroke-width:2px
-    classDef storage fill:#eff6ff,stroke:#2563eb,color:#1e40af,stroke-width:2px
+    classDef storage fill:#eff6ff,stroke:#2563eb,color:#1e40af,stroke-width:4px
     classDef extension fill:#ecfdf5,stroke:#16a34a,color:#166534,stroke-width:2px
     classDef safe fill:#ecfdf5,stroke:#059669,color:#065f46,stroke-width:2px
     classDef threat fill:#fef2f2,stroke:#dc2626,color:#991b1b,stroke-width:2px
