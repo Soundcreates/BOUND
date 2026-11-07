@@ -4,6 +4,9 @@ BOUND is an origin-aware browser firewall that protects Web3 users from hijacked
 
 When you interact with a dApp, BOUND intercepts the transaction before it reaches your crypto wallet. It decodes the calldata and checks the target contract against a verified, decentralized registry (anchored on ENS v2 and Swarm) while checking Arkiv for live DNS/TLS infrastructure drift. If an unauthorized contract or sudden domain change is detected, BOUND holds the transaction in a secure warning window—preventing wallet drains even when the domain name and SSL certificate look completely authentic.
 
+> 📄 **Technical Architecture & Privacy Whitepaper:**  
+> For the complete in-depth system architecture, zero-tracking user privacy guarantees, and RFC 9180 HPKE anti-poisoning cryptographic specifications, see the [**BOUND Architecture, Privacy & Anti-Poisoning Whitepaper**](Docs/BOUND_Architecture_and_Privacy_Whitepaper.md).
+
 ```mermaid
 
 flowchart TD
