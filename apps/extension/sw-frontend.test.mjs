@@ -17,7 +17,7 @@ async function worker({conflict = false, frameId = 0, invalidEvidence = false, d
   const now = Date.now();
   const community = {state:'fresh', fetchedAt:now, ageMs:0, rawDrift:drift, corroboratedDrift:drift, activeIncident:false, ambiguous:false, communityReportingSafe:true,
     frontend:{schemaVersion:1, kind:'frontend', site:'app.example', chainId:1, updatedAt:new Date(now).toISOString(), scripts:[{path:'/app.js',hash:conflict ? other : hash,reporters:3,firstSeen:new Date(now - 3600001).toISOString(),lastSeen:new Date(now).toISOString(),established:true}]}};
-  const fake = {community, candidates, collections:[], context:{baseline:'seeded', policy:{}, incidentStatus:'normal'},
+  const fake = {community, candidates, collections:[], context:{baseline: drift ? 'observed' : 'seeded', drift, policy:{}, incidentStatus:'normal'},
     status:{status:'normal', expiresAt:new Date(now+60000).toISOString(),evidence:{snapshotVerified:true,siteMatched:true,watcherLookup:true}}};
   const modules = {
     'trust-adapter.mjs': `export const decisionAdapters = {}; export async function getWatcherOwner(){ return '0x'+'1'.repeat(40); }`,

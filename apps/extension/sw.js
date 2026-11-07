@@ -613,7 +613,7 @@ function openWarning(id, warnings = []) {
   const entry = pending.get(id);
   entry.window = chrome.windows.create({
     url: chrome.runtime.getURL(`warning.html?request=${encodeURIComponent(id)}`),
-    type: "popup", width: entry.details.kind === "connection" ? 520 : 440, height: entry.details.kind === "connection" ? 720 : 600
+    type: "popup", width: entry.details.kind === "connection" ? 520 : 480, height: entry.details.kind === "connection" ? 720 : 660
   }).then(async (window) => {
     entry.windowId = window.id;
     if (pending.get(id) === entry && warnings.length) await enqueueReports(warnings).catch(() => {});

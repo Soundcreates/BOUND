@@ -18,11 +18,19 @@ async function awaitDetails() {
   document.querySelector("#request-time").textContent = new Date().toLocaleString();
   renderConnectionChecks(data);
   const registry = data.frontendRegistry;
-  document.querySelector("#ens-registry-result").textContent = registry?.status === "changed"
-    ? `× ENS registry: ${registry.changed} matching-path script hash(es) changed (${registry.compared} compared). Observational evidence only.`
-    : registry?.status === "matched-subset"
-      ? `✓ ENS registry: ${registry.compared} script hash(es) match; ${registry.unfamiliar} unfamiliar. Partial, unreviewed observation—not a safety verdict.`
-      : `ENS registry: not compared (${registry?.reason || "no registry evidence"}).`;
+  const regEl = document.querySelector("#ens-registry-result");
+  if (registry?.status === "changed") {
+    regEl.textContent = `× ENS registry: ${registry.changed} matching-path script hash(es) changed (${registry.compared} compared). Observational evidence only.`;
+    regEl.hidden = false;
+  } else if (registry?.status === "matched-subset") {
+    regEl.textContent = `✓ ENS registry: ${registry.compared} script hash(es) match; ${registry.unfamiliar} unfamiliar. Partial, unreviewed observation—not a safety verdict.`;
+    regEl.hidden = false;
+  } else if (registry?.reason) {
+    regEl.textContent = `ENS registry: not compared (${registry.reason}).`;
+    regEl.hidden = false;
+  } else {
+    regEl.hidden = true;
+  }
   if (data.kind === "connection") {
     continueButton.textContent = "Continue to wallet";
     document.querySelector("#wallet-next-step").hidden = false;
@@ -116,6 +124,11 @@ function renderConnectionChecks(data) {
   const checks = warningChecks(data);
   const list = document.querySelector("#connection-checks");
   list.replaceChildren();
+  if (!checks || !checks.length) {
+    list.hidden = true;
+    return;
+  }
+  list.hidden = false;
   for (const {label, outcome} of checks) {
     const passed = outcome === "passed";
     const unavailable = outcome === "unavailable";
