@@ -85,7 +85,7 @@ function ReviewWindow({ s, dispatch }) {
   useGSAP(() => { gsap.fromTo(ref.current, { autoAlpha: 0, y: 18, scale: 0.97 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: 'expo.out' }); cancelBtn.current?.focus({ preventScroll: true }); }, { dependencies: [a.scenarioId] });
   useGSAP(() => { if (s.shake) gsap.fromTo(input.current ?? ref.current, { x: -6 }, { x: 0, duration: 0.5, ease: 'elastic.out(1,0.3)' }); }, { dependencies: [s.shake] });
   return <section className={`bw tone-${a.tone} v-${a.verdict}`} ref={ref} role="dialog" aria-label="BOUND review" aria-describedby="bw-sum">
-    <header className="bw-bar"><span className="bw-extension">◆ BOUND</span><span className="bw-own">Extension window · the page cannot draw or click this</span></header>
+    <header className="bw-bar"><span className="bw-extension"><img className="os-brand-mark" src="/logo.png" alt="" /> BOUND</span><span className="bw-own">Extension window · the page cannot draw or click this</span></header>
     <div className="bw-main">
       <div className="bw-head"><span className="bw-badge">{VERDICT_NAME[a.verdict]}</span><h4>{a.title}</h4></div>
       <p id="bw-sum" className="bw-sum">{a.summary}</p>
@@ -132,13 +132,10 @@ export default function ToyOS() {
     mm.add('(prefers-reduced-motion: no-preference)', () => {
       // The desktop rises into place as you scroll to it, then its windows settle in.
       gsap.fromTo(q('.os')[0], { y: 70, scale: 0.94, autoAlpha: 0.5 }, { y: 0, scale: 1, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: q('.os')[0], start: 'top 92%', end: 'top 45%', scrub: 0.6 } });
-      // Each pane is its own batch trigger (not one trigger watching the whole, very tall `.os` block):
-      // on the mobile stack the four panes can span several screens, so a single far-off trigger either
-      // never saw a clean "enter" or left them permanently stuck mid-tween. Per-pane batching is the
-      // same proven pattern used for the incident and technology cards elsewhere on this page.
-      gsap.set(q('.os-win'), { autoAlpha: 0, y: 24 });
-      ScrollTrigger.batch(q('.os-win'), { start: 'top 95%', once: true, onEnter: (els) => gsap.to(els, { autoAlpha: 1, y: 0, duration: 0.8, ease: 'expo.out', stagger: 0.1, overwrite: true }) });
-      gsap.from(q('.os-head > *'), { autoAlpha: 0, y: 24, duration: 0.9, ease: 'expo.out', stagger: 0.1, scrollTrigger: { trigger: q('.os-head')[0], start: 'top 85%', once: true } });
+      // Animate each pane as it enters without hiding it before the trigger fires.
+      gsap.set(q('.os-win'), { y: 24 });
+      ScrollTrigger.batch(q('.os-win'), { start: 'top 95%', once: true, onEnter: (els) => gsap.to(els, { y: 0, duration: 0.8, ease: 'expo.out', stagger: 0.1, overwrite: true }) });
+      gsap.from(q('.os-head > *'), { y: 24, duration: 0.9, ease: 'expo.out', stagger: 0.1, scrollTrigger: { trigger: q('.os-head')[0], start: 'top 85%', once: true } });
     });
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
   }, { scope: root });
@@ -174,7 +171,7 @@ export default function ToyOS() {
 
       <div className="os" role="group" aria-label="Simulated desktop">
         <div className="os-menubar">
-          <span className="os-apple" aria-hidden="true">◆</span>
+          <span className="os-apple" aria-hidden="true"><img className="os-brand-mark" src="/logo.png" alt="" /></span>
           <b>{{ browser: 'Browser', wallet: 'Wallet', bound: 'BOUND', inspector: 'Inspector', replays: 'Replays' }[s.focus]}</b>
           <span className="os-menu-sp" />
           <span className="os-sim-chip">Simulation</span>
