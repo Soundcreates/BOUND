@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Lenis from 'lenis';
 import gsap from 'gsap';
@@ -15,6 +15,8 @@ import Demo from './demo/Demo.jsx';
 import Closing from './closing/Closing.jsx';
 import Footer from './footer/Footer.jsx';
 import './style.css';
+
+const Testing = lazy(() => import('./testing/Testing.jsx'));
 
 function App() {
   const [menu, setMenu] = useState(false);
@@ -52,4 +54,5 @@ function App() {
   </>;
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+const testingRoute = /^\/testing\/?$/.test(window.location.pathname);
+createRoot(document.getElementById('root')).render(testingRoute ? <Suspense fallback={<p>Loading testing workbench…</p>}><Testing /></Suspense> : <App />);
