@@ -203,6 +203,7 @@ export default function Hero({ Logo, Arrow, menu, setMenu }) {
           <a href="#record" onClick={close}>The record</a>
           <a href="#how" onClick={close}>How it works</a>
           <a href="#simulation" onClick={close}>Simulation</a>
+          <a href="/testing" onClick={close}>Testing</a>
           <a href="#stack" onClick={close}>Technology</a>
           <a className="bh-mobile-only" href="#demo" onClick={close}>Watch the demo</a>
           <a className="bh-mobile-only" href="/bound-extension.zip" download onClick={close}>Download extension</a>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Logo } from '../lib/shared.jsx';
 import './footer.css';
 
-const links = [['The problem', '#problem'], ['The record', '#record'], ['How it works', '#how'], ['Simulation', '#simulation'], ['Technology', '#stack'], ['Demo', '#demo']];
+const links = [['The problem', '#problem'], ['The record', '#record'], ['How it works', '#how'], ['Simulation', '#simulation'], ['Technology', '#stack'], ['Demo', '#demo'], ['Testing', '/testing']];
 
 export default function Footer() {
   return <footer className="ft">
