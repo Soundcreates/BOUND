@@ -14,12 +14,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 /* shared pieces */
 .logo { display: inline-flex; align-items: center; line-height: 1; font-size: 30px; letter-spacing: -0.5px; }
-/* The real BOUND mark (a "b"). Body matches the surrounding text colour; the slash stays accent
-   yellow everywhere; the hole matches the local background (overridden to --ink on dark sections). */
-.logo-mark { width: 20px; height: auto; margin-right: 10px; overflow: visible; }
-.logo-mark .lm-body { fill: currentColor; }
-.logo-mark .lm-slash { fill: var(--accent, #ffd500); }
-.logo-mark .lm-hole { fill: var(--logo-hole, var(--paper, #fff)); }
+.logo-mark { width: 20px; height: auto; margin-right: 10px; border-radius: 4px; }
 .logo-dot { color: #ffd500; }
 .arrow { display: inline-block; margin-left: 12px; font-size: 1.15em; }
 .rv-w { display: inline-block; will-change: transform, opacity; }

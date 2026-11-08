@@ -1,3 +1,5 @@
+> Archived from the pre-merge development branch on 2026-11-09. This is historical project state; paths, deployment details, and completion claims may be stale.
+
 # Dev1 test guide
 
 This guide separates the dev1 code gates from live acceptance work that still needs a configured deployment. The decoder, role-aware scoring, bridge, UI, local reporting, and adapter wiring are implemented and locally testable. Record results per check; local passes do not establish that the real wallet and external integration gates passed.
@@ -71,3 +73,4 @@ Follow the complete scenario and negative cases in [plan.md, Phase 2](plan.md#ph
 ## 5. Report results
 
 For each check, record pass, fail, or not run; the command or scenario; browser and wallet versions; test network; and any relevant public transaction hash, Arkiv entity key, or Swarm reference. Include the exact error for failures. Do not share private keys, tokens, secret-bearing URLs, personal wallet details, or the contents of `.env`.
+

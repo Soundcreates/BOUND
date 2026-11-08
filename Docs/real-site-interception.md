@@ -4,7 +4,7 @@
 
 **Inputs:**
 - Live Playwright probes of the built extension on app.ens.domains, app.aave.com and app.uniswap.org, using a MetaMask-shaped wallet (a Proxy-wrapped provider plus an EIP-6963 `io.metamask` announcement).
-- A read-only diagnosis by GPT-6.1 Sol: [`reviews/2026-11-06-real-site-interception-gpt-6.1-sol.md`](reviews/2026-11-06-real-site-interception-gpt-6.1-sol.md).
+- In-memory VM reproductions and provider trace analysis.
 
 ## 1. What was actually wrong (measured, not guessed)
 

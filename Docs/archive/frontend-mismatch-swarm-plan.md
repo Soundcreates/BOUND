@@ -1,3 +1,5 @@
+> Archived from the pre-merge development branch on 2026-11-09. This is historical project state; paths, deployment details, and completion claims may be stale.
+
 # Plan v2: frontend hash mismatch → safe page (Swarm) → extension-enforced override
 
 **Status:** v2, 2026-11-06. Revised after the GPT-6.1 Sol review (round 1: 19 findings, 16 high). Nothing implemented yet. Branch `swarm-integration`.
@@ -252,3 +254,4 @@ The first interactive request (connection or transaction) from `ticket.topOrigin
 ## 8. Review log
 - **Round 1 (GPT-6.1 Sol, high effort, read-only).** All 19 findings were adopted, with one exception:
   - **Sol suggested seeded-only baselines for the demo.** v2 instead keeps automatic promotion (K reporter keys plus maturity M) and adds seeding. Seeding is for demo reliability; automatic promotion is what makes the community cache real.
+

@@ -6,10 +6,6 @@ import './demo.css';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-// A YouTube id comes from VITE_DEMO_VIDEO_ID. Without a valid one the frame says the video is coming, and nothing fake is shown.
-const rawId = import.meta.env.VITE_DEMO_VIDEO_ID?.trim();
-const videoId = rawId && /^[A-Za-z0-9_-]{11}$/.test(rawId) ? rawId : null;
-
 export default function Demo() {
   const root = useRef(null);
 
@@ -33,13 +29,7 @@ export default function Demo() {
       </header>
 
       <div className="dm-frame">
-        {videoId
-          ? <iframe title="BOUND project demo" src={`https://www.youtube-nocookie.com/embed/${videoId}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
-          : <div className="dm-placeholder">
-              <span className="dm-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z" /></svg></span>
-              <h3>The full picture,<br />coming into focus.</h3>
-              <p>Demo video coming soon.</p>
-            </div>}
+        <iframe title="BOUND project demo" src="https://www.youtube-nocookie.com/embed/5VCC17yfsdc" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
       </div>
 
       <div className="dm-install">

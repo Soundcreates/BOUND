@@ -1,3 +1,5 @@
+> Archived from the pre-merge development branch on 2026-11-09. This is historical project state; paths, deployment details, and completion claims may be stale.
+
 # Phase 0 Chain Matrix — FROZEN
 
 **Status:** frozen as of 2026-11-06  
@@ -84,4 +86,5 @@ This document is the freeze record required by plan §Phase 0 shared exit gate:
 | K / window | To be frozen before Phase 1 (see plan §score parameters) |
 | Owner | Developer 2 |
 | Status | Pending Phase 1 |
+
 

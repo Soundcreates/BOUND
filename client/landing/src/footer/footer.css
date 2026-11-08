@@ -3,7 +3,7 @@
 .ft-inner { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: clamp(56px, 9vh, 96px) 0 32px; }
 .ft-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px; }
 .ft .logo { color: #fff; font-size: 34px; }
-.ft .logo-mark { width: 29px; --logo-hole: var(--ink, #0b0b0c); }
+.ft .logo-mark { width: 29px; }
 .ft-brand p { margin: 20px 0 0; font-size: 22px; line-height: 1.3; color: rgba(255, 255, 255, 0.7); }
 .ft-links { display: grid; grid-template-columns: repeat(2, auto); gap: 14px 56px; align-content: start; font-size: 22px; }
 .ft-links a { color: rgba(255, 255, 255, 0.85); background: linear-gradient(var(--accent, #ffd500), var(--accent, #ffd500)) no-repeat 0 100% / 0 2px; transition: color 0.2s, background-size 0.35s cubic-bezier(.2,.7,.2,1); }

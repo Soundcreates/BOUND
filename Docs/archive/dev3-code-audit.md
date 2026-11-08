@@ -1,3 +1,5 @@
+> Archived from the pre-merge development branch on 2026-11-09. This is historical project state; paths, deployment details, and completion claims may be stale.
+
 # Developer 3 code status
 
 This records the local code audit, not phase acceptance. Live integration, browser and wallet tests, and the shared phase gates remain deferred. The other developers' lanes are not represented as complete.
@@ -13,3 +15,4 @@ This records the local code audit, not phase acceptance. Live integration, brows
 | Test reporting and CI | `scripts/integration/metrics.js` and `privacy-scan.js` provide offline reporting helpers and unit tests; `.github/workflows/ci.yml` installs locked dependencies and runs the configured local suite and Gitleaks. Hosted CI and live evidence are not established by these files. |
 
 The local sender retries the same signed transaction after an uncertain submission. A transaction that remains pending or reverts requires operator reconciliation; automatic fee replacement is not implemented. Journals are bounded and single-process, the configured RPC is trusted, recovery approvals require independent operator review, and an onchain status can lag local detection. None of the local tests establishes live renewal, public DNS/TLS cutover, wallet mediation, or the end-to-end acceptance scenario.
+
