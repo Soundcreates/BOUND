@@ -1,8 +1,8 @@
 # Connection score v1
 
-The connection gate uses `apps/extension/connection-score.mjs`. Each check adds its weight when passed, subtracts it when failed, and contributes zero when unavailable. The total is clamped to 0–100. The default allow threshold is **80**, inclusive. These weights are a conservative initial policy, not a calibrated probability of safety.
+The connection gate uses `client/extension/connection-score.mjs`. Each check adds its weight when passed, subtracts it when failed, and contributes zero when unavailable. The total is clamped to 0–100. The default allow threshold is **80**, inclusive. These weights are a conservative initial policy, not a calibrated probability of safety.
 
-Edit the `BOUND_CONNECTION_*` and `BOUND_TX_*` values in the project `.env`; the available names and defaults are in `.env.example`. Run `node apps/extension/build.mjs` and reload the extension in `chrome://extensions` to apply changes. Chrome extensions cannot read the local `.env` at runtime, so the build writes only validated scoring settings into `dist/score-settings.mjs`. Shell environment variables take precedence over `.env`; secrets are not copied into the extension.
+Edit the `BOUND_CONNECTION_*` and `BOUND_TX_*` values in the project `.env`; the available names and defaults are in `.env.example`. Run `node client/extension/build.mjs` and reload the extension in `chrome://extensions` to apply changes. Chrome extensions cannot read the local `.env` at runtime, so the build writes only validated scoring settings into `dist/score-settings.mjs`. Shell environment variables take precedence over `.env`; secrets are not copied into the extension.
 
 Connection weights must add up to 100 and the threshold must be 1–100. Transaction verdict cutoffs must satisfy `red < amber < green`; amber must be at least 40 and green at least 66 so existing untrusted-address caps cannot become green. The build rejects invalid configuration. The core score caps, explicit hard blockers, decoder caps, and unrelated operational timeouts are not controlled by these variables.
 

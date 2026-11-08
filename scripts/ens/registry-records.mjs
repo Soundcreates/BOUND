@@ -8,7 +8,7 @@ import {createPublicClient, createWalletClient, http, parseAbi, encodeFunctionDa
 import {packetToBytes} from 'viem/ens';
 import {privateKeyToAccount} from 'viem/accounts';
 import {sepolia} from 'viem/chains';
-import {ENSV2_SEPOLIA} from '../../integrations/ens/src/addresses.ts';
+import {ENSV2_SEPOLIA} from '../../shared/integrations/ens/src/addresses.ts';
 
 export const PARENT='bound-v2.eth';
 export const OBSERVATION_KEY='com.bound.frontend-observation.v1';

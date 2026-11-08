@@ -4,7 +4,7 @@
 > - **Part A** is the spoken pitch (about 6–7 minutes). Lines in plain text are what you say. Lines in `[SHOW: …]` are what is on screen.
 > - **Part B** is the deep dive. Use it for the technical judge round, or when someone asks "how exactly does that work?"
 > - **Part C** is the edge-case list, **Part D** is the problems we hit while building, **Part E** is what we do *not* claim, **Part F** is Q&A prep and a numbers cheat sheet.
-> - Every number here comes from the code or the evidence logs in this repo (`apps/extension/*`, `packages/*`, `services/*`, `packages/contracts/feasibility.md`, `Docs/phase-0-evidence-log.md`). The outside incidents in A2 are from public reports. **Check those dollar figures once more before going on stage.**
+> - Every number here comes from the code or the evidence logs in this repo (`client/extension/*`, `packages/*`, `services/*`, `shared/contracts/feasibility.md`, `Docs/phase-0-evidence-log.md`). The outside incidents in A2 are from public reports. **Check those dollar figures once more before going on stage.**
 
 ---
 
@@ -180,7 +180,7 @@ BOUND checks the authority behind every action — **not** whether an address is
 | **Frontend collector** | Content script (ISOLATED world) | Hashes the page's same-origin JavaScript files | Evidence only |
 | **Service worker** (`sw.js`) | Extension background | Verifies the snapshot, reads Arkiv, scores requests, opens the warning window | The verdict |
 | **Warning window** | Extension-owned popup window | Shows the verdict; Cancel → `4001` | Cannot be drawn or clicked by the page |
-| **Curator** | CLI run by a person (`services/curator`) | Compiles the snapshot, writes it to Arkiv, publishes the ENS root | Creating trust |
+| **Curator** | CLI run by a person (`server/curator`) | Compiles the snapshot, writes it to Arkiv, publishes the ENS root | Creating trust |
 | **Watcher / aggregator** | Docker container (hosted on Render) | Polls DNS/TLS, receives encrypted reports, writes drift/incident/status/baseline/frontend to Arkiv | Signals, never trust |
 | **Arkiv** (Rabdi testnet, chain `7794095`) | Decentralized data layer | Public, expiring, queryable records | Nothing by default — every read filters by writer |
 | **ENSv2** (Sepolia, chain `11155111`) | Ethereum | Holds the snapshot root under a curator-only role | The root of trust |
@@ -367,7 +367,7 @@ To override, you need a private confirmation page and a typed `I UNDERSTAND`. Th
 
 ## B7. The watcher and aggregator
 
-**Drift detection** (`services/watcher/drift.js`):
+**Drift detection** (`server/watcher/drift.js`):
 - **Nameservers** — read through **DNS-over-HTTPS** from the parent zone. A change **counts on its own**.
 - **TLS certificate** — read by a **direct TLS connection** (no Certificate Transparency lag). A change counts only if the **issuer** or the **set of names** changes. A normal renewal with only a new fingerprint does **not** count.
 - **A records** — a change counts only if the IPs move to a **different hosting network (ASN)**. ASN comes from **Team Cymru's DNS service** (`<reversed-ip>.origin.asn.cymru.com`). If the lookup fails or returns more than one ASN, it **cannot** corroborate.

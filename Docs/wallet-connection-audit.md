@@ -6,7 +6,7 @@ Scope: extension provider interception, connection policy, local decision histor
 
 ### 1. High: immutable providers bypass connection enforcement
 
-`apps/extension/hook.js:201–202` requires assignment to the wallet's `request` property. If the property is immutable, the catch at lines 260–262 reports `bypass_possible` but cannot stop the original wallet method. A dApp calling that method connects without reaching `handleRequest`, so there is no connection decision history. EIP-6963 announcements receive this same in-place patch attempt; discovering a wallet does not establish that it is mediated.
+`client/extension/hook.js:201–202` requires assignment to the wallet's `request` property. If the property is immutable, the catch at lines 260–262 reports `bypass_possible` but cannot stop the original wallet method. A dApp calling that method connects without reaching `handleRequest`, so there is no connection decision history. EIP-6963 announcements receive this same in-place patch attempt; discovering a wallet does not establish that it is mediated.
 
 Reproduction: the same simulated extension block decision rejected a mutable provider with code 4001 (one gated request, zero forwarded connections). A frozen provider returned accounts (zero gated requests, one forwarded connection, bypass reported).
 
@@ -28,7 +28,7 @@ Follow-up: the localhost snapshot was subsequently published as epoch 4 and its
 live preconnection prerequisites passed. See `localhost-arkiv-demo.md`. The
 original seed file still lacks these scopes; use the documented snapshot tool.
 
-`apps/extension/decision-context.mjs:169–170` returns unknown unless the exact host appears in the verified snapshot. `sw.js:180` allows only current normal status. The supplied `fixtures/snapshots/demo-seed.compile-input.json` has no `127.0.0.1:8000` entry. Therefore a correctly intercepted wallet is expected to be blocked on the local demo when using that seed. Sepolia selection cannot satisfy this separate site prerequisite.
+`client/extension/decision-context.mjs:169–170` returns unknown unless the exact host appears in the verified snapshot. `sw.js:180` allows only current normal status. The supplied `fixtures/snapshots/demo-seed.compile-input.json` has no `127.0.0.1:8000` entry. Therefore a correctly intercepted wallet is expected to be blocked on the local demo when using that seed. Sepolia selection cannot satisfy this separate site prerequisite.
 
 The same error also covers missing configuration, invalid or expired snapshots, failed anonymous Arkiv reads, missing status records, and provider-state failure. The screenshot's error cannot distinguish those causes.
 
@@ -54,7 +54,7 @@ Remediation: preserve the legacy callback response contract and separately norma
 
 `hook.js:322–331` discovers `window.ethereum`, EIP-6963 announcements, and a few startup events. It does not discover wallet-specific namespaces or nested `ethereum.providers`, and it does not mediate direct `connect`/`enable` aliases. WalletConnect is outside this in-page provider patch. A successful visible connection therefore does not prove an allow decision.
 
-`demo/test-dapp/app.js:105` also falls back to `window.ethereum` if selected-provider lookup fails. Lines 108–115 use mutable shared provider/account state across asynchronous connection attempts, allowing selection changes or concurrent clicks to show stale results and re-enable controls for the wrong selection.
+`client/demo/test-dapp/app.js:105` also falls back to `window.ethereum` if selected-provider lookup fails. Lines 108–115 use mutable shared provider/account state across asynchronous connection attempts, allowing selection changes or concurrent clicks to show stale results and re-enable controls for the wrong selection.
 
 Remediation: select providers explicitly, remove silent fallback, bind each attempt to one provider and selection generation, and discard stale results. Publish coverage per provider rather than implying wallet-wide enforcement.
 

@@ -18,7 +18,7 @@
 | Arkiv reader | Keeps only `baseline/status/drift/ens_record`; incident and frontend records are dropped | `arkiv-reader.mjs:33` |
 | Typed confirmation | Enforced by `verdict === "escalated"`, not by `tier`. Named tiers exist only for connections | `warning.js:94`, `sw.js:458` |
 | Arkiv upsert/renewal/bundle | Each has its own allowlist of record kinds | `upsert.js:9`, `renewal.js:9`, `contracts/index.js:149` |
-| Hijack demo | Attack is **inline**, `/` only, `no-store`. Not detectable by this feature as-is | `demo/hijack-server/server.js` |
+| Hijack demo | Attack is **inline**, `/` only, `no-store`. Not detectable by this feature as-is | `server/demo/hijack-server/server.js` |
 
 ## 1. Target flow
 
@@ -166,7 +166,7 @@ The first interactive request (connection or transaction) from `ticket.topOrigin
 
 ## 5. Safe page
 
-- **Source:** `apps/safe-page/src`. Built twice:
+- **Source:** `client/safe-page/src`. Built twice:
   - **remote:** `index.html` plus `app.js`, published to Swarm;
   - **packaged:** `safe.html` plus `safe.js` in the extension (external script, MV3-compliant).
 - **Fragment:**
@@ -195,9 +195,9 @@ The first interactive request (connection or transaction) from `ticket.topOrigin
 ## 6. Work items, in order, with gates
 
 1. **Semantics and tests first.**
-   - `packages/policy-core/frontend.mjs`: `assessFrontend({observed, record, k, maturityMs, now, drift, incident, counterpartyRisk, frame})` → `{comparison, coverage, conflicts, unfamiliar, corroborated, reasons}`, plus `frontendObservationCandidates` with the §3.3 gate.
+   - `shared/policy-core/frontend.mjs`: `assessFrontend({observed, record, k, maturityMs, now, drift, incident, counterpartyRisk, frame})` → `{comparison, coverage, conflicts, unfamiliar, corroborated, reasons}`, plus `frontendObservationCandidates` with the §3.3 gate.
    - **Gate:** truth-table tests for §2.1–2.3: partial coverage, a weak competing hash, a legitimate redeploy, stale data, every corroboration source, iframe requests.
-2. **Make the demo detectable.** `demo/hijack-server`:
+2. **Make the demo detectable.** `server/demo/hijack-server`:
    - a cacheable stable-path `/app.js` in both modes, with attack bytes differing;
    - a benign wallet request in clean mode so reports can be generated;
    - a seeding script that posts K benign reports to the local watcher.
@@ -209,9 +209,9 @@ The first interactive request (connection or transaction) from `ticket.topOrigin
    - Batching capped by serialized size (under 60 KB).
    - **Gate:** mixed batches survive retry and restart without loss or double counting; existing address reporting is unchanged.
 4. **Watcher aggregation and publication.**
-   - `services/watcher/frontend.js`: a durable journal with per-reporter receipt timestamps, quarantine, K plus maturity promotion, global caps (sites, tuples, reporters, bytes) and pruning.
+   - `server/watcher/frontend.js`: a durable journal with per-reporter receipt timestamps, quarantine, K plus maturity promotion, global caps (sites, tuples, reporters, bytes) and pruning.
    - `local-intake.mjs`: route frontend events; schedule hourly serialized publication and pruning.
-   - `integrations/arkiv`: `writeFrontend` via upsert, plus the renewal allowlist.
+   - `shared/integrations/arkiv`: `writeFrontend` via upsert, plus the renewal allowlist.
    - **Gate:** read-back of the aggregate from Rabdi; journals from the old version still open.
 5. **Reader and decision context.**
    - `arkiv-reader.mjs`: retain `frontend` and `incident`, and map them with metadata.
@@ -227,7 +227,7 @@ The first interactive request (connection or transaction) from `ticket.topOrigin
 8. **Cancel, redirect and the bundled safe page.**
    - Changes to `relay.js` and `hook.js` (acknowledgement, safe-page message);
    - redirect sequence and navigation failure fallback;
-   - `apps/safe-page`, packaged build;
+   - `client/safe-page`, packaged build;
    - `settings.mjs` and `options.mjs`: `safePageUrl`, which must be HTTPS or localhost, and changes the exact origin used by §4.3.
    - **Gate:** the cancellation reaches the hook; the wallet is never called before the retry; exactly one authorized retry reaches the typed-confirmation warning.
 9. **Swarm publication** (needs a Bee light node, an immutable batch, xBZZ and xDAI). `scripts/swarm/publish-safe-page.mjs` publishes one immutable release and prints the URL; then set `safePageUrl`.

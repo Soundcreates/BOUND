@@ -20,7 +20,7 @@ Each site was polled twice, three seconds apart, with the watcher's own `pollSit
 
 These rules are fine for the controlled demo domain, but on CDN-fronted production sites they would produce false drift that **blocks connections**:
 
-| Current rule (`services/watcher/drift.js`) | What real sites do | Result today |
+| Current rule (`server/watcher/drift.js`) | What real sites do | Result today |
 |---|---|---|
 | Any A-record change is a change | CloudFront and Cloudflare rotate IPs constantly and answer differently per resolver | Uncorroborated change → status `drift` → connection blocked |
 | Any certificate fingerprint change is a change | Every renewal (about 60–90 days) changes it | Uncorroborated change → status `drift` |
@@ -91,7 +91,7 @@ Corroborated drift is published only after it shows on **two consecutive polls**
 
 ```bash
 BOUND_WATCHER_CONFIG=~/.bound/watcher-deployment.json ARKIV_PRIVATE_KEY=<env only, never pasted> \
-  node services/watcher/run.mjs services/watcher/config-example.mjs
+  node server/watcher/run.mjs server/watcher/config-example.mjs
 ```
 
 Run it under a supervisor (`launchd` or `pm2`) so it restarts. On a laptop that sleeps, statuses go stale within 2 h, and the extension then reports "unavailable". That is honest, and is why §3.3's freshness rule matters.
@@ -100,8 +100,8 @@ Run it under a supervisor (`launchd` or `pm2`) so it restarts. On a laptop that 
 
 | # | Change | Files |
 |---|---|---|
-| W1 | `probe` CLI: polls a site N times over M minutes, prints a draft policy for review | `services/watcher/probe.mjs` (new) |
-| W2 | Policy validation + classifier v2 + two-poll debounce | `services/watcher/drift.js`, `drift-state.js`, `monitor.js` |
+| W1 | `probe` CLI: polls a site N times over M minutes, prints a draft policy for review | `server/watcher/probe.mjs` (new) |
+| W2 | Policy validation + classifier v2 + two-poll debounce | `server/watcher/drift.js`, `drift-state.js`, `monitor.js` |
 | W3 | Publish a `drift` status only for corroborated drift | `drift-publisher.js`, `guarded-flows.js` |
 | W4 | `readBaseline` returns policies; config validation | `config-example.mjs`, `deployment.js` |
 | W5 | Extension: freshness window on `normal`; connection drift blocker needs corroborated evidence | `decision-context.mjs`, `arkiv-reader.mjs`, `connection-score.mjs` |

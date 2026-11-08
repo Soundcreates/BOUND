@@ -1,6 +1,6 @@
 import {isDeepStrictEqual} from 'node:util';
 import {keccak256,toUtf8Bytes} from 'ethers';
-import {validateRecord} from '../../packages/contracts/index.js';
+import {validateRecord} from '../../shared/contracts/index.js';
 
 export const DEMO_SCOPES=Object.freeze(['127.0.0.1:8000','localhost:8000','127.0.0.1:8001','localhost:8001'].map(site=>Object.freeze({site,chainId:11155111})));
 

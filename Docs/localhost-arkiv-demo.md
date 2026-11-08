@@ -49,9 +49,9 @@ Public identifiers from the initial publication:
 
 ## Browser flow
 
-1. Build with `node apps/extension/build.mjs` and reload BOUND in `chrome://extensions`.
+1. Build with `node client/extension/build.mjs` and reload BOUND in `chrome://extensions`.
 2. In BOUND settings, save root name `bound-v2.eth`, resolver `0xf6efa18d24c108a060b0d2a0e715b9045e09ea0f`, the Rabdi RPC URL, and watcher owner above. Working anonymous RPC settings remain required by the browser path.
-3. Serve the page with `python3 -m http.server 8000 --directory demo/test-dapp`. If using its cross-origin frame, also serve that directory on port 8001.
+3. Serve the page with `python3 -m http.server 8000 --directory client/demo/test-dapp`. If using its cross-origin frame, also serve that directory on port 8001.
 4. Reload `http://127.0.0.1:8000`, explicitly choose MetaMask, and use a disposable Sepolia account. Click **Connect real wallet**.
 5. Inspect BOUND's **Recent checks on this site**. With working browser transports, the normal fixtures satisfy the connection prerequisite. A supported request then receives its separate transaction evaluation.
 

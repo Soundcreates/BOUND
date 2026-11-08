@@ -169,7 +169,7 @@ This journal is write coordination, **not the read locator**. A separate profile
 
 All paths below are proposed implementation work; this design task changes none of them. Terra can implement sequentially in the existing checkout, accommodating ongoing frontend changes and avoiding unrelated cleanup.
 
-**A. Shared pure contract:** new `packages/contracts/domain-cache.js` and `domain-cache.test.js`. Own canonical origin, topic input text, descriptor/envelope/projection validators, exact limits, expiry rules and baseline fingerprint. Reuse `parseUniqueJSON`, `validateFrontendRecord` and frontend path/hash validation. Keep Core SDK crypto in the integration module, not in the base contracts package. Exports:
+**A. Shared pure contract:** new `shared/contracts/domain-cache.js` and `domain-cache.test.js`. Own canonical origin, topic input text, descriptor/envelope/projection validators, exact limits, expiry rules and baseline fingerprint. Reuse `parseUniqueJSON`, `validateFrontendRecord` and frontend path/hash validation. Keep Core SDK crypto in the integration module, not in the base contracts package. Exports:
 
 ```ts
 canonicalDomainOrigin(input:string, mode:'document'|'origin'):string|null;
@@ -180,7 +180,7 @@ fingerprintFrontendScripts(record:FrontendRecord):string;
 isDomainEntryCurrent(entry, envelope, {now, currentBlock, sourceScope}):boolean;
 ```
 
-**B. Swarm transport:** new `integrations/swarm/domain-feed.mjs`, `domain-feed.test.mjs`; update that workspace's dependencies/exports and root lockfile. Reuse `integrations/swarm/index.js` bounded request/digest behavior; extract/share read-only bounded transport if necessary, so readers do not require `uploadUrl` or postage configuration. Do not route new code through the older unbounded `src/gateway.ts` as-is or trust its comments claiming an HTTP gateway cannot substitute content. Real client-side SOC/digest checks are required.
+**B. Swarm transport:** new `shared/integrations/swarm/domain-feed.mjs`, `domain-feed.test.mjs`; update that workspace's dependencies/exports and root lockfile. Reuse `shared/integrations/swarm/index.js` bounded request/digest behavior; extract/share read-only bounded transport if necessary, so readers do not require `uploadUrl` or postage configuration. Do not route new code through the older unbounded `src/gateway.ts` as-is or trust its comments claiming an HTTP gateway cannot substitute content. Real client-side SOC/digest checks are required.
 
 ```ts
 createDomainFeedReader({gatewayUrls, publisherOwner, fetchImpl, now,
@@ -194,7 +194,7 @@ createDomainFeedReader({gatewayUrls, publisherOwner, fetchImpl, now,
 
 Use Core SDK public exports `Topic`, `FeedIndex`, `Identifier`, `Bytes`, `keccak256`, `makeSOCAddress`, `unmarshalSingleOwnerChunk`. No internal npm `dist/...` imports. Node publisher additionally imports `Bee` from bee-js. Bundle only browser-compatible reader/crypto; no signer module, secret-file reader, Node fs or remote JS in the extension.
 
-**C. Extension coordinator:** new `apps/extension/domain-cache.mjs`, `domain-cache.test.mjs`; integrate through `trust-adapter.mjs`, `decision-context.mjs`, `arkiv-reader.mjs`, `sw.js`, `settings.mjs`, options and build. Own the automatic L1→L2→L3 ordering, atomic storage, watermarks, current-context invalidation and adapter wiring:
+**C. Extension coordinator:** new `client/extension/domain-cache.mjs`, `domain-cache.test.mjs`; integrate through `trust-adapter.mjs`, `decision-context.mjs`, `arkiv-reader.mjs`, `sw.js`, `settings.mjs`, options and build. Own the automatic L1→L2→L3 ordering, atomic storage, watermarks, current-context invalidation and adapter wiring:
 
 ```ts
 createDomainEvidenceCache({storage, getSettings, feedReader,
@@ -258,10 +258,10 @@ Minimum meaningful automated matrix (no funds, no keys from users):
 Suggested focused gates after implementation:
 
 ```bash
-node --experimental-strip-types --test packages/contracts/domain-cache.test.js integrations/swarm/domain-feed.test.mjs apps/extension/domain-cache.test.mjs scripts/swarm/publish-domain-cache.test.mjs
-node --experimental-strip-types --test apps/extension/arkiv-reader.test.mjs apps/extension/decision-context.test.mjs apps/extension/frontend-context.test.mjs apps/extension/settings.test.mjs
-node apps/extension/build.mjs
-node apps/extension/check-dist-imports.mjs
+node --experimental-strip-types --test shared/contracts/domain-cache.test.js shared/integrations/swarm/domain-feed.test.mjs client/extension/domain-cache.test.mjs scripts/swarm/publish-domain-cache.test.mjs
+node --experimental-strip-types --test client/extension/arkiv-reader.test.mjs client/extension/decision-context.test.mjs client/extension/frontend-context.test.mjs client/extension/settings.test.mjs
+node client/extension/build.mjs
+node client/extension/check-dist-imports.mjs
 ```
 
 Use mock Bee routes plus actual crypto/SDK for the complete local slice. A passing mock suite is not evidence that Swarm was used live. The live gate requires an operator-provisioned dedicated signer, compatible Bee node, funded usable postage batch, configured trusted public owner, allowed domain/chain, working read gateway/CORS and configured ENS/Arkiv source access. Never ask for those secrets in chat; no purchase/provisioning is included.

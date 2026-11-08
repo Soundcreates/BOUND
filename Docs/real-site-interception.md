@@ -30,11 +30,11 @@ The rows below come from Sol's review and remain open:
 
 | File | Change |
 |---|---|
-| `apps/extension/sw.js` | `CONNECTION_METHODS` = `eth_requestAccounts`, `wallet_requestPermissions`, `wallet_createSession`. These **always open a BOUND review window** and are never cancelled on score (owner rule: never block). The tier comes from the connection score: pass ≥ 80 / warning ≥ 40 / huge ≥ 16 / firewall. An incident or drift is always the firewall tier, which requires typing `I UNDERSTAND`. Passive reads (`eth_accounts`, `eth_coinbase`, `metamask_getProviderState`, and every other read-only method) pass without UI and **before** the rate limiter. |
-| `apps/extension/warning.html/js` | A connection view with a tier header, honest confidence wording ("Policy confidence N% … not a measured probability that the site is safe"), and the full per-check calculation table: weight, outcome, points, running total, and the formula. |
-| `apps/extension/hook.js` | Wraps `window.postMessage` and `chrome.runtime.connect` ports for MetaMask's Multichain transport. `wallet_createSession` is reviewed as a connection. `wallet_invokeMethod` is reviewed **as its inner EVM request** (e.g. `eth_sendTransaction` is decoded normally). Cancel returns a JSON-RPC `4001` in the transport's own reply format. Other messages pass untouched. |
-| `packages/decoder/index.mjs` | Read-only pass-through for chain switching, capability and status queries, subscriptions and extra block/tx reads. Signing and value-moving methods are unchanged. |
-| `apps/extension/sw-fake-integration.test.mjs` | Asserts the new contract: passive reads open no UI; connections always open a review; incident/drift need the typed phrase but stay continuable; an unverified requesting frame cannot ride on a verified top page. |
+| `client/extension/sw.js` | `CONNECTION_METHODS` = `eth_requestAccounts`, `wallet_requestPermissions`, `wallet_createSession`. These **always open a BOUND review window** and are never cancelled on score (owner rule: never block). The tier comes from the connection score: pass ≥ 80 / warning ≥ 40 / huge ≥ 16 / firewall. An incident or drift is always the firewall tier, which requires typing `I UNDERSTAND`. Passive reads (`eth_accounts`, `eth_coinbase`, `metamask_getProviderState`, and every other read-only method) pass without UI and **before** the rate limiter. |
+| `client/extension/warning.html/js` | A connection view with a tier header, honest confidence wording ("Policy confidence N% … not a measured probability that the site is safe"), and the full per-check calculation table: weight, outcome, points, running total, and the formula. |
+| `client/extension/hook.js` | Wraps `window.postMessage` and `chrome.runtime.connect` ports for MetaMask's Multichain transport. `wallet_createSession` is reviewed as a connection. `wallet_invokeMethod` is reviewed **as its inner EVM request** (e.g. `eth_sendTransaction` is decoded normally). Cancel returns a JSON-RPC `4001` in the transport's own reply format. Other messages pass untouched. |
+| `shared/decoder/index.mjs` | Read-only pass-through for chain switching, capability and status queries, subscriptions and extra block/tx reads. Signing and value-moving methods are unchanged. |
+| `client/extension/sw-fake-integration.test.mjs` | Asserts the new contract: passive reads open no UI; connections always open a review; incident/drift need the typed phrase but stay continuable; an unverified requesting frame cannot ride on a verified top page. |
 
 ## 3. Verification
 
@@ -53,7 +53,7 @@ The rows below come from Sol's review and remain open:
 
 ## 4. How to see it in your browser
 
-1. Run `node apps/extension/build.mjs`, then reload BOUND in `chrome://extensions`. Confirm **Site access → On all sites**.
+1. Run `node client/extension/build.mjs`, then reload BOUND in `chrome://extensions`. Confirm **Site access → On all sites**.
 2. Hard-reload the dApp tab. Content scripts only attach to newly loaded pages.
 3. Click Connect → MetaMask. The BOUND review window opens first, showing the score calculation. Continue → MetaMask's own prompt.
 

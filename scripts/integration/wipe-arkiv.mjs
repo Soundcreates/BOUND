@@ -15,7 +15,7 @@
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {FetchRequest,JsonRpcProvider,Wallet} from 'ethers';
-import {encodeDeleteEntity} from '../../integrations/arkiv/codec.js';
+import {encodeDeleteEntity} from '../../shared/integrations/arkiv/codec.js';
 
 const KINDS=['observation','baseline','drift','incident','status','evidence','trust_snapshot','ens_record'];
 const args=process.argv.slice(2);

@@ -4,11 +4,11 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {createWatcher} from '../../services/watcher/index.js';
-import {openOutbox} from '../../services/watcher/outbox.js';
-import {openDurableWatcher} from '../../services/watcher/durable.js';
-import {createObservationPipeline} from '../../services/watcher/pipeline.js';
-import {queryBundle} from '../../integrations/arkiv/index.js';
+import {createWatcher} from '../../server/watcher/index.js';
+import {openOutbox} from '../../server/watcher/outbox.js';
+import {openDurableWatcher} from '../../server/watcher/durable.js';
+import {createObservationPipeline} from '../../server/watcher/pipeline.js';
+import {queryBundle} from '../../shared/integrations/arkiv/index.js';
 
 // Local fakes exercise composition only; they do not satisfy a live integration gate.
 test('intake to fake Arkiv observation to baseline bundle with owner verification', async t => {
@@ -40,7 +40,7 @@ test('intake to fake Arkiv observation to baseline bundle with owner verificatio
 });
 
 test('durable watcher retries fake Arkiv writes and rebuilds baseline after restart', async t => {
-  const {openDurableWatcher}=await import('../../services/watcher/durable.js');
+  const {openDurableWatcher}=await import('../../server/watcher/durable.js');
   const dir=await mkdtemp(join(tmpdir(),'bound-restart-'));t.after(()=>rm(dir,{recursive:true,force:true}));
   const owner='0x'+'a'.repeat(40), site='example.org', address='0x'+'1'.repeat(40), entries=[],seen=new Set();
   let offline=true;
@@ -92,8 +92,8 @@ test('durable intake publishes an hourly baseline and refreshes an owner-checked
 });
 
 test('HTTP intake persists and delivers after a simulated watcher restart', async t => {
-  const {openDurableWatcher}=await import('../../services/watcher/durable.js');
-  const {createIntakeServer}=await import('../../services/watcher/http.js');
+  const {openDurableWatcher}=await import('../../server/watcher/durable.js');
+  const {createIntakeServer}=await import('../../server/watcher/http.js');
   const dir=await mkdtemp(join(tmpdir(),'bound-http-'));t.after(()=>rm(dir,{recursive:true,force:true}));
   const origin='chrome-extension://'+'a'.repeat(32), site='example.org', value='0x'+'1'.repeat(40), delivered=[];
   const options={path:join(dir,'journal.json'),windowMs:3600000,retentionMs:7200000,k:3,now:()=>0,isIncidentActive:async()=>false,hasCorroboratedDrift:async()=>false,writeObservation:async(record,id)=>delivered.push({record,id})};
@@ -108,8 +108,8 @@ test('HTTP intake persists and delivers after a simulated watcher restart', asyn
 });
 
 test('fake incident pipeline retains public warning when report upload fails',async t=>{
- const {createIncidentComposer}=await import('../../services/watcher/incident.js');
- const {keccak256}=await import('../../packages/contracts/keccak-reference.js');
+ const {createIncidentComposer}=await import('../../server/watcher/incident.js');
+ const {keccak256}=await import('../../shared/contracts/keccak-reference.js');
  const dir=await mkdtemp(join(tmpdir(),'bound-incident-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const owner='0x'+'a'.repeat(40),site='example.org',counterparty='0x'+'1'.repeat(40),entries=[];
  let active=false;
@@ -125,10 +125,10 @@ test('fake incident pipeline retains public warning when report upload fails',as
 });
 
 test('Arkiv codec, journal, transport and receipt checker compose with a fake signer and RPC',async t=>{
- const {openArkivSender}=await import('../../integrations/arkiv/sender.js');
- const {createArkivTransport}=await import('../../integrations/arkiv/transport.js');
- const {createArkivConfirmation}=await import('../../integrations/arkiv/confirm.js');
- const {encodeCreateRecord}=await import('../../integrations/arkiv/codec.js');
+ const {openArkivSender}=await import('../../shared/integrations/arkiv/sender.js');
+ const {createArkivTransport}=await import('../../shared/integrations/arkiv/transport.js');
+ const {createArkivConfirmation}=await import('../../shared/integrations/arkiv/confirm.js');
+ const {encodeCreateRecord}=await import('../../shared/integrations/arkiv/codec.js');
  const dir=await mkdtemp(join(tmpdir(),'bound-arkiv-stack-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const owner='0x'+'a'.repeat(40),target='0x'+'b'.repeat(40),tx='0x'+'c'.repeat(64),key='0x'+'d'.repeat(64),blockHash='0x'+'e'.repeat(64),topic='0xb282d7c494b8899aa8015cd07be621530beb03409eb8c5e8fdc1411ba64356a5';
  const record={schemaVersion:1,kind:'observation',site:'example.org',chainId:1,value:'0x'+'1'.repeat(40),reporterKey:'test-key',event:'warned'};

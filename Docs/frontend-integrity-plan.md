@@ -21,7 +21,7 @@ At signing time, BOUND should be able to say three extra things, each with its e
 
 ## 3. Prerequisite: move the evaluator to additive scoring
 
-Today `packages/policy-core/index.mjs` starts every scored request at **100** and only applies caps. There is nothing to "increase". Implement the v2 additive model already specified in Final Architecture §9.2 first, then add the new signals to it:
+Today `shared/policy-core/index.mjs` starts every scored request at **100** and only applies caps. There is nothing to "increase". Implement the v2 additive model already specified in Final Architecture §9.2 first, then add the new signals to it:
 
 ```
 score = clamp(50 + Σ signals, 0, 100)
@@ -61,7 +61,7 @@ The manifest, canonicalized the same way as the snapshot (RFC 8785, Keccak-256):
  "connectHosts":["api.example.org","rpc.example.org"]}
 ```
 
-**Reuse the existing code.** Fetching and verifying works exactly like `trust-engine.mjs`: read the record via Anon-RPC, fetch the bytes, verify the digest, and reject on mismatch, rollback or expiry. Publishing reuses `publishAttestation`'s pattern in `integrations/ens/src/resolver-client.ts`. The curator CLI gains `bound-curator frontend publish <buildDir>`, which walks the build output and emits the manifest. The demo dApp's build publishes one.
+**Reuse the existing code.** Fetching and verifying works exactly like `trust-engine.mjs`: read the record via Anon-RPC, fetch the bytes, verify the digest, and reject on mismatch, rollback or expiry. Publishing reuses `publishAttestation`'s pattern in `shared/integrations/ens/src/resolver-client.ts`. The curator CLI gains `bound-curator frontend publish <buildDir>`, which walks the build output and emits the manifest. The demo dApp's build publishes one.
 
 The standard ENS `contenthash` record (an IPFS/Swarm site root) is read as **context only**. Matching individual executed files to a UnixFS/BMT root is out of scope for the first cut.
 

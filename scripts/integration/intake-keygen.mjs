@@ -10,7 +10,7 @@
 import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { keyId, toBase64Url } from '../../integrations/report-crypto/index.mjs';
+import { keyId, toBase64Url } from '../../shared/integrations/report-crypto/index.mjs';
 
 const args = process.argv.slice(2);
 for (const a of args) if (a !== '--rotate' && a !== '--print-env') throw new Error(`unknown option ${a}`);

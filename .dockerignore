@@ -8,9 +8,8 @@
 # Not needed by the aggregator.
 node_modules/
 **/node_modules/
-apps/
-landing/
-demo/
+client/
+server/demo/
 Docs/
 arkiv/
 fixtures/

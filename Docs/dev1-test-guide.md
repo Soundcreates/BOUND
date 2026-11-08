@@ -16,30 +16,30 @@ From the repository root, with Node.js 22 or later:
 ```sh
 npm ci
 npm test
-node --test apps/extension/*.test.mjs
-node --test packages/decoder/*.test.mjs packages/policy-core/*.test.mjs
-node apps/extension/build.mjs
-node apps/extension/browser-check.mjs
+node --test client/extension/*.test.mjs
+node --test shared/decoder/*.test.mjs shared/policy-core/*.test.mjs
+node client/extension/build.mjs
+node client/extension/browser-check.mjs
 ```
 
 The root `npm test` does not include the extension suite. These checks use local fixtures and do not demonstrate live services. The browser check requires an installed Chromium-family browser that supports headless unpacked extensions.
 
 ## 2. Fake-wallet browser checks
 
-1. Open `chrome://extensions`, enable Developer mode, and load the built `apps/extension/dist` directory as an unpacked extension. Rebuild and reload the extension whenever its source changes.
+1. Open `chrome://extensions`, enable Developer mode, and load the built `client/extension/dist` directory as an unpacked extension. Rebuild and reload the extension whenever its source changes.
 2. In separate terminals at the repository root run:
 
    ```sh
-   python3 -m http.server 8000 --directory demo/test-dapp
+   python3 -m http.server 8000 --directory client/demo/test-dapp
    ```
 
    ```sh
-   python3 -m http.server 8001 --directory demo/test-dapp
+   python3 -m http.server 8001 --directory client/demo/test-dapp
    ```
 
 3. Open `http://127.0.0.1:8000`, choose **Announce fake wallet**, and exercise **Request API**, **send API**, and **sendAsync API**. For each, test Cancel and Continue. Cancel must return error 4001; Continue must reach the fake wallet. The warning should identify the method, site, frame, and chain. The fake wallet does not contact a chain.
 4. Repeat using the iframe controls. The warning must distinguish the top-level origin from the frame origin. Check that no unsupported path is shown as green. Grey is expected without a valid live snapshot and baseline.
-5. Optionally run `node apps/extension/browser-check.mjs`. Set `BOUND_CHROMIUM_PATH` if needed; the selected browser must allow headless unpacked extensions. The retained-provider bypass demonstration is an expected limitation, not a protection pass.
+5. Optionally run `node client/extension/browser-check.mjs`. Set `BOUND_CHROMIUM_PATH` if needed; the selected browser must allow headless unpacked extensions. The retained-provider bypass demonstration is an expected limitation, not a protection pass.
 
 Positive observations require a one-time receipt bound to the evaluated request, payload/state digests, tab, frame, and document. The MAIN-world hook sends the receipt only after its final state check and forwarding the frozen request to the wallet provider; the service worker rechecks the current document and policy before queueing. Unit and fake-service-worker tests cover replay, wrong-frame, stale-document, state-change, and incident cases. The live watcher round trip remains unverified.
 
@@ -50,9 +50,9 @@ Revocation links select the chain where Revoke.cash supports it and display the 
 Use a dedicated disposable testnet wallet and public endpoints. The extension Settings page accepts public URLs and addresses, never private keys. You need all of the following before the live scenario is meaningful:
 
 - A published coherent Sepolia ENS root and matching unexpired snapshot served by two independent Swarm gateways. The matrix in [phase-0-chain-matrix.md](phase-0-chain-matrix.md) records intended values; verify the currently published record and use the actual matching resolver and network configuration.
-- A configured watcher and public Arkiv writer with current owner-checked baseline and status records for the test site and chain. The deployment setup is in [the watcher README](../services/watcher/README.md). Its `allowedOrigins` must include `chrome-extension://<extension-id>` from `chrome://extensions`; a reloaded or separately installed extension can have a different ID. Its intake URL must end in `/v1/observations`, use HTTPS except for a local loopback endpoint, and be reachable from the browser.
+- A configured watcher and public Arkiv writer with current owner-checked baseline and status records for the test site and chain. The deployment setup is in [the watcher README](../server/watcher/README.md). Its `allowedOrigins` must include `chrome-extension://<extension-id>` from `chrome://extensions`; a reloaded or separately installed extension can have a different ID. Its intake URL must end in `/v1/observations`, use HTTPS except for a local loopback endpoint, and be reachable from the browser.
 - A working anonymous RPC bootstrap and destination. Configure both in extension Settings. The selected worker must run in the built extension; availability of a direct RPC endpoint alone does not prove this.
-- A controlled test site and wallet on the matching test chain. Use only disposable assets. The same-origin HTTP fixture is described in [the hijack demo README](../demo/hijack-server/README.md); it is not a public DNS/TLS cutover test.
+- A controlled test site and wallet on the matching test chain. Use only disposable assets. The same-origin HTTP fixture is described in [the hijack demo README](../server/demo/hijack-server/README.md); it is not a public DNS/TLS cutover test.
 
 These services and their authorization are not automatically provisioned by the local checks. If any prerequisite is absent, record the corresponding live test as **not run**, not passed.
 

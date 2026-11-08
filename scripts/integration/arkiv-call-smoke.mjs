@@ -1,5 +1,5 @@
-import {encodeCreateRecord,encodePatchRecord,encodeExtendEntity} from '../../integrations/arkiv/codec.js';
-import {keccak256} from '../../packages/contracts/keccak-reference.js';
+import {encodeCreateRecord,encodePatchRecord,encodeExtendEntity} from '../../shared/integrations/arkiv/codec.js';
+import {keccak256} from '../../shared/contracts/keccak-reference.js';
 const [rpcUrl,target]=process.argv.slice(2);
 let endpoint;try{endpoint=new URL(rpcUrl);}catch{throw new Error('usage: node scripts/integration/arkiv-call-smoke.mjs <https-rpc-url> <documented-system-address>');}
 if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||typeof target!=='string'||!/^0x[0-9a-f]{40}$/.test(target))throw new Error('invalid public RPC or system address');

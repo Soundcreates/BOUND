@@ -1,15 +1,15 @@
 import {mkdir, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {loadCuratorConfig} from '../../services/curator/src/env.ts';
-import {loadCompileInput, compileSnapshot} from '../../services/curator/src/compile.ts';
-import {readAndVerifyRoot} from '../../services/curator/src/read.ts';
-import {publishSnapshot} from '../../services/curator/src/publish.ts';
+import {loadCuratorConfig} from '../../server/curator/src/env.ts';
+import {loadCompileInput, compileSnapshot} from '../../server/curator/src/compile.ts';
+import {readAndVerifyRoot} from '../../server/curator/src/read.ts';
+import {publishSnapshot} from '../../server/curator/src/publish.ts';
 import {makePublicClient, makeWalletClient, readRootRecord, canWriteRootKey, grantCuratorRole, RootReadError} from '@bound/integrations-ens';
 import {privateKeyToAccount} from 'viem/accounts';
-import {createArkivReader} from '../../apps/extension/arkiv-reader.mjs';
-import {createTrustEngine} from '../../apps/extension/trust-engine.mjs';
-import {readArkivEntity} from '../../integrations/arkiv/read.js';
-import {readPreconnectionSiteStatus} from '../../apps/extension/decision-context.mjs';
+import {createArkivReader} from '../../client/extension/arkiv-reader.mjs';
+import {createTrustEngine} from '../../client/extension/trust-engine.mjs';
+import {readArkivEntity} from '../../shared/integrations/arkiv/read.js';
+import {readPreconnectionSiteStatus} from '../../client/extension/decision-context.mjs';
 import {DEMO_SCOPES} from './demo-arkiv.js';
 
 const mode=process.argv[2];

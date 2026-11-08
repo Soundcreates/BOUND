@@ -1,4 +1,4 @@
-# BOUND aggregator (services/watcher/local-intake.mjs).
+# BOUND aggregator (server/watcher/local-intake.mjs).
 #
 # The image holds no state and no secrets. On start it rebuilds its journals from what
 # its writer key already published on Arkiv, so a replacement container is an exact copy
@@ -24,13 +24,13 @@ RUN printf '{"name":"bound-aggregator","private":true,"type":"module","dependenc
  && npm install --omit=dev --no-audit --no-fund \
  && npm cache clean --force
 
-COPY packages/contracts ./packages/contracts
-COPY integrations/arkiv ./integrations/arkiv
-COPY integrations/report-crypto ./integrations/report-crypto
-COPY services/watcher ./services/watcher
+COPY shared/contracts ./shared/contracts
+COPY shared/integrations/arkiv ./shared/integrations/arkiv
+COPY shared/integrations/report-crypto ./shared/integrations/report-crypto
+COPY server/watcher ./server/watcher
 
 USER node
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||process.env.BOUND_INTAKE_PORT||8787)+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
-CMD ["node", "services/watcher/local-intake.mjs"]
+CMD ["node", "server/watcher/local-intake.mjs"]

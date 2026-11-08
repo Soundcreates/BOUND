@@ -1,5 +1,5 @@
-import {createArkivRpcReader} from '../../integrations/arkiv/rpc.js';
-import {localArkivConfig} from '../../services/watcher/local-arkiv-config.mjs';
+import {createArkivRpcReader} from '../../shared/integrations/arkiv/rpc.js';
+import {localArkivConfig} from '../../server/watcher/local-arkiv-config.mjs';
 
 const [site, chainText] = process.argv.slice(2);
 if (!site || !chainText || process.argv.length !== 4 || !/^[1-9]\d*$/.test(chainText) || !Number.isSafeInteger(Number(chainText))) throw Error('Usage: node --env-file=.env scripts/watcher/incident-history.mjs <hostname[:port]> <wallet-chain-id>');

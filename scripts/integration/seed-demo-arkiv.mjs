@@ -2,10 +2,10 @@ import {createHash} from 'node:crypto';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {FetchRequest,JsonRpcProvider,Wallet,keccak256} from 'ethers';
-import {openArkivArchive} from '../../integrations/arkiv/archive.js';
-import {createArkivRpcReader} from '../../integrations/arkiv/rpc.js';
-import {createArkivSigner} from '../../integrations/arkiv/signer.js';
-import {createArkivReader} from '../../apps/extension/arkiv-reader.mjs';
+import {openArkivArchive} from '../../shared/integrations/arkiv/archive.js';
+import {createArkivRpcReader} from '../../shared/integrations/arkiv/rpc.js';
+import {createArkivSigner} from '../../shared/integrations/arkiv/signer.js';
+import {createArkivReader} from '../../client/extension/arkiv-reader.mjs';
 import {createDemoRecords,checkDemoRecords,DEMO_SCOPES} from './demo-arkiv.js';
 
 const checkOnly=process.argv[2]==='--check';

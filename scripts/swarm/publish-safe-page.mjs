@@ -3,7 +3,7 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const expected=join(root,'apps/safe-page/dist');
+const expected=join(root,'client/safe-page/dist');
 const files=['app.js','index.html','style.css'];
 export const DEFAULT_GATEWAY='https://api.gateway.ethswarm.org';
 function endpoint(value, {gateway=false}={}) {
@@ -86,7 +86,7 @@ export async function publishSafePage({directory,beeUrl,batchId,fetchImpl=fetch,
 }
 async function main(){
  const args=process.argv.slice(2), options={directory:expected,dryRun:true};
- while(args.length){const flag=args.shift();if(flag==='--publish') options.dryRun=false;else if(flag==='--bee') options.stampedByHost=false;else if(flag==='--gateway') options.stampedByHost=true;else if(flag==='--dry-run') options.dryRun=true;else if(flag==='--verify'&&args.length) options.reference=args.shift();else if(flag==='--directory'&&args.length) options.directory=args.shift();else throw Error('usage: [--directory apps/safe-page/dist] [--gateway | --bee] [--dry-run | --publish] [--verify <reference>]');}
+ while(args.length){const flag=args.shift();if(flag==='--publish') options.dryRun=false;else if(flag==='--bee') options.stampedByHost=false;else if(flag==='--gateway') options.stampedByHost=true;else if(flag==='--dry-run') options.dryRun=true;else if(flag==='--verify'&&args.length) options.reference=args.shift();else if(flag==='--directory'&&args.length) options.directory=args.shift();else throw Error('usage: [--directory client/safe-page/dist] [--gateway | --bee] [--dry-run | --publish] [--verify <reference>]');}
  Object.assign(options,{...(options.stampedByHost===false?{beeUrl:process.env.BOUND_BEE_API_URL,batchId:process.env.BOUND_POSTAGE_BATCH_ID,apiVersion:process.env.BOUND_BEE_API_VERSION}:{}),gatewayUrl:process.env.BOUND_SWARM_GATEWAY_URL});
  console.log(JSON.stringify(await publishSafePage(options),null,2));
 }

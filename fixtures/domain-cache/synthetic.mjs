@@ -1,6 +1,6 @@
 // Isolated test evidence only. These reserved .example names are not real sites.
 import {createHash} from 'node:crypto';
-import {validateRecord} from '../../packages/contracts/index.js';
+import {validateRecord} from '../../shared/contracts/index.js';
 const hash=value=>'sha256-'+createHash('sha256').update(value).digest('base64');
 export function syntheticDomainFixture({site='suspicious-wallet.example',now=Date.now()}={}) {
  if(!['suspicious-wallet.example','fake-swap.example','wallet-verify.example','reward-claim.example','token-bridge.example','secure-airdrop.example'].includes(site)||!Number.isSafeInteger(now)||now<3_600_000)throw Error('invalid synthetic fixture');

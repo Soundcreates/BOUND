@@ -68,7 +68,7 @@ This document is the freeze record required by plan §Phase 0 shared exit gate:
 | Field | Value |
 |---|---|
 | Transport | `WorkerTransport` (MV3 offscreen host) |
-| Worker config | `integrations/anon-rpc/src/known-workers.ts` |
+| Worker config | `shared/integrations/anon-rpc/src/known-workers.ts` |
 | Required RPC methods (read-only allowlist) | `eth_call`, `eth_getCode`, `eth_chainId`, `eth_blockNumber`, `eth_getBalance`, `eth_getTransactionCount`, `eth_getLogs`, `eth_getTransactionReceipt`, `net_version` |
 | Value-moving pass-through | `eth_sendRawTransaction` (already-signed only) |
 | Explicitly excluded | `eth_sign`, direct bootstrap/config reads |

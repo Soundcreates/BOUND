@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import {strict as assert} from 'node:assert';
-import {validateRecord} from '../../packages/contracts/index.js';
+import {validateRecord} from '../../shared/contracts/index.js';
 import {createDemoRecords,checkDemoRecords,DEMO_SCOPES} from './demo-arkiv.js';
 
 const updatedAt='2026-11-06T12:00:00.000Z';

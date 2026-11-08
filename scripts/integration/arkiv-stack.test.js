@@ -3,12 +3,12 @@ import {strict as assert} from 'node:assert';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createArkivWriter} from '../../integrations/arkiv/writer.js';
-import {createArkivRpcReader} from '../../integrations/arkiv/rpc.js';
-import {createArkivConfirmation} from '../../integrations/arkiv/confirm.js';
-import {createArkivTransport} from '../../integrations/arkiv/transport.js';
-import {openArkivSender} from '../../integrations/arkiv/sender.js';
-import {encodeCreateRecord} from '../../integrations/arkiv/codec.js';
+import {createArkivWriter} from '../../shared/integrations/arkiv/writer.js';
+import {createArkivRpcReader} from '../../shared/integrations/arkiv/rpc.js';
+import {createArkivConfirmation} from '../../shared/integrations/arkiv/confirm.js';
+import {createArkivTransport} from '../../shared/integrations/arkiv/transport.js';
+import {openArkivSender} from '../../shared/integrations/arkiv/sender.js';
+import {encodeCreateRecord} from '../../shared/integrations/arkiv/codec.js';
 
 test('fake RPC exercises owner-filtered lookup, stable signed send, receipt and readback',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'bound-arkiv-stack-'));t.after(()=>rm(dir,{recursive:true,force:true}));

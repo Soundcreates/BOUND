@@ -3,13 +3,13 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*",
-    "integrations/*",
-    "services/*"
+    "shared/*",
+    "shared/integrations/*",
+    "server/*"
   ],
   "scripts": {
     "test": "node --experimental-strip-types --test \"**/*.test.{js,mjs,ts}\"",
-    "demo:local": "node --env-file=.env demo/hijack-server/run.mjs",
+    "demo:local": "node --env-file=.env server/demo/hijack-server/run.mjs",
     "test-workspace": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:arkiv-live": "node --env-file=.env scripts/integration/live-arkiv.mjs",
@@ -19,10 +19,10 @@
     "demo:snapshot:publish": "node --env-file=.env --experimental-strip-types scripts/integration/demo-snapshot.mjs --publish",
     "demo:snapshot:check": "node --env-file=.env --experimental-strip-types scripts/integration/demo-snapshot.mjs --check",
     "check:ens-read": "node --env-file=.env scripts/integration/ens-read-probe.mjs",
-    "probe:swarm-gateway": "node --experimental-strip-types services/curator/probe/probe-swarm-gateway.ts",
-    "probe:seed-codehash": "node --experimental-strip-types services/curator/probe/seed-codehash.ts",
-    "probe:verify-bytecode": "node --experimental-strip-types services/curator/probe/verify-bytecode.ts",
-    "curator": "node --experimental-strip-types services/curator/src/cli.ts",
+    "probe:swarm-gateway": "node --experimental-strip-types server/curator/probe/probe-swarm-gateway.ts",
+    "probe:seed-codehash": "node --experimental-strip-types server/curator/probe/seed-codehash.ts",
+    "probe:verify-bytecode": "node --experimental-strip-types server/curator/probe/verify-bytecode.ts",
+    "curator": "node --experimental-strip-types server/curator/src/cli.ts",
     "swarm:safe:check": "node scripts/swarm/publish-safe-page.mjs --gateway --dry-run",
     "swarm:safe:publish": "node scripts/swarm/publish-safe-page.mjs --gateway --publish"
   },

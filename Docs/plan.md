@@ -4,7 +4,7 @@
 
 **Architecture basis:** BOUND Final Architecture v2.0. At plan creation, the repository contained only the two architecture documents. Since then, Developer 3 has added the workspace and executable contract package, a durable watcher and incident pipeline, Arkiv read/write composition, and local integration harnesses. The current local suite exercises those paths with fakes. The live Arkiv create/patch/expiry gate now passes; the browser extension, ENSv2, Swarm, Anon-RPC, and controlled DNS/TLS drift remain unverified in this checkout. Treat architecture claims as design input until executable evidence is present here.
 
-**Phase status (2026-11-06): Phase 0 remains open.** Local unit tests exercise the Developer 3 implementation, and the live Rabdi Arkiv create, patch, owner-query, and expiry checks passed; evidence is in `packages/contracts/feasibility.md`. Controlled DNS/TLS drift still requires an end-to-end cutover. Developer 1 and 2 browser, ENSv2, Swarm, and Anon-RPC gates remain outstanding. No later phase is accepted as complete until every shared exit gate below is evidenced.
+**Phase status (2026-11-06): Phase 0 remains open.** Local unit tests exercise the Developer 3 implementation, and the live Rabdi Arkiv create, patch, owner-query, and expiry checks passed; evidence is in `shared/contracts/feasibility.md`. Controlled DNS/TLS drift still requires an end-to-end cutover. Developer 1 and 2 browser, ENSv2, Swarm, and Anon-RPC gates remain outstanding. No later phase is accepted as complete until every shared exit gate below is evidenced.
 
 ## 1. Source of truth and current baseline
 
@@ -123,13 +123,13 @@ Keep separate adapters for snapshot/root access, Swarm bytes, Arkiv bundle/statu
 
 ## 4. Developer lanes and file ownership
 
-Each lane is independent during Phase 1. The plan is the contract source until Developer 3 commits executable schemas in Phase 0. Use deterministic local fakes until integration. Keep edits in assigned paths. Developer 3 owns packages/contracts; consumers may request a versioned change, but keep working against the current contract until a phase boundary. No one waits on an unfinished library.
+Each lane is independent during Phase 1. The plan is the contract source until Developer 3 commits executable schemas in Phase 0. Use deterministic local fakes until integration. Keep edits in assigned paths. Developer 3 owns shared/contracts; consumers may request a versioned change, but keep working against the current contract until a phase boundary. No one waits on an unfinished library.
 
 | Developer | Owns | Mission |
 |---|---|---|
-| **Developer 1 — Browser and user path** | apps/extension/**, packages/decoder/**, packages/policy-core/**, demo/test-dapp/** | Own provider interception, bridge and warning UI, decoder/evaluator, observation minimization/emission, test dApp and fake EIP-6963 providers, plus the MV3 offscreen host shell for Anon-RPC. Wire extension consumers to stable adapter contracts. |
-| **Developer 2 — Trust and chain reads** | packages/snapshot/**, services/curator/**, integrations/ens/**, integrations/swarm/**, integrations/anon-rpc/**, fixtures/snapshots/** | Own snapshot/compiler/verifier, ENSv2 root and protocol attestation, curator role, Swarm snapshot/report storage library, Anon-RPC transport adapter and chain reads. Export stable trust, Swarm, and chain-read adapters. |
-| **Developer 3 — Live data and integration harness** | packages/contracts/**, fixtures/contracts/**, services/watcher/**, integrations/arkiv/**, demo/hijack-server/**, arkiv/**, scripts/integration/**, root package/workspace/CI files, README/LICENSE | Own executable schemas/conformance fixtures, repo skeleton and CI, watcher intake/composition, Arkiv write/query/owner checks, hijack server and integration harness, and final project/Arkiv documentation. Consume Developer 2's Swarm and Anon-RPC contracts. |
+| **Developer 1 — Browser and user path** | client/extension/**, shared/decoder/**, shared/policy-core/**, client/demo/test-dapp/** | Own provider interception, bridge and warning UI, decoder/evaluator, observation minimization/emission, test dApp and fake EIP-6963 providers, plus the MV3 offscreen host shell for Anon-RPC. Wire extension consumers to stable adapter contracts. |
+| **Developer 2 — Trust and chain reads** | shared/snapshot/**, server/curator/**, shared/integrations/ens/**, shared/integrations/swarm/**, shared/integrations/anon-rpc/**, fixtures/snapshots/** | Own snapshot/compiler/verifier, ENSv2 root and protocol attestation, curator role, Swarm snapshot/report storage library, Anon-RPC transport adapter and chain reads. Export stable trust, Swarm, and chain-read adapters. |
+| **Developer 3 — Live data and integration harness** | shared/contracts/**, fixtures/contracts/**, server/watcher/**, shared/shared/integrations/arkiv/**, server/demo/hijack-server/**, arkiv/**, scripts/integration/**, root package/workspace/CI files, README/LICENSE | Own executable schemas/conformance fixtures, repo skeleton and CI, watcher intake/composition, Arkiv write/query/owner checks, hijack server and integration harness, and final project/Arkiv documentation. Consume Developer 2's Swarm and Anon-RPC contracts. |
 
 ### Instructions for all three developers
 

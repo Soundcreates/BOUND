@@ -1,5 +1,5 @@
 import {readFile,stat} from 'node:fs/promises';
-import {parseUniqueJSON} from '../../packages/contracts/index.js';
+import {parseUniqueJSON} from '../../shared/contracts/index.js';
 import {summarizeMetrics} from './metrics.js';
 
 if(process.argv.length!==3)throw new Error('usage: node scripts/integration/metrics-report.mjs /path/to/samples.json');

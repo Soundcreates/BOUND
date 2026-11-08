@@ -3,11 +3,11 @@ import {strict as assert} from 'node:assert';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {openArkivArchive} from '../../integrations/arkiv/archive.js';
-import {queryBundle} from '../../integrations/arkiv/index.js';
-import {createWatcherService} from '../../services/watcher/service.js';
-import {openWatcherIncidents} from '../../services/watcher/incident-binding.js';
-import {keccak256} from '../../packages/contracts/keccak-reference.js';
+import {openArkivArchive} from '../../shared/integrations/arkiv/archive.js';
+import {queryBundle} from '../../shared/integrations/arkiv/index.js';
+import {createWatcherService} from '../../server/watcher/service.js';
+import {openWatcherIncidents} from '../../server/watcher/incident-binding.js';
+import {keccak256} from '../../shared/contracts/keccak-reference.js';
 const readWord=(b,o)=>Number(BigInt('0x'+b.subarray(o,o+32).toString('hex')));
 function decodeCall(data){
  const outer=Buffer.from(data.slice(10),'hex'),array=readWord(outer,0),op=array+32+readWord(outer,array+32),type=readWord(outer,op),at=op+readWord(outer,op+32),body=outer.subarray(at+32,at+32+readWord(outer,at)),tuple=readWord(body,0);

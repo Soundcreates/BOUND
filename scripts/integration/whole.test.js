@@ -3,10 +3,10 @@ import {strict as assert} from 'node:assert';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {openArkivArchive} from '../../integrations/arkiv/archive.js';
-import {openDurableWatcher} from '../../services/watcher/durable.js';
-import {createIntakeServer} from '../../services/watcher/http.js';
-import {createObservationPipeline} from '../../services/watcher/pipeline.js';
+import {openArkivArchive} from '../../shared/integrations/arkiv/archive.js';
+import {openDurableWatcher} from '../../server/watcher/durable.js';
+import {createIntakeServer} from '../../server/watcher/http.js';
+import {createObservationPipeline} from '../../server/watcher/pipeline.js';
 
 const readWord=(buffer,offset)=>Number(BigInt('0x'+buffer.subarray(offset,offset+32).toString('hex')));
 function attributesFromCall(data){

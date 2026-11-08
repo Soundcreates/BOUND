@@ -1568,9 +1568,13 @@ bound/
     permit2-recipient-unbound.json
     eip7702-delegation.json
     proxy-upgrade.json
-  demo/
-    test-dapp/
-    hijack-server/
+  client/
+    demo/
+      test-dapp/
+      frontend-switch/
+  server/
+    demo/
+      hijack-server/
     replay-demo.sh
   docs/
     architecture.md

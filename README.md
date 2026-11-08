@@ -47,32 +47,44 @@ BOUND is organized into independent components, each responsible for a specific 
 
 ```text
 BOUND/
-├── extension/                  # Browser extension
-│   ├── src/                    # Extension source code
-│   ├── background/             # Request interception and coordination
-│   ├── content/                # Browser page interaction
-│   ├── popup/                  # User interface and verification status
-│   └── ...
-│
-├── packages/
-│   └── contracts/              # Smart contracts and contract-related logic
-│       └── feasibility.md      # Contract integration feasibility evidence
-│
-├── integrations/
-│   └── arkiv/                  # Arkiv integration
-│       └── README.md           # Integration status and implementation details
-│
-├── demo/
-│   └── hijack-server/          # Local domain-hijacking simulation
-│       └── README.md           # Demo setup and instructions
-│
-├── Docs/
-│   └── plan.md                 # Implementation plan and component milestones
-│
-├── .env.example                # Example local configuration
-├── package.json                # Project scripts and dependencies
-└── package-lock.json           # Locked dependency versions
+├── client/
+│   ├── extension/              # Browser extension
+│   ├── safe-page/              # Isolated warning and recovery page
+│   ├── landing/                # Project website
+│   ├── video/                  # Demo/video assets
+│   └── demo/                   # Test dApp and frontend-switch sites
+│       ├── test-dapp/
+│       └── frontend-switch/
+├── server/
+│   ├── watcher/                # Domain monitoring and alert service
+│   ├── curator/                # Trusted registry compiler and publisher
+│   └── demo/                   # Local server fixtures
+│       └── hijack-server/
+├── shared/
+│   ├── contracts/              # Shared schemas and contract evidence
+│   ├── decoder/                # Transaction decoding
+│   ├── policy-core/            # Shared policy evaluation
+│   ├── snapshot/                # Registry snapshot logic
+│   └── integrations/           # Arkiv, ENS, Swarm, and Anon-RPC adapters
+├── scripts/                    # Rooted maintenance and integration scripts
+├── fixtures/                   # Rooted test and evidence fixtures
+├── .bound/                     # Local operational state and user data
+├── Docs/                       # Project plans, guides, and evidence
+├── package.json                # Root scripts and dependency/workspace policy
+└── package-lock.json           # Root dependency lockfile
 ```
+
+Use the root `package.json` scripts as the supported entry points where available. Examples:
+
+```sh
+npm test
+node client/extension/build.mjs
+node client/extension/browser-check.mjs
+node server/watcher/run.mjs server/watcher/config-example.mjs
+npm run demo:local
+```
+
+For component-specific setup, start with the README in that component directory. `scripts/`, `fixtures/`, and `.bound/` remain rooted.
 
 *Directory names and subdirectories should reflect the actual repository layout.*
 
@@ -108,7 +120,7 @@ The testnet writer used for recorded entities is `0xe63393558e36df643347326e7e03
 
 ```sh
 node --input-type=module <<'JS'
-import {createArkivRpcReader} from './integrations/arkiv/rpc.js';
+import {createArkivRpcReader} from './shared/integrations/arkiv/rpc.js';
 const reader = createArkivRpcReader({url:'https://rpc.rabdi.db-chain.testnet.arkiv.network',schemaTag:'bound.record.v1'});
 const records = await reader.query({owner:'0xe63393558e36df643347326e7e03ad5fb0e6c867'});
 console.log(records);
@@ -126,7 +138,7 @@ BOUND is licensed under the [MIT License](LICENSE). Third-party components may h
 - No independent security audit has been completed.
 - Browser end-to-end testing, external integration verification, and required security metric reports are still in progress.
 
-For implementation details, see the [implementation plan](Docs/plan.md), [Arkiv integration](integrations/arkiv/README.md), [contract feasibility evidence](packages/contracts/feasibility.md), and [local hijack demo](demo/hijack-server/README.md).
+For implementation details, see the [implementation plan](Docs/plan.md), [Arkiv integration](shared/integrations/arkiv/README.md), [contract feasibility evidence](shared/contracts/feasibility.md), and [local hijack demo](server/demo/hijack-server/README.md).
 
 ## Financial-site registry
 

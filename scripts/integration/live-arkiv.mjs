@@ -2,8 +2,8 @@ import {randomBytes} from 'node:crypto';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 import {JsonRpcProvider,Transaction,Wallet,keccak256} from 'ethers';
-import {openArkivArchive} from '../../integrations/arkiv/archive.js';
-import {createArkivRpcReader} from '../../integrations/arkiv/rpc.js';
+import {openArkivArchive} from '../../shared/integrations/arkiv/archive.js';
+import {createArkivRpcReader} from '../../shared/integrations/arkiv/rpc.js';
 
 const CHAIN_ID=7794095;
 const SYSTEM='0x4400000000000000000000000000000000000044';

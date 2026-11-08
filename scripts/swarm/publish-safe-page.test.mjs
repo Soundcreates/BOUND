@@ -4,8 +4,8 @@ import {publishSafePage,validateSafeHtml} from './publish-safe-page.mjs';
 import {readFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {resolve} from 'node:path';
-execFileSync(process.execPath,['apps/safe-page/build.mjs']);
-const directory=resolve('apps/safe-page/dist'),batchId='a'.repeat(64),reference='b'.repeat(64);
+execFileSync(process.execPath,['client/safe-page/build.mjs']);
+const directory=resolve('client/safe-page/dist'),batchId='a'.repeat(64),reference='b'.repeat(64);
 const config={directory,beeUrl:'http://127.0.0.1:1633',gatewayUrl:'https://example.com',batchId,apiVersion:'1.2.3',dryRun:false,stampedByHost:false};
 const response=value=>({ok:true,text:async()=>JSON.stringify(value)});
 test('dry run performs no network activity',async()=>{

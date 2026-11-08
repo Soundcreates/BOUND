@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {syntheticDomainFixture} from './synthetic.mjs';
-import {assessFrontend} from '../../packages/policy-core/frontend.mjs';
+import {assessFrontend} from '../../shared/policy-core/frontend.mjs';
 test('fictional domains contain synthetic mismatch and corroboration for an isolated safe-page test',()=>{
  for(const site of ['suspicious-wallet.example','fake-swap.example','wallet-verify.example','reward-claim.example','token-bridge.example','secure-airdrop.example']){
   const now=Date.now(),f=syntheticDomainFixture({site,now});
