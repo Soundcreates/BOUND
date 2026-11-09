@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -54,5 +55,16 @@ function App() {
   </>;
 }
 
-const testingRoute = /^\/testing\/?$/.test(window.location.pathname);
-createRoot(document.getElementById('root')).render(testingRoute ? <Suspense fallback={<p>Loading testing workbench…</p>}><Testing /></Suspense> : <App />);
+function NotFound() {
+  return <main className="not-found"><h1>Page not found</h1><a href="/">Return to BOUND</a></main>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<App />} />
+      <Route path="/testing" element={<Suspense fallback={<p>Loading testing workbench…</p>}><Testing /></Suspense>} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </BrowserRouter>,
+);
